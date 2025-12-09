@@ -5,14 +5,15 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  engineType      = "binary"
+  previewFeatures = ["clientExtensions"] // ← enable JS output mode
 }
 
 datasource db {
   provider = "postgresql"
 }
-
 
 model Product {
   id String @id @default(cuid())

@@ -7,17 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed-products": "tsx --tsconfig ./tsconfig.json src/scripts/product.ts"
+    "products": "tsx --tsconfig ./tsconfig.json src/scripts/products.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "@stackframe/stack": "^2.8.54",
     "dotenv": "^17.2.3",
+    "lucide-react": "^0.556.0",
     "next": "16.0.7",
     "pg": "^8.16.3",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -36,5 +38,14 @@
   "main": "index.js",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Christopherkabwe/Inventory-management.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Christopherkabwe/Inventory-management/issues"
+  },
+  "homepage": "https://github.com/Christopherkabwe/Inventory-management#readme"
 }
