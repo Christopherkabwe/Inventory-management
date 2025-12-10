@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { deleteProduct } from "@/lib/actions/products";
 import { Divide } from "lucide-react";
 import Pagination from "@/components/pagination"
+import DeleteProductButton from "@/components/deleteProductButton";
 
 
 export default async function InventoryPage({
@@ -104,13 +105,7 @@ export default async function InventoryPage({
                                             {product.lowStockAt}
                                         </td>
                                         <td className="px-6 py-3 text-sm text-gray-500">
-                                            <form action={async (formData: FormData) => {
-                                                "use server"
-                                                await deleteProduct(formData);
-                                            }}>
-                                                <input type="hidden" name="id" value={product.id} />
-                                                <button className="text-red-600 hover:text-red-700">Delete</button>
-                                            </form>
+                                            <DeleteProductButton id={product.id} />
                                         </td>
                                     </tr>
                                 ))}
