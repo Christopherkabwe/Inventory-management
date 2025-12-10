@@ -1,5 +1,5 @@
 import { UserButton } from "@stackframe/stack";
-import { BarChart3, Package, Plus, Settings } from "lucide-react"
+import { BarChart3, Package, Plus, Settings, Info } from "lucide-react"
 import Link from "next/link";
 
 
@@ -13,6 +13,7 @@ export default function Sidebar({
         { name: "Inventory", href: "/inventory", icon: Package },
         { name: "Add Product", href: "/add-product", icon: Plus },
         { name: "Settings", href: "/settings", icon: Settings },
+        { name: "About", href: "/about", icon: Info },
     ];
 
     return <div className="fixed left-0 top-0 bg-gray-900 text-white w-64 min-h-screen p-6 z-10">
