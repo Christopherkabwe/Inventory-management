@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import { useEffect, useActionState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToaster } from '@/components/Toaster';
 
 export default function AddProductPage() {
     const initialState = { message: null, success: false };

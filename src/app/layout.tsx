@@ -4,6 +4,7 @@ import { stackClientApp } from "../stack/client";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { ToasterProvider } from '@/components/Toaster';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,12 +31,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <StackProvider app={stackClientApp}>
-          <StackTheme>
-            {children}
-          </StackTheme>
-        </StackProvider>
-        <Toaster position="bottom-right" />
+        <ToasterProvider>
+          <StackProvider app={stackClientApp}>
+            <StackTheme>
+              {children}
+            </StackTheme>
+          </StackProvider>
+        </ToasterProvider>
+
+
+        {/*<Toaster position="bottom-right" />*/}
       </body>
     </html>
   );

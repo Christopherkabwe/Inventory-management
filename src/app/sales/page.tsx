@@ -1,0 +1,248 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useStackApp } from "@stackframe/stack";
+import Sidebar from "@/components/sidebar";
+import { useToaster } from '@/components/Toaster';
+
+interface Sale {
+    id: string;
+    product: { name: string };
+    quantity: number;
+    totalPrice: number;
+    saleDate: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku: string;
+    price: number;
+    quantity: number;
+}
+
+
+export default function SalesPage() {
+    const stackApp = useStackApp();
+    const user = stackApp.useUser();
+    const [products, setProducts] = useState([]);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [loadingSales, setLoadingSales] = useState(true);
+    const [selectedProductId, setSelectedProductId] = useState("");
+    const [quantity, setQuantity] = useState(1);
+    const [salePrice, setSalePrice] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { addToast } = useToaster();
+
+    useEffect(() => {
+        fetch("/api/products")
+            .then(res => res.json())
+            .then(data => setProducts(data.products))
+            .catch(console.error);
+        fetch(`/api/sales?userId=${user?.id}`)
+            .then(res => res.json())
+            .then(data => {
+                setSales(data.sales);
+                setLoadingSales(false);
+            })
+            .catch(() => {
+                setLoadingSales(false);
+                addToast("Error loading sales.", "error");
+            });
+    }, [user, addToast]);
+
+    useEffect(() => {
+        if (selectedProductId) {
+            const selectedProduct = products.find(p => p.id === selectedProductId);
+            if (selectedProduct) {
+                setSalePrice(selectedProduct.price);
+            }
+        } else {
+            setSalePrice(null);
+        }
+    }, [selectedProductId, products]);
+
+    const handleCreateSale = async (formData) => {
+        const productId = formData.get('productId');
+        const quantity = Number(formData.get('quantity'));
+        const salePrice = Number(formData.get('salePrice'));
+
+        if (!productId || quantity <= 0 || !salePrice || salePrice <= 0) {
+            addToast("Please select a product, enter valid quantity and price.", "error");
+            return;
+        }
+
+        const selectedProduct = products.find(p => p.id === productId);
+        if (!selectedProduct || selectedProduct.quantity < quantity) {
+            addToast(`Not enough stock for "${selectedProduct?.name}". Available: ${selectedProduct?.quantity || 0}.`, "error");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch("/api/sales", {
+                method: "POST",
+                body: JSON.stringify({
+                    productId,
+                    quantity,
+                    totalPrice: salePrice * quantity,
+                    userId: user?.id,
+                }),
+            });
+
+            if (res.ok) {
+                const newSale = await res.json();
+                setSales([newSale, ...sales]);
+                addToast('Sale created!', 'success');
+
+                // Update product quantity in state
+                setProducts(products.map(p =>
+                    p.id === productId ? { ...p, quantity: p.quantity - quantity } : p
+                ));
+
+                // Reset form
+                setSelectedProductId("");
+                setQuantity(1);
+                setSalePrice(null);
+            } else {
+                const errorData = await res.json();
+                addToast(errorData.error || 'Failed to create sale, please check stock level', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            addToast("Something went wrong.", "error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <Sidebar currentPath="/sales" />
+            <main className="ml-64 p-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-gray-900">Sales</h1>
+                            <p className="text-sm text-gray-500">Track and manage your product sales. Select a product, enter quantity, and record a sale.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-6">
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleCreateSale(new FormData(e.currentTarget));
+                    }} className="bg-white rounded-lg border-gray-200 p-6">
+                        <div className="grid grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                                <select
+                                    name="productId"
+                                    value={selectedProductId}
+                                    onChange={(e) => setSelectedProductId(e.target.value)}
+                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                                >
+                                    <option value="">Select Product</option>
+                                    {products.map(p => (
+                                        <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
+                                            {p.name} (SKU: {p.sku}) - K{p.price} ({p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                <input
+                                    type="number"
+                                    name="quantity"
+                                    value={quantity}
+                                    onChange={(e) => setQuantity((e.target.value))}
+                                    min="0"
+                                    required
+                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
+                                    placeholder="Enter quantity"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Price (K)</label>
+                                <input
+                                    type="number"
+                                    name="salePrice"
+                                    value={salePrice || ''}
+                                    onChange={(e) => setSalePrice(Number(e.target.value))}
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
+                                    placeholder="Enter price in Kwacha"
+                                />
+                            </div>
+                            <div>
+                                <SubmitButton isSubmitting={isSubmitting} />
+                            </div>
+                        </div>
+                    </form>
+
+                    <table className="min-w-full table-auto mt-4 border-collapse border border-gray-200">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Product Name</th>
+                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Quantity</th>
+                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Revenue (K)</th>
+                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Date Created</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {loadingSales ? (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-3 text-center text-sm text-gray-500">
+                                        <div className="flex flex-col items-center justify-center gap-5 mt-10 mb-10">
+                                            <svg className="animate-spin h-10 w-10 text-purple-600 items-center" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading sales...
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : sales.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-3 text-center text-sm text-gray-500">No sales recorded yet.</td>
+                                </tr>
+                            ) : (
+                                sales.map((sale, key) => (
+                                    <tr key={sale.id} className={`hover:bg-gray-50 ${key % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
+                                            {sale.product?.name || 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
+                                            {sale.quantity}
+                                        </td>
+                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
+                                            K{sale.totalPrice}
+                                        </td>
+                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
+                                            {new Date(sale.saleDate).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    );
+}
+
+function SubmitButton({ isSubmitting }) {
+    return (
+        <button
+            type="submit"
+            className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            disabled={isSubmitting}
+        >
+            {isSubmitting ? 'Creating Sale...' : 'Create Sale'}
+        </button>
+    );
+}
