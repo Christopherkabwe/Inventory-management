@@ -36,11 +36,12 @@ model Sales {
   id String @id @default(cuid())
   userId    String
   productId String
-  sku       String? @unique
+  sku       String?
   product   Product @relation(fields: [productId], references: [id])
   productName String
   quantity  Int
-  totalPrice Float
+  price Float
+  totalRevenue Float
   saleDate  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

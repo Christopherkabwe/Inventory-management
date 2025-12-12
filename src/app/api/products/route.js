@@ -13,6 +13,7 @@ export async function GET(request) {
                 name: true,
                 sku: true,
                 price: true,
+                quantity: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -25,7 +26,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { name, sku, price, userId } = await request.json();
+        const { name, sku, price, userId, quantity = 0 } = await request.json();
 
         // Basic validation
         if (!name || !sku || !price || !userId) {
@@ -37,6 +38,7 @@ export async function POST(request) {
                 name,
                 sku,
                 price: Number(price), // Ensure price is a number
+                quantity: Number(quantity),
                 userId,
             },
         });

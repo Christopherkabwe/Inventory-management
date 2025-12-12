@@ -44,7 +44,7 @@ export async function GET(request) {
 }
 export async function POST(request) {
     try {
-        const { productId, quantity } = await request.json();
+        const { productId, quantity, userId, price } = await request.json();
 
         // Find the product
         const product = await prisma.product.findUnique({
@@ -61,8 +61,10 @@ export async function POST(request) {
                 { status: 400 }
             );
         }
+        // Use provided price, or fallback to product price if not given
+        const salePrice = price || product.price;
 
-        const userId = "4ba8d662-e7b2-4157-9d04-854d2d4601e6"; // Adjust to get actual user ID
+        //const userId = "4ba8d662-e7b2-4157-9d04-854d2d4601e6"; //  Adjust to get actual user ID
 
         // Create sale and update product quantity in a transaction
         const sale = await prisma.$transaction(async (tx) => {
@@ -77,12 +79,8 @@ export async function POST(request) {
                     productName: product.name, // Add product name here
                     sku: product.sku,
                     quantity,
-                    totalPrice: product.price * quantity,
-                },
-                include: {
-                    product: {
-                        select: { name: true, sku: true, price: true },
-                    },
+                    price: salePrice,
+                    totalRevenue: salePrice * quantity,
                 },
             });
             return newSale;

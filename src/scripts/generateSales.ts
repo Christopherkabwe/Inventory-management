@@ -33,7 +33,8 @@ async function generateRandomSales(count = 10) {
                 productName: `Product ${i + 1}`,
                 sku: product.sku,
                 quantity,
-                totalPrice: Number(product.price) * quantity, // Use Number() instead of parseFloat
+                price: (product.price),
+                totalRevenue: Number(product.price) * quantity, // Use Number() instead of parseFloat
             });
         }
 
