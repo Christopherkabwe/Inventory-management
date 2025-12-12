@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "products": "tsx --tsconfig ./tsconfig.json src/scripts/products.ts",
-    "generateSales": "tsx --tsconfig ./tsconfig.json src/scripts/generateSales.ts"
+    "generateSales": "tsx --tsconfig ./tsconfig.json src/scripts/generateSales.ts",
+    "seed": "tsx --tsconfig ./tsconfig.json src/scripts/seed.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",

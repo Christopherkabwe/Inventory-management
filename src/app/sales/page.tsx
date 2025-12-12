@@ -55,6 +55,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
             .then(res => res.json())
             .then(data => setProducts(data.products))
             .catch(console.error);
+        //fetch(`/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`) User specific data
         fetch(`/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`)
             .then(res => res.json())
             .then(data => {

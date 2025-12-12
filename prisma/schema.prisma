@@ -31,7 +31,6 @@ model Product {
   @@index([userId, name])
   @@index([createdAt])
 }
-
 model Sales {
   id String @id @default(cuid())
   userId    String
@@ -45,4 +44,60 @@ model Sales {
   saleDate  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+// New Models
+model ProductList {
+  id        String   @id @default(cuid())
+  sku       String   @unique
+  name      String
+  price     Float
+  packSize  Int
+  weightValue Float
+  weightUnit String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  inventories Inventory[]
+  sales       Sale[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  country   String
+  city      String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
+model Inventory {
+  id        String   @id @default(cuid())
+  productId String
+  productName String
+  location  String
+  quantity  Int
+  lowStockAt Int
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   ProductList @relation(fields: [productId], references: [id])
+}
+
+model Sale {
+  id        String   @id @default(cuid())
+  customerId String
+  productId String
+  productName String
+  quantity  Int
+  salePrice Float
+  totalAmount Float
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  customer  Customer @relation(fields: [customerId], references: [id])
+  product   ProductList @relation(fields: [productId], references: [id])
 }
