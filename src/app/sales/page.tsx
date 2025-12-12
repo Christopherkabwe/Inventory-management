@@ -1,8 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useStackApp } from "@stackframe/stack";
 import Sidebar from "@/components/sidebar";
 import { useToaster } from '@/components/Toaster';
+import { prisma } from "@/lib/prisma"
+import { motion } from 'framer-motion';
+import Pagination from "@/components/pagination"
 
 interface Sale {
     id: string;
@@ -21,7 +24,7 @@ interface Product {
 }
 
 
-export default function SalesPage() {
+export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?: string, page?: string }> }) {
     const stackApp = useStackApp();
     const user = stackApp.useUser();
     const [products, setProducts] = useState([]);
@@ -33,22 +36,36 @@ export default function SalesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addToast } = useToaster();
 
+    const userId = user?.id;
+    const params = use(searchParams);
+    const q = (params.q ?? "").trim();
+    const page = Math.max(1, Number(params.page ?? 1));
+    const pageSize = 10;
+
+    const [pagination, setPagination] = useState({
+        totalPages: 1,
+        page: 1,
+        totalSales: 0,
+        limit: 10,
+    });
+
     useEffect(() => {
         fetch("/api/products")
             .then(res => res.json())
             .then(data => setProducts(data.products))
             .catch(console.error);
-        fetch(`/api/sales?userId=${user?.id}`)
+        fetch(`/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`)
             .then(res => res.json())
             .then(data => {
-                setSales(data.sales);
+                setSales(data.data || []);
+                setPagination(data.pagination || { totalPages: 1, page: 1, totalSales: 0, limit: pageSize });
                 setLoadingSales(false);
             })
             .catch(() => {
                 setLoadingSales(false);
                 addToast("Error loading sales.", "error");
             });
-    }, [user, addToast]);
+    }, [user, page, addToast]);
 
     useEffect(() => {
         if (selectedProductId) {
@@ -158,6 +175,7 @@ export default function SalesPage() {
                                     value={quantity}
                                     onChange={(e) => setQuantity((e.target.value))}
                                     min="0"
+                                    step="0.01"
                                     required
                                     className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
                                     placeholder="Enter quantity"
@@ -174,7 +192,7 @@ export default function SalesPage() {
                                     step="0.01"
                                     required
                                     className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                    placeholder="Enter price in Kwacha"
+                                    placeholder="K100.00"
                                 />
                             </div>
                             <div>
@@ -205,7 +223,7 @@ export default function SalesPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : sales.length === 0 ? (
+                            ) : !Array.isArray(sales) || sales.length === 0 ? (
                                 <tr>
                                     <td colSpan="4" className="px-6 py-3 text-center text-sm text-gray-500">No sales recorded yet.</td>
                                 </tr>
@@ -229,6 +247,17 @@ export default function SalesPage() {
                             )}
                         </tbody>
                     </table>
+
+                    {Array.isArray(sales) && sales.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-6">
+                            <Pagination
+                                currentPage={pagination.page}
+                                totalPages={pagination.totalPages}
+                                baseUrl="/sales"
+                                SearchParams={{ q }}
+                            />
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
