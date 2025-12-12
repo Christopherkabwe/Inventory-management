@@ -4,10 +4,15 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const page = Number(searchParams.get('page')) || 1;
+    const limit = Number(searchParams.get('limit')) || 10;
+
     if (!userId) {
         return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
+
     try {
+        const skip = (page - 1) * limit;
         const sales = await prisma.sales.findMany({
             where: { userId },
             include: {
@@ -20,14 +25,23 @@ export async function GET(request) {
                 },
             },
             orderBy: { saleDate: 'desc' },
+            skip,
+            take: limit,
         });
-        return NextResponse.json({ sales });
+
+        const totalSales = await prisma.sales.count({ where: { userId } });
+        const totalPages = Math.ceil(totalSales / limit);
+
+        return NextResponse.json({
+            success: true,
+            data: sales,
+            pagination: { page, limit, totalPages, totalSales },
+        });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 });
     }
 }
-
 export async function POST(request) {
     try {
         const { productId, quantity } = await request.json();

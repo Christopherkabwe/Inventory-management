@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.fade-in-out {
+  transition: opacity 0.3s ease-in-out;
+}
+.fade-in-out.entering {
+  opacity: 0;
+}
+.fade-in-out.entered {
+  opacity: 1;
+}
