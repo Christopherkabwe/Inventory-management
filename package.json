@@ -2,6 +2,11 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx --tsconfig ./tsconfig.json src/scripts/seed.ts",
+    "products": "tsx --tsconfig ./tsconfig.json src/scripts/products.ts",
+    "generateSales": "tsx --tsconfig ./tsconfig.json src/scripts/generateSales.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

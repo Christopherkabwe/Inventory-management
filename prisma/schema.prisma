@@ -90,8 +90,9 @@ model Inventory {
 model Sale {
   id        String   @id @default(cuid())
   customerId String
+  customerName String?
   productId String
-  productName String
+  productName String?
   quantity  Int
   salePrice Float
   totalAmount Float

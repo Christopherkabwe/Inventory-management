@@ -13,23 +13,22 @@ export async function GET(request) {
 
     try {
         const skip = (page - 1) * limit;
-        const sales = await prisma.sales.findMany({
-            where: { userId },
+        const sales = await prisma.sale.findMany({
+            where: { createdBy: userId },
             include: {
                 product: {
-                    select: {
-                        name: true,
-                        sku: true,
-                        price: true,
-                    },
+                    select: { name: true, id: true, price: true },
+                },
+                customer: {
+                    select: { name: true, email: true },
                 },
             },
-            orderBy: { saleDate: 'desc' },
+            orderBy: { createdAt: 'desc' },
             skip,
             take: limit,
         });
 
-        const totalSales = await prisma.sales.count({ where: { userId } });
+        const totalSales = await prisma.sale.count({ where: { createdBy: userId } });
         const totalPages = Math.ceil(totalSales / limit);
 
         return NextResponse.json({
@@ -44,49 +43,57 @@ export async function GET(request) {
 }
 export async function POST(request) {
     try {
-        const { productId, quantity, userId, price } = await request.json();
+        const { productId, quantity, customerId, salePrice, userId } = await request.json();
 
-        // Find the product
-        const product = await prisma.product.findUnique({
-            where: { id: productId },
-        });
+        if (!productId || quantity <= 0 || !customerId || !userId || salePrice <= 0) {
+            return NextResponse.json(
+                { error: "Missing or invalid fields: product, quantity, customer, user, or price." },
+                { status: 400 }
+            );
+        }
+
+        const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+        if (!customer) {
+            return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+        }
+
+        const product = await prisma.productList.findUnique({ where: { id: productId } });
         if (!product) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
-        // Check if enough stock
-        if (product.quantity < quantity) {
+        const inventory = await prisma.inventory.findFirst({ where: { productId } });
+        if (!inventory || inventory.quantity < quantity) {
             return NextResponse.json(
-                { error: `Insufficient stock for "${product.name}". Only ${product.quantity} left.` },
+                { error: `Insufficient stock for "${product.name}". Available: ${inventory?.quantity || 0}.` },
                 { status: 400 }
             );
         }
-        // Use provided price, or fallback to product price if not given
-        const salePrice = price || product.price;
 
-        //const userId = "4ba8d662-e7b2-4157-9d04-854d2d4601e6"; //  Adjust to get actual user ID
+        const totalAmount = salePrice * quantity;
+        const customerName = customer.name;
 
-        // Create sale and update product quantity in a transaction
         const sale = await prisma.$transaction(async (tx) => {
-            await tx.product.update({
-                where: { id: productId },
+            await tx.inventory.update({
+                where: { id: inventory.id },
                 data: { quantity: { decrement: quantity } },
             });
-            const newSale = await tx.sales.create({
+            const newSale = await tx.sale.create({
                 data: {
-                    userId,
+                    customerId,
+                    customerName,
                     productId,
-                    productName: product.name, // Add product name here
-                    sku: product.sku,
+                    productName: product.name,
                     quantity,
-                    price: salePrice,
-                    totalRevenue: salePrice * quantity,
+                    salePrice,
+                    totalAmount,
+                    createdBy: userId,
                 },
             });
             return newSale;
         });
 
-        return NextResponse.json(sale);
+        return NextResponse.json(sale, { status: 201 });
     } catch (error) {
         console.error(error);
         return NextResponse.json(

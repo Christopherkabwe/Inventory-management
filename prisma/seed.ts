@@ -3,12 +3,10 @@ import { prisma } from '../lib/prisma';
 async function main() {
     const userId = "4ba8d662-e7b2-4157-9d04-854d2d4601e6";
 
-    // Create Products
     const products = [];
     for (let i = 1; i <= 20; i++) {
-        const sku = `SKU${String(i).padStart(3, '0')}`;
         products.push({
-            sku,
+            sku: `SKU${String(i).padStart(3, '0')}`,
             name: `Product ${i}`,
             price: parseFloat((Math.random() * 10 + 1).toFixed(2)),
             packSize: Math.floor(Math.random() * 10) + 1,
@@ -17,9 +15,8 @@ async function main() {
             createdBy: userId,
         });
     }
-    await prisma.productList.createMany({ data: products, skipDuplicates: true });
+    await prisma.productList.createMany({ data: products });
 
-    // Create Customers
     const customers = [];
     for (let i = 1; i <= 20; i++) {
         customers.push({
@@ -31,10 +28,10 @@ async function main() {
             createdBy: userId,
         });
     }
-    await prisma.customer.createMany({ data: customers, skipDuplicates: true });
+    await prisma.customer.createMany({ data: customers });
 
-    // Create Inventories
     const productList = await prisma.productList.findMany();
+    const productIds = productList.map(p => p.id);
     const locations = ['Warehouse A', 'Warehouse B', 'Store 1', 'Store 2'];
     const inventories = [];
     const usedCombinations = new Set();
@@ -46,7 +43,7 @@ async function main() {
             usedCombinations.add(key);
             inventories.push({
                 productId: product.id,
-                productName: product.name,
+                productName: product.name, // Added product name
                 location,
                 quantity: Math.floor(Math.random() * 100) + 1,
                 lowStockAt: Math.floor(Math.random() * 10) + 1,
@@ -56,26 +53,22 @@ async function main() {
     }
     await prisma.inventory.createMany({ data: inventories, skipDuplicates: true });
 
-    // Create Sales
-    const customersList = await prisma.customer.findMany();
+    const customerIds = (await prisma.customer.findMany()).map(c => c.id);
     const sales = [];
     for (let i = 0; i < 20; i++) {
         const product = productList[Math.floor(Math.random() * productList.length)];
-        const customer = customersList[Math.floor(Math.random() * customersList.length)];
-        const inventory = await prisma.inventory.findFirst({ where: { productId: product.id } });
-        const maxQty = inventory ? Math.min(inventory.quantity, 5) : 1;
-        const quantity = Math.floor(Math.random() * maxQty) + 1;
-
+        const quantity = Math.floor(Math.random() * 5) + 1;
         sales.push({
-            customerId: customer.id,
+            customerId: customerIds[Math.floor(Math.random() * customerIds.length)],
             productId: product.id,
+            productName: product.name, // Added product name
             quantity,
             salePrice: product.price,
             totalAmount: product.price * quantity,
             createdBy: userId,
         });
     }
-    await prisma.sale.createMany({ data: sales, skipDuplicates: true });
+    await prisma.sale.createMany({ data: sales });
 
     console.log('Sample data seeded!');
 }

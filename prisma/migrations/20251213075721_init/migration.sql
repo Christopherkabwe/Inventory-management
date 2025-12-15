@@ -80,6 +80,7 @@ CREATE TABLE "Inventory" (
 CREATE TABLE "Sale" (
     "id" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
+    "customerName" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "productName" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
