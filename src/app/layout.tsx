@@ -38,9 +38,7 @@ export default function RootLayout({
             </StackTheme>
           </StackProvider>
         </ToasterProvider>
-
-
-        {/*<Toaster position="bottom-right" />*/}
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

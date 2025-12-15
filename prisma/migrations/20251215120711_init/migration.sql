@@ -1,36 +1,4 @@
 -- CreateTable
-CREATE TABLE "Product" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "sku" TEXT,
-    "price" DECIMAL(12,2) NOT NULL,
-    "quantity" INTEGER NOT NULL DEFAULT 0,
-    "lowStockAt" INTEGER,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Sales" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "productId" TEXT NOT NULL,
-    "sku" TEXT,
-    "productName" TEXT NOT NULL,
-    "quantity" INTEGER NOT NULL,
-    "price" DOUBLE PRECISION NOT NULL,
-    "totalRevenue" DOUBLE PRECISION NOT NULL,
-    "saleDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Sales_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "ProductList" (
     "id" TEXT NOT NULL,
     "sku" TEXT NOT NULL,
@@ -65,7 +33,6 @@ CREATE TABLE "Customer" (
 CREATE TABLE "Inventory" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
-    "productName" TEXT NOT NULL,
     "location" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
     "lowStockAt" INTEGER NOT NULL,
@@ -80,12 +47,13 @@ CREATE TABLE "Inventory" (
 CREATE TABLE "Sale" (
     "id" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
-    "customerName" TEXT NOT NULL,
+    "customerName" TEXT,
     "productId" TEXT NOT NULL,
-    "productName" TEXT NOT NULL,
+    "productName" TEXT,
     "quantity" INTEGER NOT NULL,
     "salePrice" DOUBLE PRECISION NOT NULL,
     "totalAmount" DOUBLE PRECISION NOT NULL,
+    "saleDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdBy" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -94,28 +62,28 @@ CREATE TABLE "Sale" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Product_sku_key" ON "Product"("sku");
-
--- CreateIndex
-CREATE INDEX "Product_userId_name_idx" ON "Product"("userId", "name");
-
--- CreateIndex
-CREATE INDEX "Product_createdAt_idx" ON "Product"("createdAt");
-
--- CreateIndex
 CREATE UNIQUE INDEX "ProductList_sku_key" ON "ProductList"("sku");
+
+-- CreateIndex
+CREATE INDEX "ProductList_sku_idx" ON "ProductList"("sku");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Customer_email_key" ON "Customer"("email");
 
--- AddForeignKey
-ALTER TABLE "Sales" ADD CONSTRAINT "Sales_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- CreateIndex
+CREATE INDEX "Inventory_productId_idx" ON "Inventory"("productId");
+
+-- CreateIndex
+CREATE INDEX "Sale_customerId_idx" ON "Sale"("customerId");
+
+-- CreateIndex
+CREATE INDEX "Sale_productId_idx" ON "Sale"("productId");
 
 -- AddForeignKey
-ALTER TABLE "Inventory" ADD CONSTRAINT "Inventory_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Inventory" ADD CONSTRAINT "Inventory_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Sale" ADD CONSTRAINT "Sale_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Sale" ADD CONSTRAINT "Sale_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Sale" ADD CONSTRAINT "Sale_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE CASCADE ON UPDATE CASCADE;

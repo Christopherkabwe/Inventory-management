@@ -3,6 +3,7 @@
 import { getCurrentUser } from "../auth";
 import { prisma } from "../prisma";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 const ProductSchema = z.object({
     name: z.string().min(3, "Name is required"),
@@ -17,23 +18,75 @@ const ProductSchema = z.object({
 });
 
 
-export async function deleteProduct(
+export async function deleteFromInventory(
     _prevState: { success: boolean; message: string | null } | null,
     formData: FormData
 ) {
     const user = await getCurrentUser();
+    if (!user) return { success: false, message: "Unauthorized" };
+
     const id = String(formData.get("id") || "");
-    if (!id) return { success: false, message: "Product ID is required" };
+    if (!id) return { success: false, message: "Inventory ID is required" };
 
     try {
+        const inventory = await prisma.inventory.findUnique({
+            where: { id, createdBy: user.id },
+            include: { product: true },
+        });
+
+        if (!inventory) {
+            return { success: false, message: "Inventory not found or unauthorized." };
+        }
+
         await prisma.$transaction([
-            prisma.inventory.deleteMany({ where: { productId: id, createdBy: user.id } }),
-            prisma.productList.delete({ where: { id, createdBy: user.id } }),
+            prisma.inventory.delete({ where: { id, createdBy: user.id } }),
+            // Optional: Delete the product if you want to remove it entirely
+            // prisma.productList.delete({
+            //   where: { id: inventory.productId, createdBy: user.id },
+            // }),
         ]);
-        return { success: true, message: "Product has been deleted!" };
+
+        revalidatePath("/inventory");
+        return { success: true, message: `Inventory for "${inventory.product.name}" has been deleted!` };
     } catch (error) {
-        console.error("Failed to delete product:", error);
-        return { success: false, message: "Failed to delete product." };
+        console.error("Failed to delete inventory:", error);
+        return { success: false, message: "Failed to delete inventory. Try again later." };
+    }
+}
+
+export async function editInventory(prevState: any, formData: FormData) {
+    const id = formData.get("id") as string;
+    const price = Number(formData.get("price"));
+    const quantity = Number(formData.get("quantity"));
+    const lowStockAt = Number(formData.get("lowStockAt"));
+    const location = formData.get("location") as string;
+
+    try {
+        const inventory = await prisma.inventory.findUnique({
+            where: { id },
+            include: { product: true },
+        });
+
+        if (!inventory) {
+            return { message: "Inventory not found.", success: false };
+        }
+
+        await prisma.$transaction([
+            prisma.productList.update({
+                where: { id: inventory.productId },
+                data: { price },
+            }),
+            prisma.inventory.update({
+                where: { id },
+                data: { quantity, lowStockAt, location },
+            }),
+        ]);
+
+        revalidatePath("/inventory");
+        return { message: `Inventory updated for ${inventory.product.name}!`, success: true };
+    } catch (e) {
+        console.error(e);
+        return { message: "Failed to update inventory.", success: false };
     }
 }
 
@@ -77,7 +130,7 @@ export async function CreateProduct(
         await prisma.inventory.create({
             data: {
                 productId: product.id,
-                productName: product.name,
+                //productName: product.name,
                 location: parsed.data.location,
                 quantity: parsed.data.quantity,
                 lowStockAt: parsed.data.lowStockAt || 5,

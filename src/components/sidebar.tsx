@@ -1,3 +1,5 @@
+"use client";
+
 import { UserButton } from "@stackframe/stack";
 import { BarChart3, Package, Plus, Settings, Info, ShoppingCart } from "lucide-react"
 import Link from "next/link";

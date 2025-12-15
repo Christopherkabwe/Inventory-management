@@ -51,23 +51,26 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
         limit: 10,
     });
 
+    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
     const fetchProducts = async () => {
         if (!userId) return;
+        setIsLoadingProducts(true);
         const res = await fetch(`/api/products?userId=${userId}`);
         const data = await res.json();
-        console.log("Fetched products:", data);
         if (data?.products) {
             setProducts(data.products);
         } else {
             setProducts([]); // fallback to empty array
             addToast("No products found.", "info");
         }
+        setIsLoadingProducts(false);
     };
 
     useEffect(() => {
         fetchProducts().catch((err) => {
             console.error(err);
             addToast("Error loading products.", "error");
+            setIsLoadingProducts(false);
         });
 
         // Fetch sales (user-specific)
@@ -132,9 +135,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
         const customerId = selectedCustomerId;
         const totalAmount = quantity * salePrice;
 
-
-
-
         if (!productId || quantity <= 0 || !salePrice || salePrice <= 0 || !customerId) {
             addToast("Please select a product, customer, enter valid quantity and price.", "error");
             return;
@@ -189,6 +189,93 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
         }
     };
 
+    const handleDeleteSale = async (saleId: string) => {
+        if (!confirm("Are you sure you want to delete this sale?")) return;
+
+        try {
+            const res = await fetch(`/api/sales/${saleId}`, { method: "DELETE" });
+            if (res.ok) {
+                setSales(sales.filter((sale) => sale.id !== saleId));
+                addToast("Sale deleted successfully!", "success");
+            } else {
+                const errorData = await res.json();
+                addToast(errorData.error || "Failed to delete sale.", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            addToast("Something went wrong.", "error");
+        }
+    };
+
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSale, setEditingSale] = useState<Sale | null>(null);
+    const [editForm, setEditForm] = useState({
+        productId: "",
+        customerId: "",
+        quantity: 0,
+        salePrice: 0,
+    });
+
+    const handleEditSale = (sale: Sale) => {
+        setEditingSale(sale);
+        setEditForm({
+            productId: sale.product.id,
+            customerId: sale.customer.id,
+            quantity: sale.quantity,
+            salePrice: sale.salePrice,
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setEditForm((prev) => ({ ...prev, [name]: name === "quantity" || name === "salePrice" ? Number(value) : value }));
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingSale || !editForm.productId || !editForm.customerId || editForm.quantity <= 0 || editForm.salePrice <= 0) {
+            addToast("Please fill in all fields with valid values.", "error");
+            return;
+        }
+
+        const selectedProduct = products.find((p) => p.id === editForm.productId);
+        if (!selectedProduct || selectedProduct.quantity < editForm.quantity) {
+            addToast(`Not enough stock for "${selectedProduct?.name}". Available: ${selectedProduct?.quantity || 0}.`, "error");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/sales/${editingSale.id}`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    productId: editForm.productId,
+                    customerId: editForm.customerId,
+                    quantity: editForm.quantity,
+                    salePrice: editForm.salePrice,
+                    totalAmount: editForm.quantity * editForm.salePrice,
+                    userId: user?.id,
+                }),
+            });
+
+            if (res.ok) {
+                const updatedSale = await res.json();
+                setSales(sales.map((sale) => (sale.id === editingSale.id ? { ...updatedSale, product: { name: selectedProduct.name }, customer: { name: customers.find(c => c.id === editForm.customerId)?.name || 'N/A' } } : sale)));
+                addToast("Sale updated!", "success");
+                fetchProducts(); // Refresh product stock
+                setIsEditModalOpen(false);
+            } else {
+                const errorData = await res.json();
+                addToast(errorData.error || "Failed to update sale.", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            addToast("Something went wrong.", "error");
+        }
+    };
+
+
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Sidebar currentPath="/sales" />
@@ -237,7 +324,17 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                                <select name="productId" value={selectedProductId}
+                                {isLoadingProducts ? (
+                                    <div className="flex items-center justify-center py-2 text-sm text-gray-500">
+                                        <svg className="animate-spin h-5 w-5 text-purple-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Loading Products...
+                                    </div>
+                                ) : (<select
+                                    name="productId"
+                                    value={selectedProductId}
                                     onChange={(e) => {
                                         const id = e.target.value;
                                         setSelectedProductId(id);
@@ -257,7 +354,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                     ) : (
                                         <option disabled>No products available</option>
                                     )}
-                                </select>
+                                </select>)}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
@@ -306,12 +403,13 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Price (K)</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Revenue (K)</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Date Created</th>
+                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loadingSales ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-3 text-center text-sm text-gray-500">
+                                    <td colSpan={7} className="px-6 py-3 text-center text-sm text-gray-500">
                                         <div className="flex flex-col items-center justify-center gap-5 mt-10 mb-10">
                                             <svg className="animate-spin h-10 w-10 text-purple-600 items-center" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -346,6 +444,20 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                         <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
                                             {new Date(sale.createdAt).toLocaleDateString()}
                                         </td>
+                                        <td className="px-6 py-3 border-b border-gray-400 text-center text-sm text-gray-500">
+                                            <button
+                                                onClick={() => handleEditSale(sale)}
+                                                className="text-blue-600 hover:text-blue-800 mr-3"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteSale(sale.id)}
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -363,8 +475,91 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+                {isEditModalOpen && editingSale && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-lg w-96">
+                            <h2 className="text-lg font-semibold mb-4">Edit Sale</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                                    <select
+                                        name="customerId"
+                                        value={editForm.customerId}
+                                        onChange={handleEditChange}
+                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                                        required
+                                    >
+                                        <option value="">Select Customer</option>
+                                        {customers.map((customer) => (
+                                            <option key={customer.id} value={customer.id}>
+                                                {customer.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                                    <select
+                                        name="productId"
+                                        value={editForm.productId}
+                                        onChange={handleEditChange}
+                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                                        required
+                                    >
+                                        <option value="">Select Product</option>
+                                        {products.map((p) => (
+                                            <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
+                                                {p.name} | K{p.price} | ({p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={editForm.quantity}
+                                        onChange={handleEditChange}
+                                        min="0"
+                                        step="0.01"
+                                        required
+                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (K)</label>
+                                    <input
+                                        type="number"
+                                        name="salePrice"
+                                        value={editForm.salePrice}
+                                        onChange={handleEditChange}
+                                        min="0"
+                                        step="0.01"
+                                        required
+                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <button
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main >
+        </div >
     );
 }
 

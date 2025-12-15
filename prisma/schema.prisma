@@ -15,37 +15,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model Product {
-  id String @id @default(cuid())
-  userId String // Stack Auth user id
-  name String
-  sku String? @unique
-  price Decimal @db.Decimal(12, 2)
-  quantity Int @default(0)
-  lowStockAt Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sales     Sales[]
-
-  @@index([userId, name])
-  @@index([createdAt])
-}
-model Sales {
-  id String @id @default(cuid())
-  userId    String
-  productId String
-  sku       String?
-  product   Product @relation(fields: [productId], references: [id])
-  productName String
-  quantity  Int
-  price Float
-  totalRevenue Float
-  saleDate  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-// New Models
 model ProductList {
   id        String   @id @default(cuid())
   sku       String   @unique
@@ -58,7 +27,9 @@ model ProductList {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   inventories Inventory[]
-  sales       Sale[]
+  sales Sale[]
+
+  @@index([sku])
 }
 
 model Customer {
@@ -71,20 +42,21 @@ model Customer {
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sales     Sale[]
+  sales Sale[]
 }
 
 model Inventory {
   id        String   @id @default(cuid())
   productId String
-  productName String
   location  String
   quantity  Int
   lowStockAt Int
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  product   ProductList @relation(fields: [productId], references: [id])
+
+  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@index([productId, createdBy])
 }
 
 model Sale {
@@ -96,9 +68,15 @@ model Sale {
   quantity  Int
   salePrice Float
   totalAmount Float
+  saleDate  DateTime @default(now())
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  customer  Customer @relation(fields: [customerId], references: [id])
-  product   ProductList @relation(fields: [productId], references: [id])
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  product  ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([productId])
 }
+

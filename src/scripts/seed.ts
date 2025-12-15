@@ -46,7 +46,6 @@ async function main() {
             usedCombinations.add(key);
             inventories.push({
                 productId: product.id,
-                productName: product.name,
                 location,
                 quantity: Math.floor(Math.random() * 100) + 1,
                 lowStockAt: Math.floor(Math.random() * 10) + 1,
@@ -64,11 +63,12 @@ async function main() {
         const customer = customersList[Math.floor(Math.random() * customersList.length)];
         const inventory = await prisma.inventory.findFirst({ where: { productId: product.id } });
         const maxQty = inventory ? Math.min(inventory.quantity, 5) : 1;
-        const quantity = Math.floor(Math.random() * maxQty) + 1;
-
+        const quantity = Math.floor(Math.random() * Math.max(maxQty, 1)) + 1;
         sales.push({
             customerId: customer.id,
+            customerName: customer.name,
             productId: product.id,
+            productName: product.name,
             quantity,
             salePrice: product.price,
             totalAmount: product.price * quantity,
