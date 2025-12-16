@@ -16,12 +16,9 @@ export async function GET(request) {
         const sales = await prisma.sale.findMany({
             where: { createdBy: userId },
             include: {
-                product: {
-                    select: { name: true, id: true, price: true },
-                },
-                customer: {
-                    select: { name: true, email: true },
-                },
+                product: { select: { name: true, id: true, price: true } },
+                customer: { select: { name: true, email: true } },
+                location: { select: { name: true } }, // Include location name
             },
             orderBy: { createdAt: 'desc' },
             skip,
@@ -41,13 +38,14 @@ export async function GET(request) {
         return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 });
     }
 }
+
 export async function POST(request) {
     try {
-        const { productId, quantity, customerId, salePrice, userId } = await request.json();
+        const { productId, quantity, customerId, salePrice, userId, locationId } = await request.json();
 
-        if (!productId || quantity <= 0 || !customerId || !userId || salePrice <= 0) {
+        if (!productId || quantity <= 0 || !customerId || !userId || salePrice <= 0 || !locationId) {
             return NextResponse.json(
-                { error: "Missing or invalid fields: product, quantity, customer, user, or price." },
+                { error: "Missing or invalid fields: product, quantity, customer, user, location or price." },
                 { status: 400 }
             );
         }
@@ -62,10 +60,12 @@ export async function POST(request) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
-        const inventory = await prisma.inventory.findFirst({ where: { productId } });
+        const inventory = await prisma.inventory.findUnique({
+            where: { productId_locationId: { productId, locationId } },
+        });
         if (!inventory || inventory.quantity < quantity) {
             return NextResponse.json(
-                { error: `Insufficient stock for "${product.name}". Available: ${inventory?.quantity || 0}.` },
+                { error: `Insufficient stock for "${product.name}" at this location. Available: ${inventory?.quantity || 0}.` },
                 { status: 400 }
             );
         }
@@ -84,6 +84,7 @@ export async function POST(request) {
                     customerName,
                     productId,
                     productName: product.name,
+                    locationId, // Use locationId
                     quantity,
                     salePrice,
                     totalAmount,

@@ -44,19 +44,29 @@ model Customer {
   updatedAt DateTime @updatedAt
   sales Sale[]
 }
+model Location {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  address   String?
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  inventories Inventory[]
+  sales       Sale[]
+}
 
 model Inventory {
   id        String   @id @default(cuid())
   productId String
-  location  String
+  product   ProductList @relation(fields: [productId], references: [id])
+  locationId String
+  location  Location @relation(fields: [locationId], references: [id])
   quantity  Int
   lowStockAt Int
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
-  @@index([productId, createdBy])
+  @@unique([productId, locationId])
 }
 
 model Sale {
@@ -65,18 +75,20 @@ model Sale {
   customerName String?
   productId String
   productName String?
-  quantity  Int
+  quantity Int
+  locationId String
+  location  Location @relation(fields: [locationId], references: [id])
   salePrice Float
   totalAmount Float
-  saleDate  DateTime @default(now())
+  saleDate DateTime @default(now())
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   customer Customer @relation(fields: [customerId], references: [id])
-  product  ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
-
+  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
   @@index([customerId])
   @@index([productId])
 }
+
+
 

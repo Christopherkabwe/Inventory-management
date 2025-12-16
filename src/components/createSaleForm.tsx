@@ -5,7 +5,7 @@ import { SubmitButton } from "./SubmitButton";
 
 interface CreateSaleFormProps {
     products: Product[];
-    customers: { id: string; name: string }[];
+    customers: { id: string; name: string; email: string }[];
     isLoadingProducts: boolean;
     isLoadingCustomers: boolean;
     onSubmit: (formData: FormData) => void;
@@ -29,6 +29,8 @@ export function CreateSaleForm({
         if (selectedProductId) {
             const product = products.find((p) => p.id === selectedProductId);
             setSalePrice(product?.price || null);
+        } else {
+            setSalePrice(null);
         }
     }, [selectedProductId, products]);
 
@@ -56,25 +58,27 @@ export function CreateSaleForm({
                             name="customerId"
                             value={selectedCustomerId}
                             onChange={(e) => setSelectedCustomerId(e.target.value)}
-                            className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                            className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
                             required
                         >
                             <option value="">Select Customer</option>
-                            {customers.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                            {customers.map((customer) => (
+                                <option key={customer.id} value={customer.id}>
+                                    {customer.name}
+                                </option>
                             ))}
                         </select>
                     )}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
                     {isLoadingProducts ? (
                         <div className="flex items-center justify-center py-2 text-sm text-gray-500">
                             <svg className="animate-spin h-5 w-5 text-purple-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Loading products...
+                            Loading Products...
                         </div>
                     ) : (
                         <select
@@ -83,18 +87,22 @@ export function CreateSaleForm({
                             onChange={(e) => {
                                 const id = e.target.value;
                                 setSelectedProductId(id);
-                                const p = products.find((p) => p.id === id);
-                                setSalePrice(p?.price || null);
+                                const product = products.find((p) => p.id === id);
+                                setSalePrice(product ? product.price : null);
                             }}
                             className="w-full px-2 py-2 border border-gray-600 rounded-lg"
                             required
                         >
                             <option value="">Select Product</option>
-                            {products.map((p) => (
-                                <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                                    {p.name} | K{p.price} | ({p.quantity > 0 ? `${p.quantity} in stock` : "Out of stock"})
-                                </option>
-                            ))}
+                            {products.length ? (
+                                products.map((p) => (
+                                    <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
+                                        {p.name} | K{p.price} | ({p.quantity > 0 ? `${p.quantity} in stock` : "Out of stock"})
+                                    </option>
+                                ))
+                            ) : (
+                                <option disabled>No products available</option>
+                            )}
                         </select>
                     )}
                 </div>
@@ -108,7 +116,8 @@ export function CreateSaleForm({
                         min="0"
                         step="0.01"
                         required
-                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                        className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
+                        placeholder="Enter quantity"
                     />
                 </div>
                 <div>
@@ -121,7 +130,9 @@ export function CreateSaleForm({
                         min="0"
                         step="0.01"
                         required
-                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
+                        readOnly={!!selectedProductId} // Make it read-only if a product is selected
+                        className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
+                        placeholder="K100.00"
                     />
                 </div>
                 <div>

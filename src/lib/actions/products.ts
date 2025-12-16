@@ -59,14 +59,13 @@ export async function editInventory(prevState: any, formData: FormData) {
     const price = Number(formData.get("price"));
     const quantity = Number(formData.get("quantity"));
     const lowStockAt = Number(formData.get("lowStockAt"));
-    const location = formData.get("location") as string;
+    const locationId = formData.get("locationId") as string;
 
     try {
         const inventory = await prisma.inventory.findUnique({
             where: { id },
             include: { product: true },
         });
-
         if (!inventory) {
             return { message: "Inventory not found.", success: false };
         }
@@ -78,7 +77,7 @@ export async function editInventory(prevState: any, formData: FormData) {
             }),
             prisma.inventory.update({
                 where: { id },
-                data: { quantity, lowStockAt, location },
+                data: { quantity, lowStockAt, locationId },
             }),
         ]);
 

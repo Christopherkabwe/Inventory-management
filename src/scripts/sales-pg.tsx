@@ -15,7 +15,6 @@ interface Sale {
     salePrice: number;
     totalAmount: number;
     createdAt: string;
-    location: { name: string };
 }
 
 interface Product {
@@ -38,7 +37,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
     const [salePrice, setSalePrice] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addToast } = useToaster();
-
 
     const userId = user?.id;
     const params = use(searchParams);
@@ -130,33 +128,12 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
             });
     }, [userId, addToast, customersFetched]);
 
-    const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
-    const [selectedLocation, setSelectedLocation] = useState("");
-
-    // Fetch locations
-    const fetchLocations = async () => {
-        if (!userId) return;
-        const res = await fetch(`/api/locations?userId=${userId}`);
-        const data = await res.json();
-        setUniqueLocations(data.locations || []);
-    };
-
-    useEffect(() => {
-        if (!userId) return;
-        fetch(`/api/locations?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => setUniqueLocations(data.locations || []))
-            .catch(() => addToast("Error loading locations.", "error"));
-    }, [userId, addToast]);
-
-
     const handleCreateSale = async (formData: FormData) => {
         const productId = formData.get('productId');
         const quantity = Number(formData.get('quantity'));
         const salePrice = Number(formData.get('salePrice'));
         const customerId = selectedCustomerId;
         const totalAmount = quantity * salePrice;
-        const locationId = selectedLocation;
 
         if (!productId || quantity <= 0 || !salePrice || salePrice <= 0 || !customerId) {
             addToast("Please select a product, customer, enter valid quantity and price.", "error");
@@ -181,7 +158,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                     totalAmount,
                     userId: user?.id,
                     customerId,
-                    locationId,
                 }),
             });
 
@@ -347,23 +323,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                 )}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                <select
-                                    name="locationId"
-                                    value={selectedLocation}
-                                    onChange={(e) => setSelectedLocation(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                    required
-                                >
-                                    <option value="">Select Location</option>
-                                    {uniqueLocations.map((loc) => (
-                                        <option key={loc.id} value={loc.id}>
-                                            {loc.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
                                 {isLoadingProducts ? (
                                     <div className="flex items-center justify-center py-2 text-sm text-gray-500">
@@ -440,7 +399,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                             <tr>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Customer Name</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Product Name</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Quantity</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Price (K)</th>
                                 <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Revenue (K)</th>
@@ -473,9 +431,6 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                         </td>
                                         <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
                                             {sale.product?.name || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
-                                            {sale.location?.name || 'N/A'}
                                         </td>
                                         <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
                                             {sale.quantity}
