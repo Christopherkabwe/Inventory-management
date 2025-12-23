@@ -6,8 +6,7 @@ import Pagination from "@/components/pagination";
 import EditInventoryButton from "@/components/EditInventoryButton";
 import Link from "next/link";
 import DeleteInventoryButton from "@/components/DeleteInventoryButton";
-import LocationDropdown from "@/components/LocationDropdown";
-
+import InventoryFilters from "@/components/InventoryFilters";
 
 
 export default async function InventoryPage({
@@ -69,43 +68,11 @@ export default async function InventoryPage({
                 </div>
                 <div className="space-y-6">
                     {/* Search and Filter */}
-                    <div className="bg-white rounded-lg border-gray-200 p-6">
-                        <form action="/inventory" method="GET" className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Search */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Search Products
-                                    </label>
-                                    <input
-                                        name="q"
-                                        placeholder="Search Products..."
-                                        defaultValue={q}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    />
-                                </div>
-                                {/* Location Dropdown */}
-                                <LocationDropdown uniqueLocations={uniqueLocations} selectedLocations={locations} />
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                                >
-                                    Apply Filters
-                                </button>
-                                <Link
-                                    href={{
-                                        pathname: '/inventory',
-                                        query: { page: params.page }, // Keep page if needed
-                                    }}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                                >
-                                    Clear Filters
-                                </Link>
-                            </div>
-                        </form>
-                    </div>
+                    <InventoryFilters
+                        uniqueLocations={uniqueLocations}
+                        initialQ={q}
+                        initialLocations={locations}
+                    />
                     {/* Products Table */}
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <table className="w-full">

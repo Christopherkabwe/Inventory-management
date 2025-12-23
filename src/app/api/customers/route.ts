@@ -19,12 +19,8 @@ export async function GET(request: Request) {
 
         const customers = await prisma.customer.findMany({
             where,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                city: true,
+            include: {
+                sales: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -35,6 +31,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });
     }
 }
+
 export async function POST(request: Request) {
     try {
         const { name, email, phone, country, city, userId } = await request.json();

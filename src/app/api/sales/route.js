@@ -3,41 +3,87 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const page = Number(searchParams.get('page')) || 1;
-    const limit = Number(searchParams.get('limit')) || 10;
+
+    const userId = searchParams.get("userId");
+    const page = Number(searchParams.get("page") || 1);
+    const limitParam = searchParams.get("limit");
 
     if (!userId) {
-        return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+        return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
 
+    const limit = limitParam ? Number(limitParam) : null;
+    const skip = limit ? (page - 1) * limit : undefined;
+
     try {
-        const skip = (page - 1) * limit;
-        const sales = await prisma.sale.findMany({
-            where: { createdBy: userId },
-            include: {
-                product: { select: { name: true, id: true, price: true } },
-                customer: { select: { name: true, email: true } },
-                location: { select: { name: true } }, // Include location name
-            },
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: limit,
-        });
+        const [sales, totalSales] = await Promise.all([
+            prisma.sale.findMany({
+                where: {
+                    createdBy: userId
+                },
+                include: {
+                    product: {
+                        select: {
+                            name: true,
+                            id: true,
+                            price: true,
+                            category: true,
+                            packSize: true,
+                            weightValue: true,
+                            weightUnit: true,
+                        }
+                    },
+                    customer: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    },
+                    location: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
+                },
+                orderBy: {
+                    createdAt: "desc"
+                },
+                ...(limit && { skip, take: limit }),
+            }),
+            prisma.sale.count({ where: { createdBy: userId } }),
+        ]);
 
-        const totalSales = await prisma.sale.count({ where: { createdBy: userId } });
-        const totalPages = Math.ceil(totalSales / limit);
+        // 🟢 Paginated response
+        if (limit) {
+            return NextResponse.json({
+                success: true,
+                data: sales,
+                pagination: {
+                    page,
+                    limit,
+                    totalSales,
+                    totalPages: Math.ceil(totalSales / limit),
+                },
+            });
+        }
 
+        // 🟢 Unpaginated response (dashboard)
         return NextResponse.json({
             success: true,
             data: sales,
-            pagination: { page, limit, totalPages, totalSales },
+            totalSales,
         });
+
     } catch (error) {
         console.error(error);
-        return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to fetch sales" },
+            { status: 500 }
+        );
     }
 }
+
 
 export async function POST(request) {
     try {

@@ -7,25 +7,36 @@ interface Location {
 }
 interface Props {
     uniqueLocations: Location[];
-    selectedLocations: string[]; // array of location names
+    selectedLocations: string[];
+    onLocationsChange: (locations: string[]) => void;
 }
 
-export default function LocationDropdown({ uniqueLocations, selectedLocations }: Props) {
+export default function LocationDropdown({
+    uniqueLocations,
+    selectedLocations,
+    onLocationsChange,
+}: Props) {
     const [locations, setLocations] = useState<string[]>(selectedLocations);
     const [open, setOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Toggle a location in the selection
+    useEffect(() => {
+        setLocations(selectedLocations);
+    }, [selectedLocations]);
+
     const toggleLocation = (name: string) => {
-        setLocations(prev =>
-            prev.includes(name) ? prev.filter(l => l !== name) : [...prev, name]
-        );
+        const newLocations = locations.includes(name)
+            ? locations.filter((l) => l !== name)
+            : [...locations, name];
+        setLocations(newLocations);
+        onLocationsChange(newLocations);
     };
 
-    // Clear all selections
-    const clearAll = () => setLocations([]);
+    const clearAll = () => {
+        setLocations([]);
+        onLocationsChange([]);
+    };
 
-    // Close dropdown if click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -44,33 +55,23 @@ export default function LocationDropdown({ uniqueLocations, selectedLocations }:
             <div>
                 <button
                     type="button"
-                    onClick={() => setOpen(prev => !prev)}
+                    onClick={() => setOpen((prev) => !prev)}
                     aria-expanded={open}
-                    className="flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 hover:bg-gray-50"
+                    className="flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                     <span>
                         {locations.length === 0 ? "All locations" : `${locations.length} selected`}
                     </span>
-                    <svg
-                        className="h-4 w-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
+                    <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
                 {open && (
-                    <div className="absolute z-20 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                    <div className="absolute z-20 mt-2 w-64 bg-white border border-purple-300 rounded-lg hover:shadow-lg p-3">
                         <button
                             type="button"
                             onClick={clearAll}
-                            className="text-purple-600 text-sm font-medium mb-2 hover:underline text-left"
+                            className="text-purple-600 text-sm font-medium mb-2 hover:underline text-left cursor-pointer"
                         >
                             Clear Selection
                         </button>
@@ -78,13 +79,13 @@ export default function LocationDropdown({ uniqueLocations, selectedLocations }:
                             {uniqueLocations.length === 0 ? (
                                 <p className="text-sm text-gray-500">No locations available.</p>
                             ) : (
-                                uniqueLocations.map(loc => (
-                                    <label key={loc.id} className="flex items-center gap-2 text-sm text-gray-700">
+                                uniqueLocations.map((loc) => (
+                                    <label key={loc.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1 rounded">
                                         <input
                                             type="checkbox"
                                             checked={locations.includes(loc.name)}
                                             onChange={() => toggleLocation(loc.name)}
-                                            className="h-4 w-4 text-purple-600 border-gray-300 rounded"
+                                            className="h-4 w-4 text-purple-600 border-gray-300 rounded cursor-pointer focus:ring-0"
                                         />
                                         {loc.name}
                                     </label>
@@ -94,8 +95,7 @@ export default function LocationDropdown({ uniqueLocations, selectedLocations }:
                     </div>
                 )}
             </div>
-            {/* Hidden inputs to submit the form */}
-            {locations.map(name => (
+            {locations.map((name) => (
                 <input key={name} type="hidden" name="locationName" value={name} />
             ))}
         </div>

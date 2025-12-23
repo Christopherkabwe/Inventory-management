@@ -3,14 +3,14 @@ import { useState, useEffect, use } from "react";
 import { useStackApp } from "@stackframe/stack";
 import Sidebar from "@/components/sidebar";
 import { useToaster } from '@/components/Toaster';
-import { prisma } from "@/lib/prisma"
 import { motion } from 'framer-motion';
-import Pagination from "@/components/pagination"
+import Pagination from "@/components/pagination";
+import { useRouter } from 'next/navigation';
 
 interface Sale {
     id: string;
-    product: { name: string };
-    customer: { name: string };
+    product: { id?: string; name: string };
+    customer: { id?: string; name: string };
     quantity: number;
     salePrice: number;
     totalAmount: number;
@@ -26,19 +26,15 @@ interface Product {
     quantity: number;
 }
 
-
-export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?: string, page?: string }> }) {
+export default function SalesPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; page?: string }>;
+}) {
     const stackApp = useStackApp();
     const user = stackApp.useUser();
-    const [products, setProducts] = useState<Product[]>([]);
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loadingSales, setLoadingSales] = useState(true);
-    const [selectedProductId, setSelectedProductId] = useState("");
-    const [quantity, setQuantity] = useState(1);
-    const [salePrice, setSalePrice] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const { addToast } = useToaster();
-
+    const router = useRouter();
 
     const userId = user?.id;
     const params = use(searchParams);
@@ -46,131 +42,149 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
     const page = Math.max(1, Number(params.page ?? 1));
     const pageSize = 10;
 
+    const [products, setProducts] = useState<Product[]>([]);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [loadingSales, setLoadingSales] = useState(true);
+
     const [pagination, setPagination] = useState({
         totalPages: 1,
         page: 1,
         totalSales: 0,
-        limit: 10,
+        limit: pageSize,
     });
 
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [selectedProductId, setSelectedProductId] = useState("");
+    const [selectedCustomerId, setSelectedCustomerId] = useState("");
+    const [selectedLocation, setSelectedLocation] = useState("");
+    const [quantity, setQuantity] = useState(1);
+    const [salePrice, setSalePrice] = useState<number | null>(null);
+
+    /* ---------------- PRODUCTS ---------------- */
+
     const fetchProducts = async () => {
         if (!userId) return;
         setIsLoadingProducts(true);
-        const res = await fetch(`/api/products?userId=${userId}`);
-        const data = await res.json();
-        if (data?.products) {
-            setProducts(data.products);
-        } else {
-            setProducts([]); // fallback to empty array
-            addToast("No products found.", "info");
+
+        try {
+            const res = await fetch(`/api/products?userId=${userId}`);
+            const data = await res.json();
+            setProducts(data.products || []);
+        } catch {
+            addToast("Error loading products.", "error");
+        } finally {
+            setIsLoadingProducts(false);
         }
-        setIsLoadingProducts(false);
     };
 
-    useEffect(() => {
-        fetchProducts().catch((err) => {
-            console.error(err);
-            addToast("Error loading products.", "error");
-            setIsLoadingProducts(false);
-        });
+    /* ---------------- SALES (CRITICAL FIX) ---------------- */
 
-        // Fetch sales (user-specific)
+    const fetchSales = async () => {
         if (!userId) return;
-        setLoadingSales(true);
-        fetch(`/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`)
-            .then(res => res.json())
-            .then(data => {
-                setSales(data.data || []);
-                setPagination(data.pagination || { totalPages: 1, page: 1, totalSales: 0, limit: pageSize });
-                setLoadingSales(false);
-            })
-            .catch((err) => {
-                if (err.name === 'AbortError') return; // Ignore aborted fetch
-                setLoadingSales(false);
-                addToast("Error loading sales.", "error");
-            });
-    }, [userId, page, pageSize, addToast]);
+
+        try {
+            setLoadingSales(true);
+
+            const res = await fetch(
+                `/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`
+            );
+            const data = await res.json();
+
+            setSales(data.data || []);
+            setPagination(
+                data.pagination || {
+                    totalPages: 1,
+                    page: 1,
+                    totalSales: 0,
+                    limit: pageSize,
+                }
+            );
+        } catch {
+            addToast("Error loading sales.", "error");
+        } finally {
+            setLoadingSales(false);
+        }
+    };
+
+    /* ---------------- CUSTOMERS ---------------- */
+
+    const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+    const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
+
+    const fetchCustomers = async () => {
+        if (!userId) return;
+        setIsLoadingCustomers(true);
+
+        try {
+            const res = await fetch(`/api/customers?userId=${userId}`);
+            const data = await res.json();
+            setCustomers(data.customers || []);
+        } catch {
+            addToast("Error loading customers.", "error");
+        } finally {
+            setIsLoadingCustomers(false);
+        }
+    };
+
+    /* ---------------- LOCATIONS (FIXED) ---------------- */
+
+    const [uniqueLocations, setUniqueLocations] = useState<any[]>([]);
+
+    const fetchLocations = async () => {
+        if (!userId) return;
+        try {
+            const res = await fetch(`/api/locations?userId=${userId}`);
+            const data = await res.json();
+            setUniqueLocations(data.locations || []);
+        } catch {
+            addToast("Error loading locations.", "error");
+        }
+    };
+
+    /* ---------------- EFFECTS ---------------- */
+
+    useEffect(() => {
+        fetchProducts();
+        fetchCustomers();
+        fetchLocations();
+    }, [userId]);
+
+    useEffect(() => {
+        fetchSales();
+    }, [userId, page, pageSize]);
+
+    useEffect(() => {
+        if (pagination.page > pagination.totalPages) {
+            router.push(`/sales?page=${pagination.totalPages}`);
+        }
+    }, [pagination]);
 
     useEffect(() => {
         if (selectedProductId) {
-            const selectedProduct = products.find(p => p.id === selectedProductId);
-            if (selectedProduct) {
-                setSalePrice(selectedProduct.price);
-            }
+            const p = products.find(p => p.id === selectedProductId);
+            setSalePrice(p ? p.price : null);
         } else {
             setSalePrice(null);
         }
     }, [selectedProductId, products]);
 
-    useEffect(() => {
-        products.forEach(p => {
-            const status = p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock';
-        });
-    }, [products]);
-
-    const [customers, setCustomers] = useState<{ id: string; name: string; email: string }[]>([]);
-    const [selectedCustomerId, setSelectedCustomerId] = useState("");
-    const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
-
-    const [customersFetched, setCustomersFetched] = useState(false);
-    useEffect(() => {
-        if (!userId || customersFetched) return;
-        setIsLoadingCustomers(true);
-        fetch(`/api/customers?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => {
-                setCustomers(data.customers || []);
-                setCustomersFetched(true);
-                setIsLoadingCustomers(false);
-            })
-            .catch(() => {
-                setIsLoadingCustomers(false);
-                addToast("Error loading customers.", "error");
-            });
-    }, [userId, addToast, customersFetched]);
-
-    const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
-    const [selectedLocation, setSelectedLocation] = useState("");
-
-    // Fetch locations
-    const fetchLocations = async () => {
-        if (!userId) return;
-        const res = await fetch(`/api/locations?userId=${userId}`);
-        const data = await res.json();
-        setUniqueLocations(data.locations || []);
-    };
-
-    useEffect(() => {
-        if (!userId) return;
-        fetch(`/api/locations?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => setUniqueLocations(data.locations || []))
-            .catch(() => addToast("Error loading locations.", "error"));
-    }, [userId, addToast]);
-
+    /* ---------------- CREATE SALE ---------------- */
 
     const handleCreateSale = async (formData: FormData) => {
-        const productId = formData.get('productId');
-        const quantity = Number(formData.get('quantity'));
-        const salePrice = Number(formData.get('salePrice'));
-        const customerId = selectedCustomerId;
+        const productId = formData.get("productId") as string;
+        const quantity = Number(formData.get("quantity"));
+        const salePrice = Number(formData.get("salePrice"));
         const totalAmount = quantity * salePrice;
-        const locationId = selectedLocation;
 
-        if (!productId || quantity <= 0 || !salePrice || salePrice <= 0 || !customerId) {
-            addToast("Please select a product, customer, enter valid quantity and price.", "error");
-            return;
-        }
-
-        const selectedProduct = products.find(p => p.id === productId);
-        const selectedCustomer = customers.find(c => c.id === customerId);
-        if (!selectedProduct || selectedProduct.quantity < quantity) {
-            addToast(`Not enough stock for "${selectedProduct?.name}". Available: ${selectedProduct?.quantity || 0}.`, "error");
+        if (!productId || !selectedCustomerId || !selectedLocation) {
+            addToast("Please fill all required fields.", "error");
             return;
         }
 
         setIsSubmitting(true);
+
         try {
             const res = await fetch("/api/sales", {
                 method: "POST",
@@ -179,126 +193,77 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                     quantity,
                     salePrice,
                     totalAmount,
-                    userId: user?.id,
-                    customerId,
-                    locationId,
+                    customerId: selectedCustomerId,
+                    locationId: selectedLocation,
+                    userId,
                 }),
             });
 
             if (res.ok) {
-                const newSale = await res.json();
-                setSales([{
-                    ...newSale,
-                    product: { name: selectedProduct.name },
-                    customer: { name: customers.find(c => c.id === customerId)?.name || 'N/A' },
-                }, ...sales]);
-                addToast('Sale created!', 'success');
-                // Update product quantity in state
-                fetchProducts();
+                addToast("Sale created!", "success");
 
+                await fetchSales();     // 🔥 FIX
+                await fetchProducts();  // update stock
 
-                // Reset form
                 setSelectedProductId("");
+                setSelectedCustomerId("");
+                setSelectedLocation("");
                 setQuantity(1);
                 setSalePrice(null);
             } else {
-                const errorData = await res.json();
-                addToast(errorData.error || 'Failed to create sale, please check stock level', 'error');
+                const error = await res.json();
+                addToast(error.error || "Failed to create sale.", "error");
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
             addToast("Something went wrong.", "error");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleDeleteSale = async (saleId: string) => {
-        if (!confirm("Are you sure you want to delete this sale?")) return;
+    /* ---------------- DELETE SALE ---------------- */
 
-        try {
-            const res = await fetch(`/api/sales/${saleId}`, { method: "DELETE" });
-            if (res.ok) {
-                setSales(sales.filter((sale) => sale.id !== saleId));
-                addToast("Sale deleted successfully!", "success");
-            } else {
-                const errorData = await res.json();
-                addToast(errorData.error || "Failed to delete sale.", "error");
-            }
-        } catch (e) {
-            console.error(e);
-            addToast("Something went wrong.", "error");
+    const handleDeleteSale = async (saleId: string) => {
+        if (!confirm("Are you sure?")) return;
+
+        const res = await fetch(`/api/sales/${saleId}`, { method: "DELETE" });
+        if (res.ok) {
+            addToast("Sale deleted!", "success");
+            await fetchSales(); // 🔥 FIX
+        } else {
+            addToast("Failed to delete sale.", "error");
         }
     };
 
+    /* ---------------- EDIT SALE ---------------- */
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState<Sale | null>(null);
-    const [editForm, setEditForm] = useState({
-        productId: "",
-        customerId: "",
-        quantity: 0,
-        salePrice: 0,
-    });
 
     const handleEditSale = (sale: Sale) => {
         setEditingSale(sale);
-        setEditForm({
-            productId: sale.product.id,
-            customerId: sale.customer.id,
-            quantity: sale.quantity,
-            salePrice: sale.salePrice,
-        });
         setIsEditModalOpen(true);
     };
 
-    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setEditForm((prev) => ({ ...prev, [name]: name === "quantity" || name === "salePrice" ? Number(value) : value }));
-    };
-
     const handleSaveEdit = async () => {
-        if (!editingSale || !editForm.productId || !editForm.customerId || editForm.quantity <= 0 || editForm.salePrice <= 0) {
-            addToast("Please fill in all fields with valid values.", "error");
-            return;
-        }
+        if (!editingSale) return;
 
-        const selectedProduct = products.find((p) => p.id === editForm.productId);
-        if (!selectedProduct || selectedProduct.quantity < editForm.quantity) {
-            addToast(`Not enough stock for "${selectedProduct?.name}". Available: ${selectedProduct?.quantity || 0}.`, "error");
-            return;
-        }
+        const res = await fetch(`/api/sales/${editingSale.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ ...editingSale, userId }),
+        });
 
-        try {
-            const res = await fetch(`/api/sales/${editingSale.id}`, {
-                method: "PUT",
-                body: JSON.stringify({
-                    productId: editForm.productId,
-                    customerId: editForm.customerId,
-                    quantity: editForm.quantity,
-                    salePrice: editForm.salePrice,
-                    totalAmount: editForm.quantity * editForm.salePrice,
-                    userId: user?.id,
-                }),
-            });
-
-            if (res.ok) {
-                const updatedSale = await res.json();
-                setSales(sales.map((sale) => (sale.id === editingSale.id ? { ...updatedSale, product: { name: selectedProduct.name }, customer: { name: customers.find(c => c.id === editForm.customerId)?.name || 'N/A' } } : sale)));
-                addToast("Sale updated!", "success");
-                fetchProducts(); // Refresh product stock
-                setIsEditModalOpen(false);
-            } else {
-                const errorData = await res.json();
-                addToast(errorData.error || "Failed to update sale.", "error");
-            }
-        } catch (e) {
-            console.error(e);
-            addToast("Something went wrong.", "error");
+        if (res.ok) {
+            addToast("Sale updated!", "success");
+            await fetchSales();     // 🔥 FIX
+            await fetchProducts();
+            setIsEditModalOpen(false);
+        } else {
+            addToast("Failed to update sale.", "error");
         }
     };
 
-
+    /* ---------------- RENDER ---------------- */
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -318,7 +283,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                         e.preventDefault();
                         handleCreateSale(new FormData(e.currentTarget));
                     }} className="bg-white rounded-lg border-gray-200 p-6">
-                        <div className="grid grid-cols-5 gap-4 items-end">
+                        <div className="grid grid-cols-6 gap-4 items-end">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
                                 {isLoadingCustomers ? (
@@ -451,7 +416,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loadingSales ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-3 text-center text-sm text-gray-500">
+                                    <td colSpan={8} className="px-6 py-3 text-center text-sm text-gray-500">
                                         <div className="flex flex-col items-center justify-center gap-5 mt-10 mb-10">
                                             <svg className="animate-spin h-10 w-10 text-purple-600 items-center" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -463,7 +428,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                 </tr>
                             ) : !Array.isArray(sales) || sales.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-3 text-center text-sm text-gray-500">No sales recorded yet.</td>
+                                    <td colSpan={8} className="px-6 py-3 text-center text-sm text-gray-500">No sales recorded yet.</td>
                                 </tr>
                             ) : (
                                 sales.map((sale, key) => (
@@ -509,16 +474,7 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                         </tbody>
                     </table>
 
-                    {Array.isArray(sales) && sales.length > 0 && (
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <Pagination
-                                currentPage={pagination.page}
-                                totalPages={pagination.totalPages}
-                                baseUrl="/sales"
-                                SearchParams={{ q }}
-                            />
-                        </div>
-                    )}
+
                 </div>
                 {isEditModalOpen && editingSale && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -601,6 +557,17 @@ export default function SalesPage({ searchParams }: { searchParams: Promise<{ q?
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+                {/* PAGINATION */}
+                {sales.length > 0 && (
+                    <div className="bg-white rounded-lg border p-6 mt-6">
+                        <Pagination
+                            currentPage={pagination.page}
+                            totalPages={pagination.totalPages}
+                            baseUrl="/sales"
+                            SearchParams={{ q }}
+                        />
                     </div>
                 )}
             </main >

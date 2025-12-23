@@ -5,6 +5,7 @@ CREATE TABLE "ProductList" (
     "name" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "packSize" INTEGER NOT NULL,
+    "category" TEXT,
     "weightValue" DOUBLE PRECISION NOT NULL,
     "weightUnit" TEXT NOT NULL,
     "createdBy" TEXT NOT NULL,
@@ -48,6 +49,7 @@ CREATE TABLE "Inventory" (
     "locationId" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
     "lowStockAt" INTEGER NOT NULL,
+    "expiryDate" TIMESTAMP(3),
     "createdBy" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -85,6 +87,12 @@ CREATE UNIQUE INDEX "Customer_email_key" ON "Customer"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Location_name_key" ON "Location"("name");
+
+-- CreateIndex
+CREATE INDEX "Location_id_idx" ON "Location"("id");
+
+-- CreateIndex
+CREATE INDEX "Inventory_productId_idx" ON "Inventory"("productId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Inventory_productId_locationId_key" ON "Inventory"("productId", "locationId");

@@ -61,30 +61,35 @@ export default function Pagination({
             <ChevronLeft /> Previous
         </Link>
 
-        {VisiblePages.map((page, key) => {
+        {VisiblePages.map((page, index) => {
             if (page === "...") {
                 return (
-                    <span key={key} className="px-3 py-2 text-sm text-gray-500">
+                    <span
+                        key={`dots-${index}`}
+                        className="px-3 py-2 text-sm text-gray-500"
+                    >
                         ...
                     </span>
                 );
             }
+
             const pageNumber = page as number;
-            //const pageNumber = typeof page === 'number' ? page : null;
             const isCurrentPage = pageNumber === currentPage;
+
             return (
                 <Link
-                    key={typeof page === 'number' ? page : `dot-${key}`} // unique key
+                    key={`page-${pageNumber}-${index}`}
                     href={getPageUrl(pageNumber)}
                     className={`px-3 py-2 text-sm font-medium rounded-lg ${isCurrentPage
                         ? "bg-purple-600 text-white"
                         : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
                         }`}
                 >
-                    {page}
+                    {pageNumber}
                 </Link>
             );
         })}
+
         <Link href={getPageUrl(currentPage + 1)}
             className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${currentPage >= totalPages
                 ? "text-gray-400 cursor-not-allowed bg-gray-100"
