@@ -1,5 +1,5 @@
 //"use client";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/sidebar2";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Pagination from "@/components/pagination";

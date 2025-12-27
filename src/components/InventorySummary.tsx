@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Package, ArrowUpDown } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { unitToKg } from "@/lib/UnitToKg";
+import Link from 'next/link';
 
 type SortKey =
     | "name"
     | "quantity"
-    | "stockValue"
+    | "value"
     | "tonnage"
     | "price"
     | "lowStockAt";
@@ -23,6 +24,7 @@ interface InventoryItem {
     product: {
         id: string;
         name: string;
+        sku: string;
         price: number;
         packSize: number;
         weightValue: number;
@@ -59,6 +61,11 @@ export default function InventorySummary({
     const [selectedLocation, setSelectedLocation] = useState("all");
     const [selectedCategory, setSelectedCategory] = useState("all");
 
+    const [showProducts, setShowProducts] = useState(false);
+    const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+    const productRef = useRef<HTMLDivElement>(null);
+
+
     /* ---------------- FILTER OPTIONS ---------------- */
     const locations = useMemo(
         () => Array.from(new Set(inventory.map((i) => i.location.name))),
@@ -74,6 +81,28 @@ export default function InventorySummary({
             ),
         [inventory]
     );
+    const products = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    inventory.map((i) => i.product.name)
+                )
+            ),
+        [inventory]
+    );
+
+    // Close product dropdown
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (productRef.current && !productRef.current.contains(e.target as Node)) {
+                setShowProducts(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
 
     /* ---------------- FILTER INVENTORY ---------------- */
     const filteredInventory = useMemo(() => {
@@ -87,9 +116,14 @@ export default function InventorySummary({
                 (i.product.category ?? "Uncategorized") !== selectedCategory
             )
                 return false;
+            if (
+                selectedProducts.length > 0 &&
+                !selectedProducts.includes(i.product.name)
+            )
+                return false;
             return true;
         });
-    }, [inventory, startDate, endDate, selectedLocation, selectedCategory]);
+    }, [inventory, startDate, endDate, selectedLocation, selectedCategory, selectedProducts]);
 
     /* ---------------- SALES MAP ---------------- */
     const salesMap = useMemo(() => {
@@ -110,6 +144,7 @@ export default function InventorySummary({
                 map[p.id] = {
                     id: p.id,
                     name: p.name,
+                    sku: p.sku,
                     packSize: p.packSize,
                     weightValue: p.weightValue,
                     weightUnit: p.weightUnit,
@@ -134,7 +169,18 @@ export default function InventorySummary({
         return [...data].sort((a, b) => {
             const aVal = a[sortKey];
             const bVal = b[sortKey];
-            return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+
+            // String sorting
+            if (typeof aVal === "string" && typeof bVal === "string") {
+                return sortDir === "asc"
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal);
+            }
+
+            // Numeric sorting
+            return sortDir === "asc"
+                ? Number(aVal) - Number(bVal)
+                : Number(bVal) - Number(aVal);
         });
     }, [data, sortKey, sortDir]);
 
@@ -164,6 +210,8 @@ export default function InventorySummary({
     const exportCSV = () => {
         const headers = [
             "Product",
+            "Product ID",
+            "SKU",
             "Pack Size",
             "Weight Value",
             "Weight Unit",
@@ -185,6 +233,8 @@ export default function InventorySummary({
 
             return [
                 p.name,
+                p.id,
+                p.sku,
                 p.packSize,
                 p.weightValue,
                 p.weightUnit,
@@ -229,6 +279,8 @@ export default function InventorySummary({
                 [
                     "#",
                     "Product",
+                    "Product ID",
+                    "SKU",
                     "Pack Size",
                     "Weight Value",
                     "Weight Unit",
@@ -251,6 +303,8 @@ export default function InventorySummary({
                 return [
                     i + 1,
                     p.name,
+                    p.id,
+                    p.sku,
                     p.packSize,
                     p.weightValue,
                     p.weightUnit,
@@ -272,7 +326,7 @@ export default function InventorySummary({
 
     /* ---------------- RENDER ---------------- */
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
+        <div className="bg-white p-4 rounded-xl border hover:shadow-md transition-shadow">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <Package className={`h-5 w-5 ${iconColor}`} />
                 {title}
@@ -280,8 +334,8 @@ export default function InventorySummary({
 
             {/* FILTER BAR */}
             <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-                <div className="flex gap-5 rounded border px-2 py-1 flex-wrap">
-                    <label className="flex items-center gap-2 font-medium">
+                <div className="flex h-8 gap-5 px-2 py-1 flex-wrap">
+                    <label className="flex items-center gap-2">
                         Select Location:
                         <select
                             value={selectedLocation}
@@ -297,7 +351,7 @@ export default function InventorySummary({
                         </select>
                     </label>
 
-                    <label className="flex items-center gap-2 font-medium">
+                    <label className="flex items-center gap-2">
                         Select Category:
                         <select
                             value={selectedCategory}
@@ -312,18 +366,65 @@ export default function InventorySummary({
                             ))}
                         </select>
                     </label>
+                    <div ref={productRef} className="relative inline-block whitespace-nowrap">
+                        <span className="mr-2 text-sm">Select Product:</span>
+
+                        <button
+                            onClick={() => setShowProducts((v) => !v)}
+                            className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm"
+                        >
+                            {selectedProducts.length === 0
+                                ? "All Products"
+                                : `${selectedProducts.length} selected`}
+                        </button>
+
+                        {showProducts && (
+                            <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
+
+                                <button
+                                    onClick={() => setSelectedProducts([])}
+                                    className="text-xs text-blue-600 hover:underline mb-2 block"
+                                >
+                                    Clear Selection
+                                </button>
+
+                                {products.map((p) => (
+                                    <label
+                                        key={p}
+                                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProducts.includes(p)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedProducts([...selectedProducts, p]);
+                                                } else {
+                                                    setSelectedProducts(
+                                                        selectedProducts.filter((x) => x !== p)
+                                                    );
+                                                }
+                                            }}
+                                            className="w-4 h-4"
+                                        />
+                                        {p}
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex gap-2 rounded border px-2 py-1 flex-wrap">
+                <div className="flex h-8 gap-2 px-2 py-1 flex-wrap">
                     <button
                         onClick={exportCSV}
-                        className="text-sm px-3 py-1 rounded border font-medium hover:bg-gray-100"
+                        className="text-sm px-2 py-1 rounded border hover:bg-gray-100"
                     >
                         Export CSV
                     </button>
                     <button
                         onClick={exportPDF}
-                        className="text-sm px-3 py-1 rounded border font-medium hover:bg-gray-100"
+                        className="text-sm px-2 py-1 rounded border hover:bg-gray-100"
                     >
                         Export PDF
                     </button>
@@ -331,21 +432,24 @@ export default function InventorySummary({
             </div>
 
             {/* TABLE */}
-            <div className="max-h-[420px] overflow-y-auto mb-6">
+            <div className="max-h-[420px] overflow-y-auto">
                 <table className="w-full text-sm border border-gray-200">
                     <thead className="sticky top-0 bg-gray-200">
                         <tr>
                             <th className="py-2 px-3 border-r">#</th>
+                            {/*<Header label="Product Name" column="name" />*/}
                             <th className="py-2 px-3 border-r text-left">Product Name</th>
+                            <th className="py-2 px-3 border-r text-center">SKU</th>
                             <th className="py-2 px-3 border-r text-center">Pack Size</th>
                             <th className="py-2 px-3 border-r text-center">Weight Value</th>
                             <th className="py-2 px-3 border-r text-center">Weight Unit</th>
                             <Header label="Quantity" column="quantity" />
                             <Header label="Tonnage" column="tonnage" />
                             <Header label="Price" column="price" />
-                            <Header label="Value" column="stockValue" />
+                            <Header label="Value" column="value" />
                             <Header label="Low Stock At" column="lowStockAt" />
                             <th className="py-2 px-3 text-center">Status</th>
+                            <th className="py-2 px-3 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -378,6 +482,8 @@ export default function InventorySummary({
                                         >
                                             <td className="py-2 px-3 border-r text-center">{i + 1}</td>
                                             <td className="py-2 px-3 border-r">{p.name}</td>
+                                            {/*<td className="py-2 px-3 border-r text-center">{p.id}</td>*/}
+                                            <td className="py-2 px-3 border-r text-center">{p.sku || "-"}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.packSize}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.weightValue}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.weightUnit || '-'}</td>
@@ -386,14 +492,22 @@ export default function InventorySummary({
                                             <td className="py-2 px-3 border-r text-center">{p.price.toFixed(2)}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.value.toFixed(2)}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.lowStockAt}</td>
-                                            <td className={`py-2 px-3 text-center ${statusColor}`}>{status}</td>
+                                            <td className={`py-2 px-3 border-r text-center ${statusColor}`}>{status}</td>
+                                            <td className="py-2 px-2 border-r">
+                                                <Link
+                                                    href={`/inventory/inventory?productId=${p.id}#inventory-table`}
+                                                    className="text-blue-600 hover:underline text-sm"
+                                                >
+                                                    View Inventory
+                                                </Link>
+                                            </td>
                                         </tr>
                                     );
                                 })}
 
                                 {/* Total Row */}
                                 <tr className="bg-gray-200 font-semibold">
-                                    <td className="py-2 px-3 border-r text-center" colSpan={5}>
+                                    <td className="py-2 px-3 border-r text-center" colSpan={6}>
                                         Total
                                     </td>
                                     <td className="py-2 px-3 border-r text-center">
@@ -408,11 +522,12 @@ export default function InventorySummary({
                                     </td>
                                     <td className="py-2 px-3 border-r text-center">-</td>
                                     <td className="py-2 px-3 border-r text-center">-</td>
+                                    <td className="py-2 px-3 border-r text-center">-</td>
                                 </tr>
                             </>
                         ) : (
                             <tr>
-                                <td colSpan={11} className="py-2 px-3 text-center text-gray-500">
+                                <td colSpan={12} className="py-2 px-3 text-center text-gray-500">
                                     No data available for the selected location and category
                                 </td>
                             </tr>

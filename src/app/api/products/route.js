@@ -14,6 +14,7 @@ export async function GET(request) {
                 name: true,
                 sku: true,
                 price: true,
+                category: true,
                 inventories: {
                     select: {
                         quantity: true,
@@ -30,7 +31,7 @@ export async function GET(request) {
             quantity: product.inventories.reduce((sum, inv) => sum + inv.quantity, 0),
         }));
 
-        return NextResponse.json({ products: productsWithTotalQuantity || [] });
+        return NextResponse.json({ products: productsWithTotalQuantity ?? [] });
     } catch (error) {
         console.error("Product fetch error:", error);
         return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

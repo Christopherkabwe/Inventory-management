@@ -31,14 +31,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToasterProvider>
-          <StackProvider app={stackClientApp}>
-            <StackTheme>
+        <StackProvider app={stackClientApp}>
+          <StackTheme>
+            <ToasterProvider>
               {children}
-            </StackTheme>
-          </StackProvider>
-        </ToasterProvider>
-        <Toaster position="bottom-right" />
+              {/* Only one Toaster instance */}
+              <Toaster position="bottom-right" />
+            </ToasterProvider>
+          </StackTheme>
+        </StackProvider>
       </body>
     </html>
   );

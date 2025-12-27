@@ -13,6 +13,7 @@ export async function GET(req) {
         const locations = await prisma.location.findMany({
             where: { createdBy: userId },
             select: { id: true, name: true },
+            orderBy: { name: 'asc' },
         });
         return NextResponse.json({ locations });
     } catch (e) {

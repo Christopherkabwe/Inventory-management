@@ -1,23 +1,29 @@
 "use client";
-import { useFormStatus } from 'react-dom';
-import toast from 'react-hot-toast';
+
+import { useEffect, useActionState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import Link from "next/link";
+
 import Sidebar from "@/components/sidebar2";
 import { CreateProduct } from "@/lib/actions/products";
-import Link from "next/link";
-import { useEffect, useActionState } from 'react';
-import { useRouter } from 'next/navigation';
+import ProductList from "./ProductList";
+import { useFormStatus } from "react-dom";
 
-export default function AddProductPage() {
+interface Props {
+    products: any[];
+}
+
+export default function AddProductClient({ products }: Props) {
     const initialState = { message: null, success: false };
     const [state, dispatch] = useActionState(CreateProduct, initialState);
     const router = useRouter();
 
-    // Show toast when state changes
     useEffect(() => {
         if (state?.message) {
             if (state.success) {
                 toast.success(state.message);
-                router.push('/inventory');
+                router.refresh(); // refresh product list
             } else {
                 toast.error(state.message);
             }
@@ -27,18 +33,19 @@ export default function AddProductPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <Sidebar currentPath="/add-product" />
+
             <main className="ml-64 p-8">
                 <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">Add Product</h1>
-                            <p className="text-sm text-gray-500">Add new products to your inventory</p>
-                        </div>
-                    </div>
+                    <h1 className="text-2xl font-semibold">Add Product</h1>
+                    <p className="text-sm text-gray-500">
+                        Add new products to your inventory
+                    </p>
                 </div>
-                <div className="max-w-2xl">
-                    <div className="bg-white rounded-sm border border-gray-200 p-6">
-                        <form action={dispatch} className="space-y-6 item-center">
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* LEFT — FORM */}
+                    <div className="lg:col-span-2 bg-white border rounded-lg p-6">
+                        <form action={dispatch} className="space-y-6">
                             <div>
                                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
                                 <input type="text" id="name" name="name" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Product Name" />
@@ -85,12 +92,18 @@ export default function AddProductPage() {
                                 <label htmlFor="lowStockAt" className="block text-sm font-medium text-gray-700 mb-2">Low Stock At (optional)</label>
                                 <input type="number" id="lowStockAt" name="lowStockAt" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter low stock threshold..." />
                             </div>
-                            <div className="flex gap-5">
-                                <SubmitButton />
-                                <Link href="/inventory" className="px-6 py-3 bg-red-500 text-gray-800 rounded-lg hover:bg-red-600">Cancel</Link>
-                            </div>
+                            <SubmitButton />
+                            <Link
+                                href="/inventory"
+                                className="px-6 py-3 bg-red-500 text-white ml-4 rounded-lg hover:bg-red-600"
+                            >
+                                Cancel
+                            </Link>
                         </form>
                     </div>
+
+                    {/* RIGHT — PRODUCT LIST */}
+                    <ProductList products={products} />
                 </div>
             </main>
         </div>
@@ -100,8 +113,12 @@ export default function AddProductPage() {
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <button type="submit" className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700" disabled={pending}>
-            {pending ? 'Adding...' : 'Add Product'}
+        <button
+            type="submit"
+            disabled={pending}
+            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        >
+            {pending ? "Adding..." : "Add Product"}
         </button>
     );
 }

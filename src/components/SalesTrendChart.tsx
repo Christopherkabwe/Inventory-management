@@ -144,6 +144,7 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
 
         return categories.map(category => {
             const categorySales = filtered.filter(s => s.product?.category === category);
+
             return {
                 category,
                 quantity: categorySales.reduce((sum, s) => sum + s.quantity, 0),

@@ -10,8 +10,7 @@ interface chartData {
 export default function ProductsChart({ data }: { data: chartData[] }) {
     return <div className="h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 3, right: 30, left: 20, bottom: 5 }}
-            >
+            <AreaChart data={data} margin={{ top: 3, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis
                     dataKey="week"

@@ -30,10 +30,10 @@ export default function RecentSales({ sales }: Props) {
                                 <th className="px-4 py-2 border-r text-left">Customer</th>
                                 <th className="px-4 py-2 border-r text-left">Product</th>
                                 <th className="px-4 py-2 border-r text-left">Location</th>
-                                <th className="px-4 py-2 border-r text-right">Quantity</th>
-                                <th className="px-4 py-2 border-r text-right">Price</th>
-                                <th className="px-4 py-2 border-r text-right">Revenue</th>
-                                <th className="px-4 py-2 border-r text-right">Date</th>
+                                <th className="px-4 py-2 border-r text-center">Quantity</th>
+                                <th className="px-4 py-2 border-r text-center">Price</th>
+                                <th className="px-4 py-2 border-r text-center">Revenue</th>
+                                <th className="px-4 py-2 border-r text-center">Date</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -42,10 +42,10 @@ export default function RecentSales({ sales }: Props) {
                                     <td className="px-4 py-3 truncate">{sale.customerName}</td>
                                     <td className="px-4 py-3 truncate">{sale.product.name}</td>
                                     <td className="px-4 py-3 truncate">{sale.location?.name || 'N/A'}</td>
-                                    <td className="px-4 py-3 text-right">{sale.quantity}</td>
-                                    <td className="px-4 py-3 text-right">K{sale.salePrice.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-right font-medium">K{(sale.salePrice * sale.quantity).toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-right text-xs text-gray-500">
+                                    <td className="px-4 py-3 text-center">{sale.quantity}</td>
+                                    <td className="px-4 py-3 text-center">K{sale.salePrice.toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-center">K{(sale.salePrice * sale.quantity).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-center">
                                         {new Date(sale.saleDate).toLocaleDateString()}
                                     </td>
                                 </tr>

@@ -16,21 +16,81 @@ datasource db {
 }
 
 model ProductList {
-  id        String   @id @default(cuid())
-  sku       String   @unique
-  name      String
-  price     Float
-  packSize  Int
-  category String?
+  id          String      @id @default(cuid())
+  sku         String      @unique
+  name        String
+  price       Float
+  packSize    Int
+  category    String?
   weightValue Float
-  weightUnit String
+  weightUnit  String
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  inventories Inventory[]
+  sales       Sale[]
+
+  @@index([sku])
+}
+
+model Inventory {
+  id         String      @id @default(cuid())
+  productId  String
+  product    ProductList @relation(fields: [productId], references: [id])
+  locationId String
+  location   Location    @relation(fields: [locationId], references: [id])
+  quantity   Int
+  lowStockAt Int
+  expiryDate DateTime?
+  createdBy  String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  stockMovements StockMovement[] // ← add this
+
+  @@unique([productId, locationId])
+  @@index([productId])
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  address   String?
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  inventories Inventory[]
-  sales Sale[]
 
-  @@index([sku])
+  inventories Inventory[]
+  sales       Sale[]
+
+  stockMovementsFrom StockMovement[] @relation("StockMovementFromLocation") // ← add
+  stockMovementsTo   StockMovement[] @relation("StockMovementToLocation") // ← add
+
+  @@index([id])
+}
+
+model Sale {
+  id           String      @id @default(cuid())
+  customerId   String
+  customerName String?
+  productId    String
+  productName  String?
+  quantity     Int
+  locationId   String
+  location     Location    @relation(fields: [locationId], references: [id])
+  salePrice    Float
+  totalAmount  Float
+  saleDate     DateTime    @default(now())
+  createdBy    String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  product      ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  stockMovements StockMovement[]
+
+  @@index([customerId])
+  @@index([productId])
 }
 
 model Customer {
@@ -43,58 +103,37 @@ model Customer {
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sales Sale[]
+  sales     Sale[]
+
+  stockMovements StockMovement[] // ← add
 }
 
-model Location {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  address   String?
-  createdBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  inventories Inventory[]
-  sales       Sale[]
+model StockMovement {
+  id          String    @id @default(cuid())
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
 
-  @@index([id])
-}
-
-model Inventory {
-  id        String   @id @default(cuid())
-  productId String
-  product   ProductList @relation(fields: [productId], references: [id])
-  locationId String
-  location  Location @relation(fields: [locationId], references: [id])
-  quantity  Int
-  lowStockAt Int
-  expiryDate DateTime?
-  createdBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@unique([productId, locationId])
-  @@index([productId])
-}
-
-model Sale {
-  id        String   @id @default(cuid())
-  customerId String
-  customerName String?
-  productId String
-  productName String?
+  type     String // 'RECEIPT', 'SALE', 'TRANSFER_IN', 'TRANSFER_OUT', 'EXPIRED', 'DAMAGED', 'ADJUSTMENT', 'RETURN', 'REBAG_GAIN', 'REBAG_LOSS'
   quantity Int
-  locationId String
-  location  Location @relation(fields: [locationId], references: [id])
-  salePrice Float
-  totalAmount Float
-  saleDate DateTime @default(now())
-  createdBy String
+
+  fromLocationId String? // optional, for transfers
+  fromLocation   Location? @relation("StockMovementFromLocation", fields: [fromLocationId], references: [id])
+
+  toLocationId String? // optional, for transfers
+  toLocation   Location? @relation("StockMovementToLocation", fields: [toLocationId], references: [id])
+
+  saleId String? // optional, link to a sale if type is SALE
+  sale   Sale?   @relation(fields: [saleId], references: [id])
+
+  customerId String? // optional, link to a customer for returns, sales
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  reason String? // e.g., 'Expired', 'Damaged', 'Stocktake'
+
+  openingStock  Int? // stock at start of day/period
+  physicalStock Int? // stock counted during stocktake
+  closingStock  Int? // stock after movement and adjustments
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  customer Customer @relation(fields: [customerId], references: [id])
-  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
-  @@index([customerId])
-  @@index([productId])
+  createdBy String
 }
-
-
-

@@ -185,6 +185,7 @@ export default async function DashboardPage() {
                 select: {
                     id: true,
                     name: true,
+                    sku: true,
                     price: true,
                     weightValue: true,
                     weightUnit: true,

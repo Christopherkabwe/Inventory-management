@@ -15,11 +15,6 @@ export default function SalesByCategoryPie({ categoryData }: Props) {
 
     return (
         <div>
-            {/*<div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-green-500" />
-                Sales By Category (Year-to-Date)
-            </h3>*/}
             <div className="flex justify-center">
                 <ResponsiveContainer width="100%" height={200}>
                     <PieChart>

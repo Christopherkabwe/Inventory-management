@@ -103,7 +103,7 @@ export async function CreateProduct(
         packSize: formData.get("packSize"),
         weightValue: formData.get("weightValue"),
         weightUnit: formData.get("weightUnit"),
-        location: formData.get("location"),
+        location: formData.get("location"), // Update this line
         quantity: formData.get("quantity"),
         lowStockAt: formData.get("lowStockAt") || undefined,
     });
@@ -113,32 +113,81 @@ export async function CreateProduct(
     }
 
     try {
-        // Create product
-        const product = await prisma.productList.create({
-            data: {
-                name: parsed.data.name,
-                sku: parsed.data.sku,
-                price: parsed.data.price,
-                packSize: parsed.data.packSize,
-                weightValue: parsed.data.weightValue,
-                weightUnit: parsed.data.weightUnit,
-                createdBy: user.id,
-            },
+        // Check if product with same SKU exists
+        const existingProduct = await prisma.productList.findUnique({
+            where: { sku: parsed.data.sku },
         });
+
+        let product;
+        if (existingProduct) {
+            product = existingProduct;
+        } else {
+            // Create product if it doesn't exist
+            product = await prisma.productList.create({
+                data: {
+                    name: parsed.data.name,
+                    sku: parsed.data.sku,
+                    price: parsed.data.price,
+                    packSize: parsed.data.packSize,
+                    weightValue: parsed.data.weightValue,
+                    weightUnit: parsed.data.weightUnit,
+                    createdBy: user.id,
+                },
+            });
+        }
+
+        const location = await prisma.location.findUnique({
+            where: { name: parsed.data.location },
+        });
+
+        if (!location) {
+            return { success: false, message: "Location not found." };
+        }
+
         // Add to inventory
         await prisma.inventory.create({
             data: {
-                productId: product.id,
-                //productName: product.name,
-                location: parsed.data.location,
+                product: {
+                    connect: {
+                        id: product.id,
+                    },
+                },
+                location: {
+                    connect: {
+                        id: location.id,
+                    },
+                },
                 quantity: parsed.data.quantity,
                 lowStockAt: parsed.data.lowStockAt || 5,
                 createdBy: user.id,
             },
         });
+
         return { success: true, message: "Product added to inventory!" };
     } catch (error) {
         console.error("Failed to create product:", error);
         return { success: false, message: "Failed to add product." };
     }
 }
+
+export async function getProducts() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+
+    const products = await prisma.inventory.findMany({
+        where: {
+            createdBy: user.id,
+        },
+        include: {
+            product: true,
+            location: true,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+        take: 50, // limit list (important for performance)
+    });
+
+    return products;
+}
+

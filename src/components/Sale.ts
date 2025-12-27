@@ -20,9 +20,22 @@ export interface Sale {
     updatedAt: Date;
     customerName: string;
 
+    product?: {
+        id: string;
+        productId: string;
+        name: string;
+        price: number;
+        category: string | null;
+        packSize: number;
+        weightValue: number;
+        weightUnit: string;
+        //weightUnit?: "kg" | "g" | "lb";
+    };
+
     // Add location relation
     locationId: string;
     location: {
+        id: string;
         name: string;
         address?: string;
 
@@ -39,4 +52,3 @@ export interface Sale {
         };
     };
 }
-

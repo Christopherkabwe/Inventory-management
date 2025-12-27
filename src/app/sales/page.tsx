@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { useStackApp } from "@stackframe/stack";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/sidebar2";
 import { useToaster } from '@/components/Toaster';
 import { motion } from 'framer-motion';
 import Pagination from "@/components/pagination";

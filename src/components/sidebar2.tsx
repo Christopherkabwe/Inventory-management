@@ -25,8 +25,15 @@ export default function Sidebar() {
                 { name: "Sales Dashboard", href: "/dashboard/sales" },
             ],
         },
-        { name: "Inventory", href: "/inventory", icon: Package },
-        { name: "Add Product", href: "/add-product", icon: Plus },
+        {
+            name: "Inventory",
+            icon: Package,
+            subItems: [
+                { name: "Inventory Summary", href: "/inventory/inventory" },
+                { name: "Add Product", href: "/inventory/add-product" },
+                { name: "Stock Reports", href: "/inventory/stock-report" },
+            ],
+        },
         { name: "Sales", href: "/sales", icon: ShoppingCart },
         { name: "Settings", href: "/settings", icon: Settings },
         { name: "About", href: "/about", icon: Info },
@@ -40,8 +47,11 @@ export default function Sidebar() {
         }
     };
 
-    const isActive = (href: string) => currentPath === href;
-    const isParentActive = (subItems?: { href: string }[]) => subItems?.some((sub) => currentPath === sub.href);
+    const isActive = (href: string) => currentPath.startsWith(href);
+
+    const isParentActive = (subItems?: { href: string }[]) =>
+        subItems?.some((sub) => currentPath.startsWith(sub.href));
+
     const isOpen = (name: string) => openItems.includes(name);
 
     return (

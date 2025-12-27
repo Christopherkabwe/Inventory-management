@@ -10,14 +10,14 @@ export default function ClearFiltersButton({ onClear }: Props) {
 
     const handleClearFilters = () => {
         if (onClear) onClear();
-        router.push('/inventory', { shallow: true });
+        router.push('/inventory/inventory', { shallow: true });
     };
 
     return (
         <button
             type="button"
             onClick={handleClearFilters}
-            className="w-full px-2 py-1 border border-gray-300 bg-red-500 text-white rounded-lg hover:bg-red-600 mt-6 cursor-pointer"
+            className="w-35 h-8 px-2 py-1 bg-red-500 text-white rounded-sm hover:bg-red-600 cursor-pointer"
         >
             Clear Filters
         </button>

@@ -49,18 +49,15 @@ export default function LocationDropdown({
 
     return (
         <div className="relative" ref={dropdownRef}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Locations
-            </label>
             <div>
                 <button
                     type="button"
                     onClick={() => setOpen((prev) => !prev)}
                     aria-expanded={open}
-                    className="flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="flex items-center justify-between w-full h-8 px-2 py-1 border border-gray-300 rounded-lg focus:outline focus:ring-2 focus:ring-gray-300"
                 >
                     <span>
-                        {locations.length === 0 ? "All locations" : `${locations.length} selected`}
+                        {locations.length === 0 ? "Select location" : `${locations.length} selected`}
                     </span>
                     <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
