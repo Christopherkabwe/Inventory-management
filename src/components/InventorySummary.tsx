@@ -333,116 +333,85 @@ export default function InventorySummary({
             </h3>
 
             {/* FILTER BAR */}
-            <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-                <div className="flex h-8 gap-5 px-2 py-1 flex-wrap">
-                    <label className="flex items-center gap-2">
-                        Select Location:
-                        <select
-                            value={selectedLocation}
-                            onChange={(e) => setSelectedLocation(e.target.value)}
-                            className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer"
-                        >
-                            <option value="all">All</option>
-                            {locations.map((loc) => (
-                                <option key={loc} value={loc}>
-                                    {loc}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="flex items-center gap-2">
-                        Select Category:
-                        <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer"
-                        >
-                            <option value="all">All</option>
-                            {categories.map((cat) => (
-                                <option key={cat} value={cat}>
-                                    {cat}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <div ref={productRef} className="relative inline-block whitespace-nowrap">
-                        <span className="mr-2 text-sm">Select Product:</span>
-
-                        <button
-                            onClick={() => setShowProducts((v) => !v)}
-                            className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm"
-                        >
-                            {selectedProducts.length === 0
-                                ? "All Products"
-                                : `${selectedProducts.length} selected`}
-                        </button>
-
-                        {showProducts && (
-                            <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
-
-                                <button
-                                    onClick={() => setSelectedProducts([])}
-                                    className="text-xs text-blue-600 hover:underline mb-2 block"
-                                >
-                                    Clear Selection
+            <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="flex flex-wrap gap-2">
+                        <div>
+                            <label className="flex flex-wrap items-center gap-2">
+                                Select Location:
+                                <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
+                                    <option value="all">All</option>
+                                    {locations.map((loc) => (
+                                        <option key={loc} value={loc}>
+                                            {loc}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <div>
+                            <label className="flex flex-wrap items-center gap-2">
+                                Select Category:
+                                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
+                                    <option value="all">All</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {cat}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <div>
+                            <div ref={productRef} className="relative inline-block whitespace-nowrap">
+                                <span className="mr-2 text-sm">Select Product:</span>
+                                <button onClick={() => setShowProducts((v) => !v)} className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm">
+                                    {selectedProducts.length === 0 ? "All Products" : `${selectedProducts.length} selected`}
                                 </button>
-
-                                {products.map((p) => (
-                                    <label
-                                        key={p}
-                                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedProducts.includes(p)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setSelectedProducts([...selectedProducts, p]);
-                                                } else {
-                                                    setSelectedProducts(
-                                                        selectedProducts.filter((x) => x !== p)
-                                                    );
-                                                }
-                                            }}
-                                            className="w-4 h-4"
-                                        />
-                                        {p}
-                                    </label>
-                                ))}
+                                {showProducts && (
+                                    <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
+                                        <button onClick={() => setSelectedProducts([])} className="text-xs text-blue-600 hover:underline mb-2 block">
+                                            Clear Selection
+                                        </button>
+                                        {products.map((p) => (
+                                            <label key={p} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                                                <input type="checkbox" checked={selectedProducts.includes(p)} onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedProducts([...selectedProducts, p]);
+                                                    } else {
+                                                        setSelectedProducts(selectedProducts.filter((x) => x !== p));
+                                                    }
+                                                }} className="w-4 h-4" />
+                                                {p}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
-                </div>
-
-                <div className="flex h-8 gap-2 px-2 py-1 flex-wrap">
-                    <button
-                        onClick={exportCSV}
-                        className="text-sm px-2 py-1 rounded border hover:bg-gray-100"
-                    >
-                        Export CSV
-                    </button>
-                    <button
-                        onClick={exportPDF}
-                        className="text-sm px-2 py-1 rounded border hover:bg-gray-100"
-                    >
-                        Export PDF
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={exportCSV} className="text-sm px-2 py-1 rounded border hover:bg-gray-100">
+                            Export CSV
+                        </button>
+                        <button onClick={exportPDF} className="text-sm px-2 py-1 rounded border hover:bg-gray-100">
+                            Export PDF
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* TABLE */}
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm border border-gray-200">
                     <thead className="sticky top-0 bg-gray-200">
                         <tr>
-                            <th className="py-2 px-3 border-r">#</th>
-                            {/*<Header label="Product Name" column="name" />*/}
+                            <th className="hidden xl:table-cell py-2 px-3 border-r">#</th>
                             <th className="py-2 px-3 border-r text-left">Product Name</th>
-                            <th className="py-2 px-3 border-r text-center">SKU</th>
-                            <th className="py-2 px-3 border-r text-center">Pack Size</th>
-                            <th className="py-2 px-3 border-r text-center">Weight Value</th>
-                            <th className="py-2 px-3 border-r text-center">Weight Unit</th>
+                            <th className="hidden xl:table-cell py-2 px-3 border-r text-center">SKU</th>
+                            <th className="hidden xl:table-cell py-2 px-3 border-r text-center">Pack Size</th>
+                            <th className="hidden xl:table-cell py-2 px-3 border-r text-center">Weight Value</th>
+                            <th className="hidden xl:table-cell py-2 px-3 border-r text-center">Weight Unit</th>
                             <Header label="Quantity" column="quantity" />
                             <Header label="Tonnage" column="tonnage" />
                             <Header label="Price" column="price" />
@@ -480,13 +449,12 @@ export default function InventorySummary({
                                                     : ""
                                                 }`}
                                         >
-                                            <td className="py-2 px-3 border-r text-center">{i + 1}</td>
-                                            <td className="py-2 px-3 border-r">{p.name}</td>
-                                            {/*<td className="py-2 px-3 border-r text-center">{p.id}</td>*/}
-                                            <td className="py-2 px-3 border-r text-center">{p.sku || "-"}</td>
-                                            <td className="py-2 px-3 border-r text-center">{p.packSize}</td>
-                                            <td className="py-2 px-3 border-r text-center">{p.weightValue}</td>
-                                            <td className="py-2 px-3 border-r text-center">{p.weightUnit || '-'}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{i + 1}</td>
+                                            <td className="py-2 px-3 border-r max-w-[180px] truncate">{p.name}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.sku || "-"}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.packSize}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.weightValue}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.weightUnit || '-'}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.quantity}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.tonnage.toFixed(2)}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.price.toFixed(2)}</td>
@@ -506,7 +474,7 @@ export default function InventorySummary({
                                 })}
 
                                 {/* Total Row */}
-                                <tr className="bg-gray-200 font-semibold">
+                                <tr className="hidden xl:table-row bg-gray-200 font-semibold">
                                     <td className="py-2 px-3 border-r text-center" colSpan={6}>
                                         Total
                                     </td>
@@ -535,6 +503,6 @@ export default function InventorySummary({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }

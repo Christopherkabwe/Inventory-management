@@ -981,24 +981,3 @@ const InvoiceOne: React.FC = () => {
 
 export default InvoiceOne;
 
-
-
-<DateFiltersExports
-    view={view}
-    startDate={startDate}
-    endDate={endDate}
-    setStartDate={setStartDate}
-    setEndDate={setEndDate}
-    selectedLocations={selectedLocations}
-    setSelectedLocations={setSelectedLocations}
-    selectedCategories={selectedCategories}
-    setSelectedCategories={setSelectedCategories}
-    selectedProducts={selectedProducts}
-    setSelectedProducts={setSelectedProducts}
-    locationOptions={locationOptions}
-    categoryOptions={categoryOptions}
-    productOptions={productOptions}
-    exportCSV={exportCSV}
-    exportPDF={exportPDF}
-    setView={setView}
-/>

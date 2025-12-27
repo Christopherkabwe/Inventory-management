@@ -211,7 +211,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                     <KPI title="Total Products" value={totalProducts} icon={<Package />} color="purple" />
                     <KPI title="Inventory Value" value={`K${totalValue.toFixed(0)}`} icon={<DollarSign />} color="green" />
                     <KPI
@@ -272,7 +272,7 @@ export default async function DashboardPage() {
                             {recentProducts.map(item => (
                                 <li key={item.id} className="flex justify-between mr-2">
                                     <span className="truncate">{item.product.name}</span>
-                                    <span className="text-xs text-gray-500 w-1/3 text-center">
+                                    <span className="hidden md:inline text-xs text-gray-500 w-1/3 text-center">
                                         Low Stock At: {item.lowStockAt} units
                                     </span>
                                     <span className="text-gray-500">{item.quantity} units Added</span>

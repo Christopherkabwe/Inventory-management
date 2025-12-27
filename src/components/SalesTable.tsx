@@ -76,7 +76,6 @@ export default function SalesTable({ sales }: Props) {
         // Convert to array of objects suitable for dropdowns
         return Array.from(map.values());
     }, [sales]);
-    console.log(locations)
 
     const categories = useMemo(() => Array.from(new Set(sales.map(s => s.product?.category).filter(Boolean))).sort(), [sales]);
 
@@ -196,7 +195,7 @@ export default function SalesTable({ sales }: Props) {
                 exportCSV={exportCSV}
                 exportPDF={exportPDF}
             />
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm border border-gray-200">
                     <thead className="sticky top-0 bg-gray-200">
                         <tr>

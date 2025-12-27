@@ -202,7 +202,7 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
         const defaultEnd = new Date().toISOString().split("T")[0]; // today
 
         return (
-            <div className="flex items-center gap-2 ml-35 mb-5">
+            <div className="flex items-center justify-end w-full gap-2 mb-5">
                 <span className="text-xs text-center">Date Range:</span>
                 <input
                     type="date"
@@ -242,7 +242,7 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
         const defaultEnd = new Date().toISOString().split("T")[0];
 
         return (
-            <div className="flex items-center gap-2 ml-10 mb-5">
+            <div className="flex items-center justify-end w-full gap-2 mb-5">
                 <span className="text-xs">Date Range:</span>
                 <input
                     type="date"
@@ -265,7 +265,7 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
     return (
         <div className="space-y-6">
             {/* ================= LINE CHARTS ================= */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {/* Sales Value Trend */}
                 <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
@@ -347,8 +347,7 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
             </div>
 
             {/* ================= BARS & PIE ================= */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Category Pie */}
                 <div className="bg-white p-6 rounded-xl border">
                     <h3 className="font-semibold mb-2">Sales by Category</h3>
