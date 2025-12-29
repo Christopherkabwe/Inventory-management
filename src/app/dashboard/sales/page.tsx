@@ -163,6 +163,31 @@ export default async function SalesDashboardPage() {
     });
     const totalSalesMTD = salesMTD.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
 
+    // Current year
+    const startOfCurrentYear = new Date(new Date().getFullYear(), 0, 1);
+    const endOfCurrentYear = new Date();
+
+    // Previous year
+    const startOfLastYear = new Date(new Date().getFullYear() - 1, 0, 1);
+    const endOfLastYear = new Date(new Date().getFullYear() - 1, 11, 31);
+
+    // Total sales this year
+    const salesThisYear = sales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    // Total sales last year
+    const lastYearSales = await prisma.sale.findMany({
+        where: {
+            createdBy: userId,
+            saleDate: { gte: startOfLastYear, lte: endOfLastYear },
+        },
+    });
+    const salesLastYear = lastYearSales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    // YoY growth %
+    const yoyGrowth = salesLastYear
+        ? ((salesThisYear - salesLastYear) / salesLastYear) * 100
+        : 0;
+
     // Recent sales (last 7 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -254,10 +279,16 @@ export default async function SalesDashboardPage() {
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-1">
+                <div className="grid grid-cols-1 md:grid-cols-8 gap-2">
                     <KPI title="Total Sales" value={`K${totalSales.toFixed(0)}`} icon={<DollarSign />} color="blue" />
                     <KPI title="Sales YTD" value={`K${totalSalesYTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
                     <KPI title="Sales MTD" value={`K${totalSalesMTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
+                    <KPI
+                        title="YoY Growth"
+                        value={`${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth.toFixed(1)}%`}
+                        icon={<TrendingUp />}
+                        color={yoyGrowth >= 0 ? "green" : "red"}
+                    />
                     <KPI title="Monthly Growth" value={`${growth}%`} icon={<TrendingUp />} color="blue" />
                     <KPI title="Customers" value={totalCustomers} icon={<Users />} color="yellow" />
                     <KPI title="Orders" value={totalOrders} icon={<ShoppingBag />} color="blue" />
