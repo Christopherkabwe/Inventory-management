@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 6, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/CHRISTOPHER%20KABWE/Desktop/Inventory/my-app/.next-internal/server/app/inventory/inventory/page/actions.js%20%28server%20actions%20loader%29"],"sourcesContent":["export {editInventory as '603c5354566064421a2ba834e5cd5702ceacb44948'} from 'ACTIONS_MODULE0'\nexport {deleteFromInventory as '60dcc4dc160d1dd5c2cb99e6bdc536b1cb7c304d85'} from 'ACTIONS_MODULE0'\n"],"names":[],"mappings":";AAAA"}}]
+}

@@ -1,0 +1,11 @@
+var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/inventory/available/route.js")
+R.c("server/chunks/[externals]_node:crypto_2861b06e._.js")
+R.c("server/chunks/src_generated_prisma_runtime_client_5ec32720.js")
+R.c("server/chunks/src_generated_prisma_query_compiler_bg_wasm-base64_dd48fee8.js")
+R.c("server/chunks/src_generated_prisma_05916bc2._.js")
+R.c("server/chunks/src_c44a723e._.js")
+R.c("server/chunks/[root-of-the-server]__c857177a._.js")
+R.c("server/chunks/node_modules_d359aef6._.js")
+R.c("server/chunks/_next-internal_server_app_api_inventory_available_route_actions_90beaf5b.js")
+R.m("[project]/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/src/app/api/inventory/available/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/src/app/api/inventory/available/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

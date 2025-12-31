@@ -138,88 +138,145 @@ const DateFiltersExports = ({
     return (
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-2">
             {/* Date Pickers */}
-            <div className="flex flex-wrap gap-2 items-center px-2 py-1 w-full xl:w-auto">
-                <label className="flex h-8 items-center gap-2">
-                    Start Date:
-                    <input type="date" value={formatDateForInput(startDate)} onChange={(e) => handleStartDateChange(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-200" />
+            <div className="flex flex-row gap-2 w-full xl:w-auto">
+                <label className="flex items-center gap-2 border rounded px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
+                    <span className="whitespace-nowrap text-sm">Start :</span>
+                    <input
+                        type="date"
+                        value={formatDateForInput(startDate)}
+                        onChange={(e) => handleStartDateChange(e.target.value)}
+                        className="text-sm w-full min-w-0 hover:bg-gray-100 cursor-pointer"
+                    />
                 </label>
-                <label className="flex h-8 items-center gap-2">
-                    End Date:
-                    <input type="date" value={formatDateForInput(endDate)} onChange={(e) => handleEndDateChange(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-200" />
+
+                <label className="flex items-center gap-2 border rounded py-1 px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
+                    <span className="whitespace-nowrap text-sm">End :</span>
+                    <input
+                        type="date"
+                        value={formatDateForInput(endDate)}
+                        onChange={(e) => handleEndDateChange(e.target.value)}
+                        className="text-sm w-full min-w-0 hover:bg-gray-100 cursor-pointer"
+                    />
                 </label>
             </div>
             {/* Dropdown Filters */}
-            <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+            <div className="grid grid-cols-3 gap-2 sm:flex-nowrap w-full xl:w-auto">
+
                 {/* Locations */}
-                <div ref={locationRef} className="relative">
-                    <button onClick={() => setShowLocations(!showLocations)} className="px-3 py-1 h-8 border rounded hover:bg-gray-200 cursor-pointer" >
+                <div ref={locationRef} className="relative flex-1 min-w-0 xl:flex-none">
+                    <button
+                        onClick={() => setShowLocations(!showLocations)}
+                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                    >
                         Select Locations
                     </button>
+
                     {showLocations && (
-                        <div className="p-2 border rounded mt-1 absolute bg-white z-10 w-36 max-h-48 overflow-y-auto">
-                            <button onClick={() => setSelectedLocations([])} className="text-sm text-blue-500 hover:underline cursor-pointer mb-2" >
+                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
+                            <button
+                                onClick={() => setSelectedLocations([])}
+                                className="text-sm text-blue-500 hover:underline mb-2"
+                            >
                                 Clear Selection
                             </button>
-                            {locationOptions.map((option) => (
-                                <div key={option.value} className="flex items-center gap-2">
-                                    <input type="checkbox" id={option.value} checked={selectedLocations.includes(option.value)} onChange={(e) => e.target.checked ? setSelectedLocations([...selectedLocations, option.value]) : setSelectedLocations(selectedLocations.filter((l) => l !== option.value))} className="w-4 h-4 cursor-pointer" />
-                                    <label htmlFor={option.value} className="px-2 py-1 text-sm hover:bg-gray-200 cursor-pointer" >
-                                        {option.label}
-                                    </label>
-                                </div>
+
+                            {locationOptions.map(option => (
+                                <label key={option.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedLocations.includes(option.value)}
+                                        onChange={(e) =>
+                                            e.target.checked
+                                                ? setSelectedLocations([...selectedLocations, option.value])
+                                                : setSelectedLocations(selectedLocations.filter(l => l !== option.value))
+                                        }
+                                    />
+                                    <span className="truncate">{option.label}</span>
+                                </label>
                             ))}
                         </div>
                     )}
                 </div>
+
                 {/* Categories */}
-                <div ref={categoryRef} className="relative">
-                    <button onClick={() => setShowCategories(!showCategories)} className="px-3 py-1 h-8 border rounded hover:bg-gray-200 cursor-pointer" >
+                <div ref={categoryRef} className="relative flex-1 min-w-0 xl:flex-none">
+                    <button
+                        onClick={() => setShowCategories(!showCategories)}
+                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                    >
                         Select Categories
                     </button>
+
                     {showCategories && (
-                        <div className="p-2 border rounded mt-1 absolute bg-white z-10 w-36 max-h-48 overflow-y-auto">
-                            <button onClick={() => setSelectedCategories([])} className="text-sm text-blue-500 hover:underline cursor-pointer mb-2" >
+                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
+                            <button
+                                onClick={() => setSelectedCategories([])}
+                                className="text-sm text-blue-500 hover:underline mb-2"
+                            >
                                 Clear Selection
                             </button>
-                            {filteredCategories.map((option) => (
-                                <div key={option.value} className="flex items-center gap-2">
-                                    <input type="checkbox" id={option.value} checked={selectedCategories.includes(option.value)} onChange={(e) => e.target.checked ? setSelectedCategories([...selectedCategories, option.value]) : setSelectedCategories(selectedCategories.filter((c) => c !== option.value))} className="w-4 h-4 cursor-pointer" />
-                                    <label htmlFor={option.value} className="text-sm hover:bg-gray-200 cursor-pointer" >
-                                        {option.label}
-                                    </label>
-                                </div>
+
+                            {filteredCategories.map(option => (
+                                <label key={option.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCategories.includes(option.value)}
+                                        onChange={(e) =>
+                                            e.target.checked
+                                                ? setSelectedCategories([...selectedCategories, option.value])
+                                                : setSelectedCategories(selectedCategories.filter(c => c !== option.value))
+                                        }
+                                    />
+                                    <span className="truncate">{option.label}</span>
+                                </label>
                             ))}
                         </div>
                     )}
                 </div>
+
                 {/* Products */}
-                <div ref={productRef} className="relative">
-                    <button onClick={() => setShowProducts(!showProducts)} className="px-3 py-1 h-8 border rounded hover:bg-gray-200 cursor-pointer" >
+                <div ref={productRef} className="relative flex-1 min-w-0 xl:flex-none">
+                    <button
+                        onClick={() => setShowProducts(!showProducts)}
+                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                    >
                         Select Products
                     </button>
+
                     {showProducts && (
-                        <div className="p-2 border rounded mt-1 absolute bg-white z-10 w-36 max-h-48 overflow-y-auto">
-                            <button onClick={() => setSelectedProducts([])} className="text-sm text-blue-500 hover:underline cursor-pointer mb-2" >
+                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
+                            <button
+                                onClick={() => setSelectedProducts([])}
+                                className="text-sm text-blue-500 hover:underline mb-2"
+                            >
                                 Clear Selection
                             </button>
-                            {filteredProducts.map((option) => (
-                                <div key={option.id} className="flex items-center gap-2">
-                                    <input type="checkbox" id={option.id} checked={selectedProducts.includes(option.id)} onChange={(e) => e.target.checked ? setSelectedProducts([...selectedProducts, option.id]) : setSelectedProducts(selectedProducts.filter((p) => p !== option.id))} className="w-4 h-4 cursor-pointer" />
-                                    <label htmlFor={option.id} className="text-sm hover:bg-gray-200 cursor-pointer" >
-                                        {option.name}
-                                    </label>
-                                </div>
+
+                            {filteredProducts.map(option => (
+                                <label key={option.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedProducts.includes(option.id)}
+                                        onChange={(e) =>
+                                            e.target.checked
+                                                ? setSelectedProducts([...selectedProducts, option.id])
+                                                : setSelectedProducts(selectedProducts.filter(p => p !== option.id))
+                                        }
+                                    />
+                                    <span className="truncate">{option.name}</span>
+                                </label>
                             ))}
                         </div>
                     )}
                 </div>
+
             </div>
             {/* Export Buttons */}
-            <div className="flex gap-2 flex-wrap w-full xl:w-auto">
-                <button onClick={exportCSV} className="px-2 py-1 h-8 border rounded hover:bg-gray-200 cursor-pointer" >
+            <div className="flex flex-row gap-2 w-full xl:w-auto">
+                <button onClick={exportCSV} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer" >
                     Export CSV
                 </button>
-                <button onClick={exportPDF} className="px-2 py-1 h-8 border rounded hover:bg-gray-200 cursor-pointer" >
+                <button onClick={exportPDF} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer" >
                     Export PDF
                 </button>
             </div>

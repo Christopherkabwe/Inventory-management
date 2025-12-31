@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/CHRISTOPHER%20KABWE/Desktop/Inventory/my-app/src/app/sign-in/page.tsx"],"sourcesContent":["\r\nimport { SignIn } from \"@stackframe/stack\";\r\n\r\nexport default function SignInPage() {\r\n    return (\r\n        <div className=\"min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100\">\r\n            <div className=\"max-w-md w-full space-y-8\">\r\n                <SignIn />\r\n            </div>\r\n        </div>\r\n    )\r\n}"],"names":[],"mappings":";;;;;AACA;;;AAEe,SAAS;IACpB,qBACI,mRAAC;QAAI,WAAU;kBACX,cAAA,mRAAC;YAAI,WAAU;sBACX,cAAA,mRAAC,uOAAM;;;;;;;;;;;;;;;AAIvB"}}]
+}

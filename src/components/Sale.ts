@@ -1,54 +1,47 @@
-export interface ProductList {
-    id: string;
-    name: string;
-    price: number;
-    packSize: number;
-    weightValue: number;
-    weightUnit: string;
-}
-
 export interface Sale {
     id: string;
     customerId: string;
+    customerName: string;
     productId: string;
+    locationId: string;
     quantity: number;
     salePrice: number;
     totalAmount: number;
-    saleDate: Date;
+    saleDate: Date; // <-- change to Date
+    isReturn: boolean;
     createdBy: string;
-    createdAt: Date;
-    updatedAt: Date;
-    customerName: string;
-
+    createdAt: Date; // <-- change to Date
+    updatedAt: Date; // <-- change to Date
+    customer?: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+        country: string;
+        city: string;
+        createdBy: string;
+        createdAt: Date;
+        updatedAt: Date;
+    };
     product?: {
         id: string;
-        productId: string;
+        sku: string;
         name: string;
         price: number;
-        category: string | null;
         packSize: number;
+        category: string | null;
         weightValue: number;
         weightUnit: string;
-        //weightUnit?: "kg" | "g" | "lb";
+        createdBy: string;
+        createdAt: Date;
+        updatedAt: Date;
     };
-
-    // Add location relation
-    locationId: string;
-    location: {
+    location?: {
         id: string;
         name: string;
-        address?: string;
-
-        //product?: ProductList;
-        product?: {
-            id: string;
-            name: string;
-            price: number;
-            category: string | null;
-            packSize: number;
-            weightValue: number;
-            weightUnit: string;
-            //weightUnit?: "kg" | "g" | "lb";
-        };
+        address: string | null;
+        createdBy: string;
+        createdAt: Date;
+        updatedAt: Date;
     };
 }

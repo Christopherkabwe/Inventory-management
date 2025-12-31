@@ -65,6 +65,8 @@ export default function InventorySummary({
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
     const productRef = useRef<HTMLDivElement>(null);
 
+    const [showFilters, setShowFilters] = useState(true);
+
 
     /* ---------------- FILTER OPTIONS ---------------- */
     const locations = useMemo(
@@ -327,80 +329,86 @@ export default function InventorySummary({
     /* ---------------- RENDER ---------------- */
     return (
         <div className="bg-white p-4 rounded-xl border hover:shadow-md transition-shadow">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <h3 className="font-semibold flex items-center gap-2">
                 <Package className={`h-5 w-5 ${iconColor}`} />
                 {title}
             </h3>
+            <div className="flex justify-end items-center mb-2 mt-2">
 
+                <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="text-sm px-2 py-1 border rounded hover:bg-gray-100"
+                >
+                    {showFilters ? "Hide Filters" : "Show Filters"}
+                </button>
+            </div>
             {/* FILTER BAR */}
-            <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-4">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <div className="flex flex-wrap gap-2">
-                        <div>
-                            <label className="flex flex-wrap items-center gap-2">
-                                Select Location:
-                                <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
-                                    <option value="all">All</option>
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {loc}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label className="flex flex-wrap items-center gap-2">
-                                Select Category:
-                                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
-                                    <option value="all">All</option>
-                                    {categories.map((cat) => (
-                                        <option key={cat} value={cat}>
-                                            {cat}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <div ref={productRef} className="relative inline-block whitespace-nowrap">
-                                <span className="mr-2 text-sm">Select Product:</span>
-                                <button onClick={() => setShowProducts((v) => !v)} className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm">
-                                    {selectedProducts.length === 0 ? "All Products" : `${selectedProducts.length} selected`}
-                                </button>
-                                {showProducts && (
-                                    <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
-                                        <button onClick={() => setSelectedProducts([])} className="text-xs text-blue-600 hover:underline mb-2 block">
-                                            Clear Selection
-                                        </button>
-                                        {products.map((p) => (
-                                            <label key={p} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
-                                                <input type="checkbox" checked={selectedProducts.includes(p)} onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setSelectedProducts([...selectedProducts, p]);
-                                                    } else {
-                                                        setSelectedProducts(selectedProducts.filter((x) => x !== p));
-                                                    }
-                                                }} className="w-4 h-4" />
-                                                {p}
-                                            </label>
+            {showFilters && (
+                <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-2">
+                        <div className="grid gap-2 w-full grid-cols-[auto_1fr_1fr_1fr]  sm:flex sm:w-auto">
+                            <div>
+                                <label className="flex flex-wrap items-center gap-2">
+                                    <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
+                                        <option value="all">Select location</option>
+                                        {locations.map((loc) => (
+                                            <option key={loc} value={loc}>
+                                                {loc}
+                                            </option>
                                         ))}
-                                    </div>
-                                )}
+                                    </select>
+                                </label>
+                            </div>
+                            <div>
+                                <label className="flex flex-wrap items-center gap-2">
+                                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
+                                        <option value="all">Select Category</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat} value={cat}>
+                                                {cat}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+                            <div>
+                                <div ref={productRef} className="relative inline-block whitespace-nowrap">
+                                    <button onClick={() => setShowProducts((v) => !v)} className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm">
+                                        {selectedProducts.length === 0 ? "Select Products" : `${selectedProducts.length} selected`}
+                                    </button>
+                                    {showProducts && (
+                                        <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
+                                            <button onClick={() => setSelectedProducts([])} className="text-xs text-blue-600 hover:underline mb-2 block">
+                                                Clear Selection
+                                            </button>
+                                            {products.map((p) => (
+                                                <label key={p} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                                                    <input type="checkbox" checked={selectedProducts.includes(p)} onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedProducts([...selectedProducts, p]);
+                                                        } else {
+                                                            setSelectedProducts(selectedProducts.filter((x) => x !== p));
+                                                        }
+                                                    }} className="w-4 h-4" />
+                                                    {p}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={exportCSV} className="text-sm px-2 py-1 rounded border hover:bg-gray-100">
-                            Export CSV
-                        </button>
-                        <button onClick={exportPDF} className="text-sm px-2 py-1 rounded border hover:bg-gray-100">
-                            Export PDF
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={exportCSV} className="text-sm h-8 px-2 py-1 rounded border hover:bg-gray-100">
+                                Export CSV
+                            </button>
+                            <button onClick={exportPDF} className="text-sm h-8 px-2 py-1 rounded border hover:bg-gray-100">
+                                Export PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-
+            )}
             {/* TABLE */}
             <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm border border-gray-200">

@@ -1,0 +1,36 @@
+{
+  "node": {
+    "603c5354566064421a2ba834e5cd5702ceacb44948": {
+      "workers": {
+        "app/inventory/inventory/page": {
+          "moduleId": "[project]/.next-internal/server/app/inventory/inventory/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/actions/products.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "editInventory",
+          "filename": "src/lib/actions/products.ts"
+        }
+      },
+      "layer": {
+        "app/inventory/inventory/page": "action-browser"
+      },
+      "filename": "src/lib/actions/products.ts",
+      "exportedName": "editInventory"
+    },
+    "60dcc4dc160d1dd5c2cb99e6bdc536b1cb7c304d85": {
+      "workers": {
+        "app/inventory/inventory/page": {
+          "moduleId": "[project]/.next-internal/server/app/inventory/inventory/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/actions/products.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "deleteFromInventory",
+          "filename": "src/lib/actions/products.ts"
+        }
+      },
+      "layer": {
+        "app/inventory/inventory/page": "action-browser"
+      },
+      "filename": "src/lib/actions/products.ts",
+      "exportedName": "deleteFromInventory"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "+xgguk5/EXlj3yrTYTMOAqrh7V/aTrWNkqw20eSrV8U="
+}

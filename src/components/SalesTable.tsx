@@ -33,6 +33,9 @@ export default function SalesTable({ sales }: Props) {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
+    const [showFilters, setShowFilters] = useState(false);
+
+
     /** ----------------- Sorting ----------------- */
     const toggleSort = (key: SortKey) => {
         if (key === sortKey) {
@@ -177,24 +180,39 @@ export default function SalesTable({ sales }: Props) {
     /** ------------------ Render ------------------ */
     return (
         <div className="bg-white p-6 rounded-xl border hover:shadow-md">
+            <h2 className="px-2 font-semibold mb-5">Sales Summary</h2>
             <ViewSelector view={view} setView={setView} />
-            <DateFiltersExports
-                startDate={startDate}
-                endDate={endDate}
-                setStartDate={setStartDate}
-                setEndDate={setEndDate}
-                selectedLocations={selectedLocations}
-                setSelectedLocations={setSelectedLocations}
-                selectedCategories={selectedCategories}
-                setSelectedCategories={setSelectedCategories}
-                selectedProducts={selectedProducts}
-                setSelectedProducts={setSelectedProducts}
-                locationOptions={locationOptions}
-                categoryOptions={categoryOptions}
-                sales={sales}
-                exportCSV={exportCSV}
-                exportPDF={exportPDF}
-            />
+
+            {/* Toggle button for mobile */}
+            <div className="flex justify-start items-center mb-2 mt-2">
+                <button
+                    className="xl:hidden mb-3 px-3 py-1 border rounded-sm text-sm hover:bg-gray-100"
+                    onClick={() => setShowFilters(!showFilters)}
+                >
+                    {showFilters ? "Hide Filters" : "Show Filters"}
+                </button>
+            </div>
+
+            {/* Filters */}
+            <div className={`${showFilters ? "flex flex-col" : "hidden"} xl:flex xl:flex-col`}>
+                <DateFiltersExports
+                    startDate={startDate}
+                    endDate={endDate} bn
+                    setStartDate={setStartDate}
+                    setEndDate={setEndDate}
+                    selectedLocations={selectedLocations}
+                    setSelectedLocations={setSelectedLocations}
+                    selectedCategories={selectedCategories}
+                    setSelectedCategories={setSelectedCategories}
+                    selectedProducts={selectedProducts}
+                    setSelectedProducts={setSelectedProducts}
+                    locationOptions={locationOptions}
+                    categoryOptions={categoryOptions}
+                    sales={sales}
+                    exportCSV={exportCSV}
+                    exportPDF={exportPDF}
+                />
+            </div>
             <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm border border-gray-200">
                     <thead className="sticky top-0 bg-gray-200">

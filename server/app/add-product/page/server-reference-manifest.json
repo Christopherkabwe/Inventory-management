@@ -1,0 +1,20 @@
+{
+  "node": {
+    "6048ec68cdf8f6d34d7ae0bff692cf4b7799a38869": {
+      "workers": {
+        "app/add-product/page": {
+          "moduleId": "[project]/Desktop/Inventory/my-app/.next-internal/server/app/add-product/page/actions.js { ACTIONS_MODULE0 => \"[project]/Desktop/Inventory/my-app/src/lib/actions/products.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "CreateProduct",
+          "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+        }
+      },
+      "layer": {
+        "app/add-product/page": "action-browser"
+      },
+      "exportedName": "CreateProduct",
+      "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+    }
+  },
+  "edge": {}
+}

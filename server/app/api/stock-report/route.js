@@ -1,0 +1,11 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/stock-report/route.js")
+R.c("server/chunks/[externals]_node:crypto_2861b06e._.js")
+R.c("server/chunks/Desktop_Inventory_my-app_src_generated_prisma_runtime_client_06d89e8b.js")
+R.c("server/chunks/3d860_Inventory_my-app_src_generated_prisma_query_compiler_bg_wasm-base64_06134967.js")
+R.c("server/chunks/Desktop_Inventory_my-app_src_generated_prisma_7eb67cee._.js")
+R.c("server/chunks/Desktop_Inventory_my-app_src_94e6b5a2._.js")
+R.c("server/chunks/[root-of-the-server]__30e41ff0._.js")
+R.c("server/chunks/65e54_05bc68b5._.js")
+R.c("server/chunks/4b7b1_my-app__next-internal_server_app_api_stock-report_route_actions_7a5e9746.js")
+R.m("[project]/Desktop/Inventory/my-app/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/Desktop/Inventory/my-app/src/app/api/stock-report/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/Desktop/Inventory/my-app/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/Desktop/Inventory/my-app/src/app/api/stock-report/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

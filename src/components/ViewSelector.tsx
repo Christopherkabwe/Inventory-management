@@ -9,33 +9,41 @@ interface Props {
 const ViewSelector = ({ view, setView }: Props) => {
     return (
 
-        <div className="flex gap-4 flex-wrap mb-4">
-            <h2 className="px-3 py-1 text-center font-semibold ">View Sales By :</h2>
+        <div className="grid gap-2 w-full grid-cols-[auto_1fr_1fr_1fr]  sm:flex sm:w-auto mb-2">
+            <span className="h-8 text-xs text-center p-2">View By:</span>
             <button
                 className={`h-8 px-3 py-1 rounded border cursor-pointer ${view === "location" ? "bg-gray-100" : ""
                     }`}
                 onClick={() => setView("location")}
             >
-                <MapPin className="inline w-4 h-4 mr-1" /> Location
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                    <MapPin className="w-3 h-3" />
+                    <span className="text-xs">Location</span>
+                </span>
             </button>
             <button
                 className={`h-8 px-3 py-1 rounded border cursor-pointer ${view === "customer" ? "bg-gray-100" : ""
                     }`}
                 onClick={() => setView("customer")}
             >
-                <User className="inline w-4 h-4 mr-1" /> Customer
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                    <User className="w-3 h-3" />
+                    <span className="text-xs">Customer</span>
+                </span>
             </button>
             <button
                 className={`h-8 px-3 py-1 rounded border cursor-pointer ${view === "product" ? "bg-gray-100" : ""
                     }`}
                 onClick={() => setView("product")}
             >
-                <Package className="inline w-4 h-4 mr-1" /> Product
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                    <Package className="w-3 h-3" />
+                    <span className="text-xs">Product</span>
+                </span>
+
             </button>
             <div className="border-b border-gray-300"></div>
         </div>
-
-
     );
 };
 

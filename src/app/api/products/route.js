@@ -15,6 +15,9 @@ export async function GET(request) {
                 sku: true,
                 price: true,
                 category: true,
+                weightValue: true,
+                weightUnit: true,
+                packSize: true,
                 inventories: {
                     select: {
                         quantity: true,
@@ -40,10 +43,20 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { name, sku, price, userId, location, quantity = 0 } = await request.json();
+        const {
+            name,
+            sku,
+            price,
+            packSize,
+            weightValue,
+            weightUnit,
+            userId,
+            location,
+            quantity = 0,
+        } = await request.json();
 
         // Basic validation
-        if (!name || !sku || price <= 0 || !userId || !location || quantity <= 0) {
+        if (!name || !sku || price <= 0 || !userId || !location || !packSize || !weightValue || !weightUnit || quantity <= 0) {
             return NextResponse.json(
                 { error: 'Missing or invalid fields: name, sku, price, user, location, or quantity.' },
                 { status: 400 }
@@ -63,6 +76,9 @@ export async function POST(request) {
                     name,
                     sku,
                     price,
+                    packSize,
+                    weightValue,
+                    weightUnit,
                     createdBy: userId,
                 },
             });
@@ -89,6 +105,9 @@ export async function POST(request) {
                 name: true,
                 sku: true,
                 price: true,
+                packSize: true,
+                weightValue: true,
+                weightUnit: true,
                 inventories: {
                     select: { quantity: true, location: true },
                 },

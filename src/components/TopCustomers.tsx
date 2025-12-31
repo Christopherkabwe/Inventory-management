@@ -50,7 +50,7 @@ export default function TopCustomers({ customers, title, iconColor, limit = 5 }:
                         const purchaseCount = customer.recentSales.length;
 
                         return (
-                            <li key={customer.id} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-1 md:gap-0">
+                            <li key={customer.id} className="flex flex-col-2 xl:flex-row justify-between items-start xl:items-center gap-1 xl:gap-0">
                                 <span className="truncate font-medium">
                                     {index + 1}. {customer.name}
                                 </span>

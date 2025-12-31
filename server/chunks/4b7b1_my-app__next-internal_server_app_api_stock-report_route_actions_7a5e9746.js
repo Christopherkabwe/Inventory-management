@@ -1,0 +1,9 @@
+module.exports = [
+"[project]/Desktop/Inventory/my-app/.next-internal/server/app/api/stock-report/route/actions.js [app-rsc] (server actions loader, ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+}),
+];
+
+//# sourceMappingURL=4b7b1_my-app__next-internal_server_app_api_stock-report_route_actions_7a5e9746.js.map

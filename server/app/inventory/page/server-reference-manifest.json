@@ -1,0 +1,35 @@
+{
+  "node": {
+    "60ebb7b6506a6b83f6a5cb92ea59cf63d912f3af44": {
+      "workers": {
+        "app/inventory/page": {
+          "moduleId": "[project]/Desktop/Inventory/my-app/.next-internal/server/app/inventory/page/actions.js { ACTIONS_MODULE0 => \"[project]/Desktop/Inventory/my-app/src/lib/actions/products.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "editInventory",
+          "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+        }
+      },
+      "layer": {
+        "app/inventory/page": "action-browser"
+      },
+      "exportedName": "editInventory",
+      "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+    },
+    "609a87226fbc35d98e715e2ac55d288267349ba01f": {
+      "workers": {
+        "app/inventory/page": {
+          "moduleId": "[project]/Desktop/Inventory/my-app/.next-internal/server/app/inventory/page/actions.js { ACTIONS_MODULE0 => \"[project]/Desktop/Inventory/my-app/src/lib/actions/products.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "deleteFromInventory",
+          "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+        }
+      },
+      "layer": {
+        "app/inventory/page": "action-browser"
+      },
+      "exportedName": "deleteFromInventory",
+      "filename": "Desktop/Inventory/my-app/src/lib/actions/products.ts"
+    }
+  },
+  "edge": {}
+}

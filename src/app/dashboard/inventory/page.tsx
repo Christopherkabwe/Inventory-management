@@ -11,10 +11,11 @@ import {
     XCircle,
     Bell,
     Clock,
-    RefreshCw,
+    WeightIcon,
 } from "lucide-react";
 import StockHealthPie from "@/components/StockHealthPie";
 import InventorySummary from "@/components/InventorySummary";
+import DashboardLayout from "@/components/DashboardLayout";
 
 
 export default async function DashboardPage() {
@@ -27,7 +28,19 @@ export default async function DashboardPage() {
     ----------------------------- */
     const allProducts = await prisma.inventory.findMany({
         where: { createdBy: userId },
-        include: { product: { select: { name: true, price: true } }, location: true },
+        include: {
+            product:
+            {
+                select: {
+                    name: true,
+                    price: true,
+                    weightValue: true,
+                    weightUnit: true,
+                    packSize: true,
+                }
+            },
+            location: true
+        },
     });
 
     /* -----------------------------
@@ -66,6 +79,7 @@ export default async function DashboardPage() {
         (sum, i) => sum + i.quantity * i.product.price,
         0
     );
+
     const inStock = allProducts.filter(i => i.quantity > 0 && !isLowStock(i)).length;
     const lowStock = allProducts.filter(i => i.quantity > 0 && isLowStock(i)).length;
     const outOfStock = allProducts.filter(i => i.quantity === 0).length;
@@ -197,36 +211,55 @@ export default async function DashboardPage() {
         },
     });
 
+    // Calculate tonnagee
+
+    function weightToKg(value: number, unit: string) {
+        switch (unit.toLowerCase()) {
+            case "kg":
+                return value;
+            case "g":
+                return value / 1000;
+            case "lb":
+                return value * 0.453592;
+            case "ton":
+            case "t":
+                return value * 1000; // convert tons to kg
+            default:
+                return 0; // unknown unit
+        }
+    }
+
+    const totalTonnageKg = allProducts.reduce((sum, item) => {
+        const weightPerUnit = weightToKg(item.product.weightValue || 0, item.product.weightUnit || "kg");
+        const packMultiplier = item.product.packSize ? Number(item.product.packSize) : 1;
+        return sum + weightPerUnit * item.quantity * packMultiplier;
+    }, 0);
+
+    const totalTonnageTons = parseFloat((totalTonnageKg / 1000).toFixed(2));
+
     return (
         <div className="min-h-screen bg-gray-50">
-            <Sidebar currentPath="/dashboard" />
-            <main className="ml-64 p-8 space-y-10">
+            <DashboardLayout>
 
                 {/* HEADER */}
                 <div>
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="text-gray-500 mt-1">
+                    <h1 className="text-3xl font-bold">Inventory Dashboard</h1>
+                    <p className="text-gray-500 mt-1 mb-2">
                         Inventory intelligence & risk monitoring
                     </p>
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 xl:grid-cols-5 gap-6 mb-5">
                     <KPI title="Total Products" value={totalProducts} icon={<Package />} color="purple" />
+                    <KPI title="Total Tonnage" value={totalTonnageKg} icon={<WeightIcon />} color="yellow" />
                     <KPI title="Inventory Value" value={`K${totalValue.toFixed(0)}`} icon={<DollarSign />} color="green" />
-                    <KPI
-                        title="Monthly Inventory Turnover"
-                        value={`${turnoverRate.toFixed(2)}x`}
-                        icon={<RefreshCw />}
-                        color="blue"
-                    />
                     <KPI title="Low Stock" value={lowStock} icon={<AlertTriangle />} color="yellow" />
                     <KPI title="Out of Stock" value={outOfStock} icon={<XCircle />} color="red" />
-
                 </div>
 
                 {/* MAIN GRID */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-5">
 
                     {/* STOCK HEALTH */}
                     <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
@@ -282,7 +315,7 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-5">
                     <InventorySummary
                         inventory={inventory}
                         sales={sales}
@@ -291,7 +324,7 @@ export default async function DashboardPage() {
                     />
                 </div>
                 {/* LOW STOCK BY LOCATION (COLUMNS) */}
-                <div>
+                <div className="mb-5">
                     <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow ">
                         <h3 className="font-semibold mb-6 flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-yellow-500" />
@@ -322,7 +355,7 @@ export default async function DashboardPage() {
                         )}
                     </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-5">
                     {/* EXPIRING ITEMS */}
                     <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
                         <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -362,7 +395,7 @@ export default async function DashboardPage() {
                         )}
                     </div>
                 </div>
-            </main>
+            </DashboardLayout>
         </div>
     );
 }
@@ -382,7 +415,7 @@ type Color = keyof typeof iconColors;
 
 interface Props {
     title: string;
-    value: string;
+    value: string | number;
     icon: React.ReactNode;
     color: Color;
 }

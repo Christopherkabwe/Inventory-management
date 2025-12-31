@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/CHRISTOPHER%20KABWE/Desktop/Inventory/my-app/src/app/test/page.tsx"],"sourcesContent":["'use client'\r\n\r\nexport default async function Page() {\r\n\r\n\r\n\r\n    return (\r\n        <div>hey there</div>\r\n    );\r\n}\r\n"],"names":[],"mappings":";;;;;AAAA;;AAEe,eAAe;IAI1B,qBACI,mRAAC;kBAAI;;;;;;AAEb"}}]
+}

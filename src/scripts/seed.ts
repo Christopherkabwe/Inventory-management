@@ -5,22 +5,23 @@ async function main() {
     const userId = '4ba8d662-e7b2-4157-9d04-854d2d4601e6';
 
     /* =====================================================
-       0️⃣ HARD RESET (ORDER MATTERS)
+       0️⃣ CLEAR DATABASE
     ===================================================== */
     console.log('🧹 Resetting database...');
-    await prisma.stockMovement.deleteMany();
     await prisma.sale.deleteMany();
     await prisma.inventory.deleteMany();
-    await prisma.customer.deleteMany();
+    await prisma.transfer.deleteMany();
+    await prisma.production.deleteMany();
+    await prisma.adjustment.deleteMany();
     await prisma.productList.deleteMany();
     await prisma.location.deleteMany();
+    await prisma.customer.deleteMany();
     console.log('✅ Database cleared');
 
     /* =====================================================
        1️⃣ LOCATIONS
     ===================================================== */
     const locationNames = ['Warehouse A', 'Warehouse B', 'Store 1', 'Store 2'];
-
     await prisma.location.createMany({
         data: locationNames.map(name => ({
             name,
@@ -28,15 +29,12 @@ async function main() {
             createdBy: userId,
         })),
     });
-
     const locations = await prisma.location.findMany();
 
     /* =====================================================
        2️⃣ PRODUCTS
     ===================================================== */
-
     const categories = ['Electronics', 'Fashion', 'Home Goods', 'Toys', 'Food'];
-
     await prisma.productList.createMany({
         data: Array.from({ length: 20 }).map((_, i) => ({
             sku: `SKU${String(i + 1).padStart(3, '0')}`,
@@ -49,10 +47,9 @@ async function main() {
             createdBy: userId,
         })),
     });
-
     const products = await prisma.productList.findMany();
 
-    /*===================================================
+    /* =====================================================
        3️⃣ CUSTOMERS
     ===================================================== */
     await prisma.customer.createMany({
@@ -65,20 +62,16 @@ async function main() {
             createdBy: userId,
         })),
     });
-
     const customers = await prisma.customer.findMany();
 
     /* =====================================================
-       4️⃣ INVENTORIES + OPENING STOCK
+       4️⃣ INVENTORIES (OPENING STOCK)
     ===================================================== */
-    console.log('📦 Creating inventories & opening stock...');
-
+    console.log('📦 Creating inventories...');
     const inventoryMap: Record<string, any> = {};
-
     for (const product of products) {
         for (const location of locations) {
             const openingStock = faker.number.int({ min: 30, max: 120 });
-
             const inventory = await prisma.inventory.create({
                 data: {
                     productId: product.id,
@@ -88,204 +81,120 @@ async function main() {
                     createdBy: userId,
                 },
             });
-
             inventoryMap[`${product.id}-${location.id}`] = inventory;
-
-            await prisma.stockMovement.create({
-                data: {
-                    inventoryId: inventory.id,
-                    type: 'OPENING',
-                    quantity: openingStock,
-                    openingStock,
-                    closingStock: openingStock,
-                    createdBy: userId,
-                },
-            });
         }
     }
 
     /* =====================================================
-       5️⃣ RECEIPTS, RETURNS, DAMAGE, EXPIRED, REBAG
+       5️⃣ PRODUCTIONS
     ===================================================== */
-    console.log('🔄 Adding stock movements...');
+    console.log('🏭 Adding productions...');
+    for (const product of products) {
+        const quantity = faker.number.int({ min: 20, max: 50 });
+        await prisma.production.create({
+            data: {
+                productId: product.id,
+                quantity,
+                createdBy: userId,
+            },
+        });
+    }
 
+    /* =====================================================
+       6️⃣ ADJUSTMENTS (REBAG, DAMAGE, EXPIRED)
+    ===================================================== */
+    console.log('⚠️ Adding adjustments...');
     for (const key in inventoryMap) {
         const inventory = inventoryMap[key];
-        let current = inventory.quantity;
-
-        const addMovement = async (
-            type: string,
-            qty: number,
-            affectsStock: boolean
-        ) => {
-            await prisma.stockMovement.create({
-                data: {
-                    inventoryId: inventory.id,
-                    type,
-                    quantity: qty,
-                    openingStock: current,
-                    closingStock: affectsStock ? current + qty : current,
-                    createdBy: userId,
-                },
-            });
-
-            if (affectsStock) {
-                current += qty;
-            }
-        };
-
-        if (Math.random() > 0.4) {
-            await addMovement('RECEIPT', faker.number.int({ min: 10, max: 40 }), true);
-        }
-
-        if (Math.random() > 0.6) {
-            await addMovement('RETURN', faker.number.int({ min: 1, max: 6 }), true);
-        }
-
-        if (Math.random() > 0.5) {
-            await addMovement('DAMAGED', faker.number.int({ min: 1, max: 5 }), false);
-        }
-
-        if (Math.random() > 0.6) {
-            await addMovement('EXPIRED', faker.number.int({ min: 1, max: 4 }), false);
-        }
-
         if (Math.random() > 0.7) {
-            await addMovement('REBAG_GAIN', faker.number.int({ min: 1, max: 3 }), true);
-        }
-
-        if (Math.random() > 0.8) {
-            const loss = faker.number.int({ min: 1, max: 3 });
-            await prisma.stockMovement.create({
+            await prisma.adjustment.create({
                 data: {
-                    inventoryId: inventory.id,
-                    type: 'REBAG_LOSS',
-                    quantity: loss,
-                    openingStock: current,
-                    closingStock: current - loss,
+                    productId: inventory.productId,
+                    locationId: inventory.locationId,
+                    type: 'REBAG_GAIN',
+                    quantity: faker.number.int({ min: 1, max: 5 }),
                     createdBy: userId,
                 },
             });
-            current -= loss;
         }
-
-        await prisma.inventory.update({
-            where: { id: inventory.id },
-            data: { quantity: current },
-        });
+        if (Math.random() > 0.6) {
+            await prisma.adjustment.create({
+                data: {
+                    productId: inventory.productId,
+                    locationId: inventory.locationId,
+                    type: 'DAMAGED',
+                    quantity: faker.number.int({ min: 1, max: 3 }),
+                    createdBy: userId,
+                },
+            });
+        }
+        if (Math.random() > 0.7) {
+            await prisma.adjustment.create({
+                data: {
+                    productId: inventory.productId,
+                    locationId: inventory.locationId,
+                    type: 'EXPIRED',
+                    quantity: faker.number.int({ min: 1, max: 3 }),
+                    createdBy: userId,
+                },
+            });
+        }
     }
 
     /* =====================================================
-       6️⃣ TRANSFERS (BALANCED)
+       7️⃣ TRANSFERS
     ===================================================== */
-    console.log('🚚 Creating transfers...');
-
+    console.log('🚚 Adding transfers...');
     for (let i = 0; i < 30; i++) {
         const product = faker.helpers.arrayElement(products);
-
-        const source = faker.helpers.arrayElement(
-            locations.map(l => inventoryMap[`${product.id}-${l.id}`])
-        );
-
-        const target = faker.helpers.arrayElement(
-            locations
-                .filter(l => l.id !== source.locationId)
-                .map(l => inventoryMap[`${product.id}-${l.id}`])
-        );
-
-        if (!source || !target || source.quantity < 10) continue;
-
+        const source = faker.helpers.arrayElement(locations);
+        const target = faker.helpers.arrayElement(locations.filter(l => l.id !== source.id));
         const qty = faker.number.int({ min: 5, max: 15 });
-
-        await prisma.stockMovement.create({
+        await prisma.transfer.create({
             data: {
-                inventoryId: source.id,
-                type: 'TRANSFER_OUT',
+                productId: product.id,
+                fromLocationId: source.id,
+                toLocationId: target.id,
                 quantity: qty,
-                openingStock: source.quantity,
-                closingStock: source.quantity - qty,
                 createdBy: userId,
             },
         });
-
-        await prisma.stockMovement.create({
-            data: {
-                inventoryId: target.id,
-                type: 'TRANSFER_IN',
-                quantity: qty,
-                openingStock: target.quantity,
-                closingStock: target.quantity + qty,
-                createdBy: userId,
-            },
-        });
-
-        await prisma.inventory.update({
-            where: { id: source.id },
-            data: { quantity: source.quantity - qty },
-        });
-
-        await prisma.inventory.update({
-            where: { id: target.id },
-            data: { quantity: target.quantity + qty },
-        });
-
-        source.quantity -= qty;
-        target.quantity += qty;
     }
 
     /* =====================================================
-   7️⃣ SALES (INVENTORY + MOVEMENTS)
+   8️⃣ SALES (SPREAD ACROSS 2024 → NOW)
 ===================================================== */
     console.log('💰 Creating sales...');
 
-    const startDate = new Date('2023-01-01');
+    const startDate = new Date('2024-01-01T00:00:00Z');
     const endDate = new Date();
 
-    function generateRandomDate(startDate: Date, endDate: Date): Date {
-        const timeDiff = endDate.getTime() - startDate.getTime();
-        return new Date(startDate.getTime() + Math.random() * timeDiff);
-    }
-
     for (let i = 0; i < 200; i++) {
-        const saleDate = generateRandomDate(startDate, endDate);
         const inventory = faker.helpers.arrayElement(Object.values(inventoryMap));
-        if (inventory.quantity < 5) continue;
-
+        const customer = faker.helpers.arrayElement(customers);
         const qty = faker.number.int({ min: 1, max: 5 });
         const salePrice = faker.number.float({ min: 100, max: 600 });
         const totalAmount = qty * salePrice;
 
+        const saleDate = faker.date.between({
+            from: startDate,
+            to: endDate,
+        });
+
         await prisma.sale.create({
             data: {
                 productId: inventory.productId,
-                productName: products.find(p => p.id === inventory.productId)?.name,
-                customerId: faker.helpers.arrayElement(customers).id,
-                customerName: faker.helpers.arrayElement(customers).name,
+                customerId: customer.id,
+                customerName: customer.name,
                 locationId: inventory.locationId,
                 quantity: qty,
                 salePrice,
                 totalAmount,
-                saleDate,
+                isReturn: Math.random() > 0.8,
+                saleDate,          // ✅ IMPORTANT
+                createdAt: saleDate, // ✅ KEEP IN SYNC
                 createdBy: userId,
             },
-        });
-
-        await prisma.stockMovement.create({
-            data: {
-                inventoryId: inventory.id,
-                type: 'SALE',
-                quantity: qty,
-                openingStock: inventory.quantity,
-                closingStock: inventory.quantity - qty,
-                createdBy: userId,
-            },
-        });
-
-        inventory.quantity -= qty;
-
-        await prisma.inventory.update({
-            where: { id: inventory.id },
-            data: { quantity: inventory.quantity },
         });
     }
 

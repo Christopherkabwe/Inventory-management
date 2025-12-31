@@ -18,7 +18,6 @@ interface ChartDataPoint {
 }
 
 interface Props {
-    salesTrendData: ChartDataPoint[];
     sales: any[];
     productList: any[];
 }
@@ -30,10 +29,45 @@ type GrowthData = {
     growthPercent: number;
 };
 
-export default function SalesTrendChart({ salesTrendData, sales, productList }: Props) {
-    if (!salesTrendData.length || !sales.length || !productList.length) {
+export default function SalesTrendChart({ sales, productList }: Props) {
+    if (!sales.length || !productList.length) {
         return <p className="text-sm text-gray-500">No sales data available.</p>;
     }
+
+    const salesTrendData: ChartDataPoint[] = useMemo(() => {
+        const map = new Map<string, ChartDataPoint>();
+
+        sales.forEach(s => {
+            if (!s.saleDate) return;
+
+            const dateKey = new Date(s.saleDate).toISOString().split("T")[0];
+
+            if (!map.has(dateKey)) {
+                map.set(dateKey, {
+                    date: dateKey,
+                    value: 0,
+                    quantity: 0,
+                    tonnage: 0,
+                });
+            }
+
+            const acc = map.get(dateKey)!;
+            const value = s.quantity * s.salePrice;
+
+            const product = productList.find(p => p.id === s.productId);
+            const tonnage = product
+                ? (product.weightValue * s.quantity * product.packSize) / 1000
+                : 0;
+
+            acc.value += value;
+            acc.quantity += s.quantity;
+            acc.tonnage += tonnage;
+        });
+
+        return Array.from(map.values()).sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+    }, [sales, productList]);
 
     // Separate date ranges for value and tonnage
     const [valueStartDate, setValueStartDate] = useState<string>(
@@ -74,8 +108,8 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
 
         data.forEach(d => {
             const date = new Date(d.date);
-
             let key = "";
+
             if (view === "daily") {
                 key = date.toISOString().split("T")[0];
             } else if (view === "monthly") {
@@ -84,14 +118,19 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
                 key = `${date.getFullYear()}`;
             }
 
-            const existing = map.get(key);
-            if (existing) {
-                existing.value += d.value;
-                existing.quantity += d.quantity;
-                existing.tonnage += d.tonnage;
-            } else {
-                map.set(key, { ...d, date: key });
+            if (!map.has(key)) {
+                map.set(key, {
+                    date: key,
+                    value: 0,
+                    quantity: 0,
+                    tonnage: 0,
+                });
             }
+
+            const acc = map.get(key)!;
+            acc.value += Number(d.value) || 0;
+            acc.quantity += Number(d.quantity) || 0;
+            acc.tonnage += Number(d.tonnage) || 0;
         });
 
         return Array.from(map.values());
@@ -238,10 +277,15 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
     // Sales Contribution by Location Data //
 
     const locationContributionData = useMemo(() => {
+        const filtered = sales.filter(s => {
+            const d = new Date(s.saleDate);
+            return d >= new Date(locationStartDate) && d <= new Date(locationEndDate);
+        });
+
         const totals = new Map<string, number>();
         let grandTotal = 0;
 
-        sales.forEach(s => {
+        filtered.forEach(s => {
             const location = s.location?.name || "Unknown";
             const value = s.quantity * s.salePrice;
 
@@ -251,10 +295,10 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
 
         return Array.from(totals.entries()).map(([location, total]) => ({
             location,
-            salesValue: total,                    // ← ADD HERE
-            contribution: (total / grandTotal) * 100,
+            salesValue: total,
+            contribution: grandTotal ? (total / grandTotal) * 100 : 0,
         }));
-    }, [sales]);
+    }, [sales, locationStartDate, locationEndDate]);
 
 
     // Sales by Product Data //
@@ -413,7 +457,8 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
     return (
         <div className="space-y-6">
             {/* ================= LINE CHARTS ================= */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
                 {/* Sales Value Trend */}
                 <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
@@ -582,28 +627,31 @@ export default function SalesTrendChart({ salesTrendData, sales, productList }: 
                     </ResponsiveContainer>
                 </div>
             </div>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
                 {/* Top Products per Location */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
+                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-blue-600" />
                         Top Products by Location
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 flex-1 overflow-y-auto max-h-[320px]">
                         {topProductsByLocation.map(loc => (
                             <div key={loc.location} className="border rounded-lg p-3">
                                 <h4 className="font-semibold text-sm mb-2">{loc.location}</h4>
-                                {loc.products.map(p => (
-                                    <div key={p.name} className="flex justify-between text-sm">
-                                        <span>{p.name}</span>
-                                        <span className="">{p.tonnage.toFixed(2)} Tons</span>
-                                        <span className="">K{p.value.toFixed(2)}</span>
-                                    </div>
-                                ))}
+                                <div className="space-y-1">
+                                    {loc.products.map(p => (
+                                        <div key={p.name} className="flex justify-between text-sm">
+                                            <span>{p.name}</span>
+                                            <span className="">{p.tonnage.toFixed(2)} Tons</span>
+                                            <span className="">K{p.value.toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
+
                 {/* Sales Value by Location */}
                 <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">

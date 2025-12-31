@@ -15,6 +15,7 @@ datasource db {
   provider = "postgresql"
 }
 
+// -------------------- PRODUCTS --------------------
 model ProductList {
   id          String      @id @default(cuid())
   sku         String      @unique
@@ -27,12 +28,17 @@ model ProductList {
   createdBy   String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+
   inventories Inventory[]
   sales       Sale[]
+  transfers   Transfer[]
+  productions Production[]
+  adjustments Adjustment[]
 
   @@index([sku])
 }
 
+// -------------------- INVENTORY --------------------
 model Inventory {
   id         String      @id @default(cuid())
   productId  String
@@ -46,12 +52,11 @@ model Inventory {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
-  stockMovements StockMovement[] // ← add this
-
   @@unique([productId, locationId])
   @@index([productId])
 }
 
+// -------------------- LOCATIONS --------------------
 model Location {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -62,37 +67,12 @@ model Location {
 
   inventories Inventory[]
   sales       Sale[]
-
-  stockMovementsFrom StockMovement[] @relation("StockMovementFromLocation") // ← add
-  stockMovementsTo   StockMovement[] @relation("StockMovementToLocation") // ← add
-
-  @@index([id])
+  transfersFrom Transfer[] @relation("TransfersFrom")
+  transfersTo   Transfer[] @relation("TransfersTo")
+  adjustments   Adjustment[]
 }
 
-model Sale {
-  id           String      @id @default(cuid())
-  customerId   String
-  customerName String?
-  productId    String
-  productName  String?
-  quantity     Int
-  locationId   String
-  location     Location    @relation(fields: [locationId], references: [id])
-  salePrice    Float
-  totalAmount  Float
-  saleDate     DateTime    @default(now())
-  createdBy    String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  customer     Customer    @relation(fields: [customerId], references: [id])
-  product      ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  stockMovements StockMovement[]
-
-  @@index([customerId])
-  @@index([productId])
-}
-
+// -------------------- CUSTOMERS --------------------
 model Customer {
   id        String   @id @default(cuid())
   name      String
@@ -103,37 +83,71 @@ model Customer {
   createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sales     Sale[]
 
-  stockMovements StockMovement[] // ← add
+  sales Sale[]
 }
 
-model StockMovement {
-  id          String    @id @default(cuid())
-  inventoryId String
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
-
-  type     String // 'RECEIPT', 'SALE', 'TRANSFER_IN', 'TRANSFER_OUT', 'EXPIRED', 'DAMAGED', 'ADJUSTMENT', 'RETURN', 'REBAG_GAIN', 'REBAG_LOSS'
+// -------------------- SALES --------------------
+model Sale {
+  id String @id @default(cuid())
+  customerId String
+  customerName String
+  customer Customer @relation(fields: [customerId], references: [id])
+  productId String
+  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locationId String
+  location Location @relation(fields: [locationId], references: [id])
   quantity Int
-
-  fromLocationId String? // optional, for transfers
-  fromLocation   Location? @relation("StockMovementFromLocation", fields: [fromLocationId], references: [id])
-
-  toLocationId String? // optional, for transfers
-  toLocation   Location? @relation("StockMovementToLocation", fields: [toLocationId], references: [id])
-
-  saleId String? // optional, link to a sale if type is SALE
-  sale   Sale?   @relation(fields: [saleId], references: [id])
-
-  customerId String? // optional, link to a customer for returns, sales
-  customer   Customer? @relation(fields: [customerId], references: [id])
-
-  reason String? // e.g., 'Expired', 'Damaged', 'Stocktake'
-
-  openingStock  Int? // stock at start of day/period
-  physicalStock Int? // stock counted during stocktake
-  closingStock  Int? // stock after movement and adjustments
-
-  createdAt DateTime @default(now())
+  salePrice Float
+  totalAmount Float
+  saleDate DateTime @default(now())
+  isReturn Boolean @default(false) // track returns
   createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([productId])
 }
+
+// -------------------- TRANSFERS (IBT) --------------------
+model Transfer {
+  id             String      @id @default(cuid())
+  productId      String
+  product        ProductList @relation(fields: [productId], references: [id])
+  fromLocationId String?
+  fromLocation   Location?   @relation("TransfersFrom", fields: [fromLocationId], references: [id])
+  toLocationId   String?
+  toLocation     Location?   @relation("TransfersTo", fields: [toLocationId], references: [id])
+  quantity       Int
+  transferDate   DateTime    @default(now())
+  createdBy      String
+  createdAt      DateTime    @default(now())
+}
+
+// -------------------- PRODUCTION --------------------
+model Production {
+  id          String      @id @default(cuid())
+  productId   String
+  product     ProductList @relation(fields: [productId], references: [id])
+  quantity    Int
+  createdBy   String
+  createdAt   DateTime    @default(now())
+}
+
+// -------------------- ADJUSTMENTS --------------------
+model Adjustment {
+  id          String      @id @default(cuid())
+  productId   String
+  product     ProductList @relation(fields: [productId], references: [id])
+  locationId  String
+  location    Location    @relation(fields: [locationId], references: [id])
+  type        String      // 'REBAG_GAIN', 'REBAG_LOSS', 'DAMAGED', 'EXPIRED', etc.
+  quantity    Int
+  reason      String?     // optional note
+  createdBy   String
+  createdAt   DateTime    @default(now())
+}
+
+
+

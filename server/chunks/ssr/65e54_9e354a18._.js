@@ -1,0 +1,18385 @@
+module.exports = [
+"[project]/Desktop/Inventory/my-app/node_modules/aria-hidden/dist/es2015/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "hideOthers",
+    ()=>hideOthers,
+    "inertOthers",
+    ()=>inertOthers,
+    "supportsInert",
+    ()=>supportsInert,
+    "suppressOthers",
+    ()=>suppressOthers
+]);
+var getDefaultParent = function(originalTarget) {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+    var sampleTarget = Array.isArray(originalTarget) ? originalTarget[0] : originalTarget;
+    return sampleTarget.ownerDocument.body;
+};
+var counterMap = new WeakMap();
+var uncontrolledNodes = new WeakMap();
+var markerMap = {};
+var lockCount = 0;
+var unwrapHost = function(node) {
+    return node && (node.host || unwrapHost(node.parentNode));
+};
+var correctTargets = function(parent, targets) {
+    return targets.map(function(target) {
+        if (parent.contains(target)) {
+            return target;
+        }
+        var correctedTarget = unwrapHost(target);
+        if (correctedTarget && parent.contains(correctedTarget)) {
+            return correctedTarget;
+        }
+        console.error('aria-hidden', target, 'in not contained inside', parent, '. Doing nothing');
+        return null;
+    }).filter(function(x) {
+        return Boolean(x);
+    });
+};
+/**
+ * Marks everything except given node(or nodes) as aria-hidden
+ * @param {Element | Element[]} originalTarget - elements to keep on the page
+ * @param [parentNode] - top element, defaults to document.body
+ * @param {String} [markerName] - a special attribute to mark every node
+ * @param {String} [controlAttribute] - html Attribute to control
+ * @return {Undo} undo command
+ */ var applyAttributeToOthers = function(originalTarget, parentNode, markerName, controlAttribute) {
+    var targets = correctTargets(parentNode, Array.isArray(originalTarget) ? originalTarget : [
+        originalTarget
+    ]);
+    if (!markerMap[markerName]) {
+        markerMap[markerName] = new WeakMap();
+    }
+    var markerCounter = markerMap[markerName];
+    var hiddenNodes = [];
+    var elementsToKeep = new Set();
+    var elementsToStop = new Set(targets);
+    var keep = function(el) {
+        if (!el || elementsToKeep.has(el)) {
+            return;
+        }
+        elementsToKeep.add(el);
+        keep(el.parentNode);
+    };
+    targets.forEach(keep);
+    var deep = function(parent) {
+        if (!parent || elementsToStop.has(parent)) {
+            return;
+        }
+        Array.prototype.forEach.call(parent.children, function(node) {
+            if (elementsToKeep.has(node)) {
+                deep(node);
+            } else {
+                try {
+                    var attr = node.getAttribute(controlAttribute);
+                    var alreadyHidden = attr !== null && attr !== 'false';
+                    var counterValue = (counterMap.get(node) || 0) + 1;
+                    var markerValue = (markerCounter.get(node) || 0) + 1;
+                    counterMap.set(node, counterValue);
+                    markerCounter.set(node, markerValue);
+                    hiddenNodes.push(node);
+                    if (counterValue === 1 && alreadyHidden) {
+                        uncontrolledNodes.set(node, true);
+                    }
+                    if (markerValue === 1) {
+                        node.setAttribute(markerName, 'true');
+                    }
+                    if (!alreadyHidden) {
+                        node.setAttribute(controlAttribute, 'true');
+                    }
+                } catch (e) {
+                    console.error('aria-hidden: cannot operate on ', node, e);
+                }
+            }
+        });
+    };
+    deep(parentNode);
+    elementsToKeep.clear();
+    lockCount++;
+    return function() {
+        hiddenNodes.forEach(function(node) {
+            var counterValue = counterMap.get(node) - 1;
+            var markerValue = markerCounter.get(node) - 1;
+            counterMap.set(node, counterValue);
+            markerCounter.set(node, markerValue);
+            if (!counterValue) {
+                if (!uncontrolledNodes.has(node)) {
+                    node.removeAttribute(controlAttribute);
+                }
+                uncontrolledNodes.delete(node);
+            }
+            if (!markerValue) {
+                node.removeAttribute(markerName);
+            }
+        });
+        lockCount--;
+        if (!lockCount) {
+            // clear
+            counterMap = new WeakMap();
+            counterMap = new WeakMap();
+            uncontrolledNodes = new WeakMap();
+            markerMap = {};
+        }
+    };
+};
+var hideOthers = function(originalTarget, parentNode, markerName) {
+    if (markerName === void 0) {
+        markerName = 'data-aria-hidden';
+    }
+    var targets = Array.from(Array.isArray(originalTarget) ? originalTarget : [
+        originalTarget
+    ]);
+    var activeParentNode = parentNode || getDefaultParent(originalTarget);
+    if (!activeParentNode) {
+        return function() {
+            return null;
+        };
+    }
+    // we should not hide aria-live elements - https://github.com/theKashey/aria-hidden/issues/10
+    // and script elements, as they have no impact on accessibility.
+    targets.push.apply(targets, Array.from(activeParentNode.querySelectorAll('[aria-live], script')));
+    return applyAttributeToOthers(targets, activeParentNode, markerName, 'aria-hidden');
+};
+var inertOthers = function(originalTarget, parentNode, markerName) {
+    if (markerName === void 0) {
+        markerName = 'data-inert-ed';
+    }
+    var activeParentNode = parentNode || getDefaultParent(originalTarget);
+    if (!activeParentNode) {
+        return function() {
+            return null;
+        };
+    }
+    return applyAttributeToOthers(originalTarget, activeParentNode, markerName, 'inert');
+};
+var supportsInert = function() {
+    return typeof HTMLElement !== 'undefined' && HTMLElement.prototype.hasOwnProperty('inert');
+};
+var suppressOthers = function(originalTarget, parentNode, markerName) {
+    if (markerName === void 0) {
+        markerName = 'data-suppressed';
+    }
+    return (supportsInert() ? inertOthers : hideOthers)(originalTarget, parentNode, markerName);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */ /* global Reflect, Promise, SuppressedError, Symbol, Iterator */ __turbopack_context__.s([
+    "__addDisposableResource",
+    ()=>__addDisposableResource,
+    "__assign",
+    ()=>__assign,
+    "__asyncDelegator",
+    ()=>__asyncDelegator,
+    "__asyncGenerator",
+    ()=>__asyncGenerator,
+    "__asyncValues",
+    ()=>__asyncValues,
+    "__await",
+    ()=>__await,
+    "__awaiter",
+    ()=>__awaiter,
+    "__classPrivateFieldGet",
+    ()=>__classPrivateFieldGet,
+    "__classPrivateFieldIn",
+    ()=>__classPrivateFieldIn,
+    "__classPrivateFieldSet",
+    ()=>__classPrivateFieldSet,
+    "__createBinding",
+    ()=>__createBinding,
+    "__decorate",
+    ()=>__decorate,
+    "__disposeResources",
+    ()=>__disposeResources,
+    "__esDecorate",
+    ()=>__esDecorate,
+    "__exportStar",
+    ()=>__exportStar,
+    "__extends",
+    ()=>__extends,
+    "__generator",
+    ()=>__generator,
+    "__importDefault",
+    ()=>__importDefault,
+    "__importStar",
+    ()=>__importStar,
+    "__makeTemplateObject",
+    ()=>__makeTemplateObject,
+    "__metadata",
+    ()=>__metadata,
+    "__param",
+    ()=>__param,
+    "__propKey",
+    ()=>__propKey,
+    "__read",
+    ()=>__read,
+    "__rest",
+    ()=>__rest,
+    "__rewriteRelativeImportExtension",
+    ()=>__rewriteRelativeImportExtension,
+    "__runInitializers",
+    ()=>__runInitializers,
+    "__setFunctionName",
+    ()=>__setFunctionName,
+    "__spread",
+    ()=>__spread,
+    "__spreadArray",
+    ()=>__spreadArray,
+    "__spreadArrays",
+    ()=>__spreadArrays,
+    "__values",
+    ()=>__values,
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf || ({
+        __proto__: []
+    }) instanceof Array && function(d, b) {
+        d.__proto__ = b;
+    } || function(d, b) {
+        for(var p in b)if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+    };
+    return extendStatics(d, b);
+};
+function __extends(d, b) {
+    if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+        this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign = function() {
+    __assign = Object.assign || function __assign(t) {
+        for(var s, i = 1, n = arguments.length; i < n; i++){
+            s = arguments[i];
+            for(var p in s)if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+function __rest(s, e) {
+    var t = {};
+    for(var p in s)if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function") for(var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++){
+        if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+    }
+    return t;
+}
+function __decorate(decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+function __param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
+function __esDecorate(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) {
+        if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected");
+        return f;
+    }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for(var i = decorators.length - 1; i >= 0; i--){
+        var context = {};
+        for(var p in contextIn)context[p] = p === "access" ? {} : contextIn[p];
+        for(var p in contextIn.access)context.access[p] = contextIn.access[p];
+        context.addInitializer = function(f) {
+            if (done) throw new TypeError("Cannot add initializers after decoration has completed");
+            extraInitializers.push(accept(f || null));
+        };
+        var result = (0, decorators[i])(kind === "accessor" ? {
+            get: descriptor.get,
+            set: descriptor.set
+        } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        } else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+}
+;
+function __runInitializers(thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for(var i = 0; i < initializers.length; i++){
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+}
+;
+function __propKey(x) {
+    return typeof x === "symbol" ? x : "".concat(x);
+}
+;
+function __setFunctionName(f, name, prefix) {
+    if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
+    return Object.defineProperty(f, "name", {
+        configurable: true,
+        value: prefix ? "".concat(prefix, " ", name) : name
+    });
+}
+;
+function __metadata(metadataKey, metadataValue) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
+}
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve) {
+            resolve(value);
+        });
+    }
+    return new (P || (P = Promise))(function(resolve, reject) {
+        function fulfilled(value) {
+            try {
+                step(generator.next(value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+        function rejected(value) {
+            try {
+                step(generator["throw"](value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+        function step(result) {
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+function __generator(thisArg, body) {
+    var _ = {
+        label: 0,
+        sent: function() {
+            if (t[0] & 1) throw t[1];
+            return t[1];
+        },
+        trys: [],
+        ops: []
+    }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+    }), g;
+    //TURBOPACK unreachable
+    ;
+    function verb(n) {
+        return function(v) {
+            return step([
+                n,
+                v
+            ]);
+        };
+    }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while(g && (g = 0, op[0] && (_ = 0)), _)try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [
+                op[0] & 2,
+                t.value
+            ];
+            switch(op[0]){
+                case 0:
+                case 1:
+                    t = op;
+                    break;
+                case 4:
+                    _.label++;
+                    return {
+                        value: op[1],
+                        done: false
+                    };
+                case 5:
+                    _.label++;
+                    y = op[1];
+                    op = [
+                        0
+                    ];
+                    continue;
+                case 7:
+                    op = _.ops.pop();
+                    _.trys.pop();
+                    continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                        _ = 0;
+                        continue;
+                    }
+                    if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                        _.label = op[1];
+                        break;
+                    }
+                    if (op[0] === 6 && _.label < t[1]) {
+                        _.label = t[1];
+                        t = op;
+                        break;
+                    }
+                    if (t && _.label < t[2]) {
+                        _.label = t[2];
+                        _.ops.push(op);
+                        break;
+                    }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop();
+                    continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) {
+            op = [
+                6,
+                e
+            ];
+            y = 0;
+        } finally{
+            f = t = 0;
+        }
+        if (op[0] & 5) throw op[1];
+        return {
+            value: op[0] ? op[1] : void 0,
+            done: true
+        };
+    }
+}
+var __createBinding = Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = {
+            enumerable: true,
+            get: function() {
+                return m[k];
+            }
+        };
+    }
+    Object.defineProperty(o, k2, desc);
+} : function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+};
+function __exportStar(m, o) {
+    for(var p in m)if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
+}
+function __values(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function() {
+            if (o && i >= o.length) o = void 0;
+            return {
+                value: o && o[i++],
+                done: !o
+            };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+}
+function __read(o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while((n === void 0 || n-- > 0) && !(r = i.next()).done)ar.push(r.value);
+    } catch (error) {
+        e = {
+            error: error
+        };
+    } finally{
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally{
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+}
+function __spread() {
+    for(var ar = [], i = 0; i < arguments.length; i++)ar = ar.concat(__read(arguments[i]));
+    return ar;
+}
+function __spreadArrays() {
+    for(var s = 0, i = 0, il = arguments.length; i < il; i++)s += arguments[i].length;
+    for(var r = Array(s), k = 0, i = 0; i < il; i++)for(var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)r[k] = a[j];
+    return r;
+}
+function __spreadArray(to, from, pack) {
+    if (pack || arguments.length === 2) for(var i = 0, l = from.length, ar; i < l; i++){
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+}
+function __await(v) {
+    return this instanceof __await ? (this.v = v, this) : new __await(v);
+}
+function __asyncGenerator(thisArg, _arguments, generator) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var g = generator.apply(thisArg, _arguments || []), i, q = [];
+    return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
+        return this;
+    }, i;
+    //TURBOPACK unreachable
+    ;
+    function awaitReturn(f) {
+        return function(v) {
+            return Promise.resolve(v).then(f, reject);
+        };
+    }
+    function verb(n, f) {
+        if (g[n]) {
+            i[n] = function(v) {
+                return new Promise(function(a, b) {
+                    q.push([
+                        n,
+                        v,
+                        a,
+                        b
+                    ]) > 1 || resume(n, v);
+                });
+            };
+            if (f) i[n] = f(i[n]);
+        }
+    }
+    function resume(n, v) {
+        try {
+            step(g[n](v));
+        } catch (e) {
+            settle(q[0][3], e);
+        }
+    }
+    function step(r) {
+        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
+    }
+    function fulfill(value) {
+        resume("next", value);
+    }
+    function reject(value) {
+        resume("throw", value);
+    }
+    function settle(f, v) {
+        if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]);
+    }
+}
+function __asyncDelegator(o) {
+    var i, p;
+    return i = {}, verb("next"), verb("throw", function(e) {
+        throw e;
+    }), verb("return"), i[Symbol.iterator] = function() {
+        return this;
+    }, i;
+    //TURBOPACK unreachable
+    ;
+    function verb(n, f) {
+        i[n] = o[n] ? function(v) {
+            return (p = !p) ? {
+                value: __await(o[n](v)),
+                done: false
+            } : f ? f(v) : v;
+        } : f;
+    }
+}
+function __asyncValues(o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+        return this;
+    }, i);
+    //TURBOPACK unreachable
+    ;
+    function verb(n) {
+        i[n] = o[n] && function(v) {
+            return new Promise(function(resolve, reject) {
+                v = o[n](v), settle(resolve, reject, v.done, v.value);
+            });
+        };
+    }
+    function settle(resolve, reject, d, v) {
+        Promise.resolve(v).then(function(v) {
+            resolve({
+                value: v,
+                done: d
+            });
+        }, reject);
+    }
+}
+function __makeTemplateObject(cooked, raw) {
+    if (Object.defineProperty) {
+        Object.defineProperty(cooked, "raw", {
+            value: raw
+        });
+    } else {
+        cooked.raw = raw;
+    }
+    return cooked;
+}
+;
+var __setModuleDefault = Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", {
+        enumerable: true,
+        value: v
+    });
+} : function(o, v) {
+    o["default"] = v;
+};
+var ownKeys = function(o) {
+    ownKeys = Object.getOwnPropertyNames || function(o) {
+        var ar = [];
+        for(var k in o)if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+        return ar;
+    };
+    return ownKeys(o);
+};
+function __importStar(mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) {
+        for(var k = ownKeys(mod), i = 0; i < k.length; i++)if (k[i] !== "default") __createBinding(result, mod, k[i]);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+}
+function __importDefault(mod) {
+    return mod && mod.__esModule ? mod : {
+        default: mod
+    };
+}
+function __classPrivateFieldGet(receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+}
+function __classPrivateFieldSet(receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+}
+function __classPrivateFieldIn(state, receiver) {
+    if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function") throw new TypeError("Cannot use 'in' operator on non-object");
+    return typeof state === "function" ? receiver === state : state.has(receiver);
+}
+function __addDisposableResource(env, value, async) {
+    if (value !== null && value !== void 0) {
+        if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
+        var dispose, inner;
+        if (async) {
+            if (!Symbol.asyncDispose) throw new TypeError("Symbol.asyncDispose is not defined.");
+            dispose = value[Symbol.asyncDispose];
+        }
+        if (dispose === void 0) {
+            if (!Symbol.dispose) throw new TypeError("Symbol.dispose is not defined.");
+            dispose = value[Symbol.dispose];
+            if (async) inner = dispose;
+        }
+        if (typeof dispose !== "function") throw new TypeError("Object not disposable.");
+        if (inner) dispose = function() {
+            try {
+                inner.call(this);
+            } catch (e) {
+                return Promise.reject(e);
+            }
+        };
+        env.stack.push({
+            value: value,
+            dispose: dispose,
+            async: async
+        });
+    } else if (async) {
+        env.stack.push({
+            async: true
+        });
+    }
+    return value;
+}
+var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+function __disposeResources(env) {
+    function fail(e) {
+        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
+        env.hasError = true;
+    }
+    var r, s = 0;
+    function next() {
+        while(r = env.stack.pop()){
+            try {
+                if (!r.async && s === 1) return s = 0, env.stack.push(r), Promise.resolve().then(next);
+                if (r.dispose) {
+                    var result = r.dispose.call(r.value);
+                    if (r.async) return s |= 2, Promise.resolve(result).then(next, function(e) {
+                        fail(e);
+                        return next();
+                    });
+                } else s |= 1;
+            } catch (e) {
+                fail(e);
+            }
+        }
+        if (s === 1) return env.hasError ? Promise.reject(env.error) : Promise.resolve();
+        if (env.hasError) throw env.error;
+    }
+    return next();
+}
+function __rewriteRelativeImportExtension(path, preserveJsx) {
+    if (typeof path === "string" && /^\.\.?\//.test(path)) {
+        return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+            return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
+        });
+    }
+    return path;
+}
+const __TURBOPACK__default__export__ = {
+    __extends,
+    __assign,
+    __rest,
+    __decorate,
+    __param,
+    __esDecorate,
+    __runInitializers,
+    __propKey,
+    __setFunctionName,
+    __metadata,
+    __awaiter,
+    __generator,
+    __createBinding,
+    __exportStar,
+    __values,
+    __read,
+    __spread,
+    __spreadArrays,
+    __spreadArray,
+    __await,
+    __asyncGenerator,
+    __asyncDelegator,
+    __asyncValues,
+    __makeTemplateObject,
+    __importStar,
+    __importDefault,
+    __classPrivateFieldGet,
+    __classPrivateFieldSet,
+    __classPrivateFieldIn,
+    __addDisposableResource,
+    __disposeResources,
+    __rewriteRelativeImportExtension
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/constants.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "fullWidthClassName",
+    ()=>fullWidthClassName,
+    "noScrollbarsClassName",
+    ()=>noScrollbarsClassName,
+    "removedBarSizeVariable",
+    ()=>removedBarSizeVariable,
+    "zeroRightClassName",
+    ()=>zeroRightClassName
+]);
+var zeroRightClassName = 'right-scroll-bar-position';
+var fullWidthClassName = 'width-before-scroll-bar';
+var noScrollbarsClassName = 'with-scroll-bars-hidden';
+var removedBarSizeVariable = '--removed-body-scroll-bar-size';
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "getGapWidth",
+    ()=>getGapWidth,
+    "zeroGap",
+    ()=>zeroGap
+]);
+var zeroGap = {
+    left: 0,
+    top: 0,
+    right: 0,
+    gap: 0
+};
+var parse = function(x) {
+    return parseInt(x || '', 10) || 0;
+};
+var getOffset = function(gapMode) {
+    var cs = window.getComputedStyle(document.body);
+    var left = cs[gapMode === 'padding' ? 'paddingLeft' : 'marginLeft'];
+    var top = cs[gapMode === 'padding' ? 'paddingTop' : 'marginTop'];
+    var right = cs[gapMode === 'padding' ? 'paddingRight' : 'marginRight'];
+    return [
+        parse(left),
+        parse(top),
+        parse(right)
+    ];
+};
+var getGapWidth = function(gapMode) {
+    if (gapMode === void 0) {
+        gapMode = 'margin';
+    }
+    if ("TURBOPACK compile-time truthy", 1) {
+        return zeroGap;
+    }
+    //TURBOPACK unreachable
+    ;
+    var offsets;
+    var documentWidth;
+    var windowWidth;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/component.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "RemoveScrollBar",
+    ()=>RemoveScrollBar,
+    "lockAttribute",
+    ()=>lockAttribute,
+    "useLockAttribute",
+    ()=>useLockAttribute
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/component.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/constants.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/utils.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+var Style = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["styleSingleton"])();
+var lockAttribute = 'data-scroll-locked';
+// important tip - once we measure scrollBar width and remove them
+// we could not repeat this operation
+// thus we are using style-singleton - only the first "yet correct" style will be applied.
+var getStyles = function(_a, allowRelative, gapMode, important) {
+    var left = _a.left, top = _a.top, right = _a.right, gap = _a.gap;
+    if (gapMode === void 0) {
+        gapMode = 'margin';
+    }
+    return "\n  .".concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["noScrollbarsClassName"], " {\n   overflow: hidden ").concat(important, ";\n   padding-right: ").concat(gap, "px ").concat(important, ";\n  }\n  body[").concat(lockAttribute, "] {\n    overflow: hidden ").concat(important, ";\n    overscroll-behavior: contain;\n    ").concat([
+        allowRelative && "position: relative ".concat(important, ";"),
+        gapMode === 'margin' && "\n    padding-left: ".concat(left, "px;\n    padding-top: ").concat(top, "px;\n    padding-right: ").concat(right, "px;\n    margin-left:0;\n    margin-top:0;\n    margin-right: ").concat(gap, "px ").concat(important, ";\n    "),
+        gapMode === 'padding' && "padding-right: ".concat(gap, "px ").concat(important, ";")
+    ].filter(Boolean).join(''), "\n  }\n  \n  .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["zeroRightClassName"], " {\n    right: ").concat(gap, "px ").concat(important, ";\n  }\n  \n  .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["fullWidthClassName"], " {\n    margin-right: ").concat(gap, "px ").concat(important, ";\n  }\n  \n  .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["zeroRightClassName"], " .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["zeroRightClassName"], " {\n    right: 0 ").concat(important, ";\n  }\n  \n  .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["fullWidthClassName"], " .").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["fullWidthClassName"], " {\n    margin-right: 0 ").concat(important, ";\n  }\n  \n  body[").concat(lockAttribute, "] {\n    ").concat(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["removedBarSizeVariable"], ": ").concat(gap, "px;\n  }\n");
+};
+var getCurrentUseCounter = function() {
+    var counter = parseInt(document.body.getAttribute(lockAttribute) || '0', 10);
+    return isFinite(counter) ? counter : 0;
+};
+var useLockAttribute = function() {
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](function() {
+        document.body.setAttribute(lockAttribute, (getCurrentUseCounter() + 1).toString());
+        return function() {
+            var newCounter = getCurrentUseCounter() - 1;
+            if (newCounter <= 0) {
+                document.body.removeAttribute(lockAttribute);
+            } else {
+                document.body.setAttribute(lockAttribute, newCounter.toString());
+            }
+        };
+    }, []);
+};
+var RemoveScrollBar = function(_a) {
+    var noRelative = _a.noRelative, noImportant = _a.noImportant, _b = _a.gapMode, gapMode = _b === void 0 ? 'margin' : _b;
+    useLockAttribute();
+    /*
+     gap will be measured on every component mount
+     however it will be used only by the "first" invocation
+     due to singleton nature of <Style
+     */ var gap = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"](function() {
+        return (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getGapWidth"])(gapMode);
+    }, [
+        gapMode
+    ]);
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](Style, {
+        styles: getStyles(gap, !noRelative, gapMode, !noImportant ? '!important' : '')
+    });
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/index.js [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/component.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/constants.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/utils.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/assignRef.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * Assigns a value for a given ref, no matter of the ref format
+ * @param {RefObject} ref - a callback function or ref object
+ * @param value - a new value
+ *
+ * @see https://github.com/theKashey/use-callback-ref#assignref
+ * @example
+ * const refObject = useRef();
+ * const refFn = (ref) => {....}
+ *
+ * assignRef(refObject, "refValue");
+ * assignRef(refFn, "refValue");
+ */ __turbopack_context__.s([
+    "assignRef",
+    ()=>assignRef
+]);
+function assignRef(ref, value) {
+    if (typeof ref === 'function') {
+        ref(value);
+    } else if (ref) {
+        ref.current = value;
+    }
+    return ref;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/useRef.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "useCallbackRef",
+    ()=>useCallbackRef
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+;
+function useCallbackRef(initialValue, callback) {
+    var ref = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(function() {
+        return {
+            // value
+            value: initialValue,
+            // last callback
+            callback: callback,
+            // "memoized" public interface
+            facade: {
+                get current () {
+                    return ref.value;
+                },
+                set current (value){
+                    var last = ref.value;
+                    if (last !== value) {
+                        ref.value = value;
+                        ref.callback(value, last);
+                    }
+                }
+            }
+        };
+    })[0];
+    // update callback
+    ref.callback = callback;
+    return ref.facade;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/useMergeRef.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "useMergeRefs",
+    ()=>useMergeRefs
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$assignRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/assignRef.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$useRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/useRef.js [app-ssr] (ecmascript)");
+;
+;
+;
+var useIsomorphicLayoutEffect = ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"];
+var currentValues = new WeakMap();
+function useMergeRefs(refs, defaultValue) {
+    var callbackRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$useRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallbackRef"])(defaultValue || null, function(newValue) {
+        return refs.forEach(function(ref) {
+            return (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$assignRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["assignRef"])(ref, newValue);
+        });
+    });
+    // handle refs changes - added or removed
+    useIsomorphicLayoutEffect(function() {
+        var oldValue = currentValues.get(callbackRef);
+        if (oldValue) {
+            var prevRefs_1 = new Set(oldValue);
+            var nextRefs_1 = new Set(refs);
+            var current_1 = callbackRef.current;
+            prevRefs_1.forEach(function(ref) {
+                if (!nextRefs_1.has(ref)) {
+                    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$assignRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["assignRef"])(ref, null);
+                }
+            });
+            nextRefs_1.forEach(function(ref) {
+                if (!prevRefs_1.has(ref)) {
+                    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$assignRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["assignRef"])(ref, current_1);
+                }
+            });
+        }
+        currentValues.set(callbackRef, refs);
+    }, [
+        refs
+    ]);
+    return callbackRef;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-sidecar/dist/es2015/medium.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "createMedium",
+    ()=>createMedium,
+    "createSidecarMedium",
+    ()=>createSidecarMedium
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+;
+function ItoI(a) {
+    return a;
+}
+function innerCreateMedium(defaults, middleware) {
+    if (middleware === void 0) {
+        middleware = ItoI;
+    }
+    var buffer = [];
+    var assigned = false;
+    var medium = {
+        read: function() {
+            if (assigned) {
+                throw new Error('Sidecar: could not `read` from an `assigned` medium. `read` could be used only with `useMedium`.');
+            }
+            if (buffer.length) {
+                return buffer[buffer.length - 1];
+            }
+            return defaults;
+        },
+        useMedium: function(data) {
+            var item = middleware(data, assigned);
+            buffer.push(item);
+            return function() {
+                buffer = buffer.filter(function(x) {
+                    return x !== item;
+                });
+            };
+        },
+        assignSyncMedium: function(cb) {
+            assigned = true;
+            while(buffer.length){
+                var cbs = buffer;
+                buffer = [];
+                cbs.forEach(cb);
+            }
+            buffer = {
+                push: function(x) {
+                    return cb(x);
+                },
+                filter: function() {
+                    return buffer;
+                }
+            };
+        },
+        assignMedium: function(cb) {
+            assigned = true;
+            var pendingQueue = [];
+            if (buffer.length) {
+                var cbs = buffer;
+                buffer = [];
+                cbs.forEach(cb);
+                pendingQueue = buffer;
+            }
+            var executeQueue = function() {
+                var cbs = pendingQueue;
+                pendingQueue = [];
+                cbs.forEach(cb);
+            };
+            var cycle = function() {
+                return Promise.resolve().then(executeQueue);
+            };
+            cycle();
+            buffer = {
+                push: function(x) {
+                    pendingQueue.push(x);
+                    cycle();
+                },
+                filter: function(filter) {
+                    pendingQueue = pendingQueue.filter(filter);
+                    return buffer;
+                }
+            };
+        }
+    };
+    return medium;
+}
+function createMedium(defaults, middleware) {
+    if (middleware === void 0) {
+        middleware = ItoI;
+    }
+    return innerCreateMedium(defaults, middleware);
+}
+function createSidecarMedium(options) {
+    if (options === void 0) {
+        options = {};
+    }
+    var medium = innerCreateMedium(null);
+    medium.options = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({
+        async: true,
+        ssr: false
+    }, options);
+    return medium;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-sidecar/dist/es2015/exports.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "exportSidecar",
+    ()=>exportSidecar
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+;
+;
+var SideCar = function(_a) {
+    var sideCar = _a.sideCar, rest = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__rest"])(_a, [
+        "sideCar"
+    ]);
+    if (!sideCar) {
+        throw new Error('Sidecar: please provide `sideCar` property to import the right car');
+    }
+    var Target = sideCar.read();
+    if (!Target) {
+        throw new Error('Sidecar medium not found');
+    }
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](Target, (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, rest));
+};
+SideCar.isSideCarExport = true;
+function exportSidecar(medium, exported) {
+    medium.useMedium(exported);
+    return SideCar;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/medium.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "effectCar",
+    ()=>effectCar
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$sidecar$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/use-sidecar/dist/es2015/medium.js [app-ssr] (ecmascript)");
+;
+var effectCar = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$sidecar$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createSidecarMedium"])();
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/UI.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "RemoveScroll",
+    ()=>RemoveScroll
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/constants.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$useMergeRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/use-callback-ref/dist/es2015/useMergeRef.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/medium.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+;
+var nothing = function() {
+    return;
+};
+/**
+ * Removes scrollbar from the page and contain the scroll within the Lock
+ */ var RemoveScroll = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"](function(props, parentRef) {
+    var ref = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null);
+    var _a = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"]({
+        onScrollCapture: nothing,
+        onWheelCapture: nothing,
+        onTouchMoveCapture: nothing
+    }), callbacks = _a[0], setCallbacks = _a[1];
+    var forwardProps = props.forwardProps, children = props.children, className = props.className, removeScrollBar = props.removeScrollBar, enabled = props.enabled, shards = props.shards, sideCar = props.sideCar, noRelative = props.noRelative, noIsolation = props.noIsolation, inert = props.inert, allowPinchZoom = props.allowPinchZoom, _b = props.as, Container = _b === void 0 ? 'div' : _b, gapMode = props.gapMode, rest = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__rest"])(props, [
+        "forwardProps",
+        "children",
+        "className",
+        "removeScrollBar",
+        "enabled",
+        "shards",
+        "sideCar",
+        "noRelative",
+        "noIsolation",
+        "inert",
+        "allowPinchZoom",
+        "as",
+        "gapMode"
+    ]);
+    var SideCar = sideCar;
+    var containerRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$callback$2d$ref$2f$dist$2f$es2015$2f$useMergeRef$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMergeRefs"])([
+        ref,
+        parentRef
+    ]);
+    var containerProps = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, rest), callbacks);
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], null, enabled && __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](SideCar, {
+        sideCar: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["effectCar"],
+        removeScrollBar: removeScrollBar,
+        shards: shards,
+        noRelative: noRelative,
+        noIsolation: noIsolation,
+        inert: inert,
+        setCallbacks: setCallbacks,
+        allowPinchZoom: !!allowPinchZoom,
+        lockRef: ref,
+        gapMode: gapMode
+    }), forwardProps ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["cloneElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Children"].only(children), (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, containerProps), {
+        ref: containerRef
+    })) : __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](Container, (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, containerProps, {
+        className: className,
+        ref: containerRef
+    }), children));
+});
+RemoveScroll.defaultProps = {
+    enabled: true,
+    removeScrollBar: true,
+    inert: false
+};
+RemoveScroll.classNames = {
+    fullWidth: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["fullWidthClassName"],
+    zeroRight: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$constants$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["zeroRightClassName"]
+};
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/aggresiveCapture.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "nonPassive",
+    ()=>nonPassive
+]);
+var passiveSupported = false;
+if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+{
+    var options;
+}
+var nonPassive = passiveSupported ? {
+    passive: false
+} : false;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/handleScroll.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "handleScroll",
+    ()=>handleScroll,
+    "locationCouldBeScrolled",
+    ()=>locationCouldBeScrolled
+]);
+var alwaysContainsScroll = function(node) {
+    // textarea will always _contain_ scroll inside self. It only can be hidden
+    return node.tagName === 'TEXTAREA';
+};
+var elementCanBeScrolled = function(node, overflow) {
+    if (!(node instanceof Element)) {
+        return false;
+    }
+    var styles = window.getComputedStyle(node);
+    return(// not-not-scrollable
+    styles[overflow] !== 'hidden' && // contains scroll inside self
+    !(styles.overflowY === styles.overflowX && !alwaysContainsScroll(node) && styles[overflow] === 'visible'));
+};
+var elementCouldBeVScrolled = function(node) {
+    return elementCanBeScrolled(node, 'overflowY');
+};
+var elementCouldBeHScrolled = function(node) {
+    return elementCanBeScrolled(node, 'overflowX');
+};
+var locationCouldBeScrolled = function(axis, node) {
+    var ownerDocument = node.ownerDocument;
+    var current = node;
+    do {
+        // Skip over shadow root
+        if (typeof ShadowRoot !== 'undefined' && current instanceof ShadowRoot) {
+            current = current.host;
+        }
+        var isScrollable = elementCouldBeScrolled(axis, current);
+        if (isScrollable) {
+            var _a = getScrollVariables(axis, current), scrollHeight = _a[1], clientHeight = _a[2];
+            if (scrollHeight > clientHeight) {
+                return true;
+            }
+        }
+        current = current.parentNode;
+    }while (current && current !== ownerDocument.body)
+    return false;
+};
+var getVScrollVariables = function(_a) {
+    var scrollTop = _a.scrollTop, scrollHeight = _a.scrollHeight, clientHeight = _a.clientHeight;
+    return [
+        scrollTop,
+        scrollHeight,
+        clientHeight
+    ];
+};
+var getHScrollVariables = function(_a) {
+    var scrollLeft = _a.scrollLeft, scrollWidth = _a.scrollWidth, clientWidth = _a.clientWidth;
+    return [
+        scrollLeft,
+        scrollWidth,
+        clientWidth
+    ];
+};
+var elementCouldBeScrolled = function(axis, node) {
+    return axis === 'v' ? elementCouldBeVScrolled(node) : elementCouldBeHScrolled(node);
+};
+var getScrollVariables = function(axis, node) {
+    return axis === 'v' ? getVScrollVariables(node) : getHScrollVariables(node);
+};
+var getDirectionFactor = function(axis, direction) {
+    /**
+     * If the element's direction is rtl (right-to-left), then scrollLeft is 0 when the scrollbar is at its rightmost position,
+     * and then increasingly negative as you scroll towards the end of the content.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollLeft
+     */ return axis === 'h' && direction === 'rtl' ? -1 : 1;
+};
+var handleScroll = function(axis, endTarget, event, sourceDelta, noOverscroll) {
+    var directionFactor = getDirectionFactor(axis, window.getComputedStyle(endTarget).direction);
+    var delta = directionFactor * sourceDelta;
+    // find scrollable target
+    var target = event.target;
+    var targetInLock = endTarget.contains(target);
+    var shouldCancelScroll = false;
+    var isDeltaPositive = delta > 0;
+    var availableScroll = 0;
+    var availableScrollTop = 0;
+    do {
+        if (!target) {
+            break;
+        }
+        var _a = getScrollVariables(axis, target), position = _a[0], scroll_1 = _a[1], capacity = _a[2];
+        var elementScroll = scroll_1 - capacity - directionFactor * position;
+        if (position || elementScroll) {
+            if (elementCouldBeScrolled(axis, target)) {
+                availableScroll += elementScroll;
+                availableScrollTop += position;
+            }
+        }
+        var parent_1 = target.parentNode;
+        // we will "bubble" from ShadowDom in case we are, or just to the parent in normal case
+        // this is the same logic used in focus-lock
+        target = parent_1 && parent_1.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? parent_1.host : parent_1;
+    }while (// portaled content
+    !targetInLock && target !== document.body || targetInLock && (endTarget.contains(target) || endTarget === target))
+    // handle epsilon around 0 (non standard zoom levels)
+    if (isDeltaPositive && (noOverscroll && Math.abs(availableScroll) < 1 || !noOverscroll && delta > availableScroll)) {
+        shouldCancelScroll = true;
+    } else if (!isDeltaPositive && (noOverscroll && Math.abs(availableScrollTop) < 1 || !noOverscroll && -delta > availableScrollTop)) {
+        shouldCancelScroll = true;
+    }
+    return shouldCancelScroll;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/SideEffect.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "RemoveScrollSideCar",
+    ()=>RemoveScrollSideCar,
+    "getDeltaXY",
+    ()=>getDeltaXY,
+    "getTouchXY",
+    ()=>getTouchXY
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll-bar/dist/es2015/component.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/component.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/aggresiveCapture.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$handleScroll$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/handleScroll.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+;
+;
+var getTouchXY = function(event) {
+    return 'changedTouches' in event ? [
+        event.changedTouches[0].clientX,
+        event.changedTouches[0].clientY
+    ] : [
+        0,
+        0
+    ];
+};
+var getDeltaXY = function(event) {
+    return [
+        event.deltaX,
+        event.deltaY
+    ];
+};
+var extractRef = function(ref) {
+    return ref && 'current' in ref ? ref.current : ref;
+};
+var deltaCompare = function(x, y) {
+    return x[0] === y[0] && x[1] === y[1];
+};
+var generateStyle = function(id) {
+    return "\n  .block-interactivity-".concat(id, " {pointer-events: none;}\n  .allow-interactivity-").concat(id, " {pointer-events: all;}\n");
+};
+var idCounter = 0;
+var lockStack = [];
+function RemoveScrollSideCar(props) {
+    var shouldPreventQueue = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"]([]);
+    var touchStartRef = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"]([
+        0,
+        0
+    ]);
+    var activeAxis = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"]();
+    var id = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"](idCounter++)[0];
+    var Style = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["styleSingleton"])[0];
+    var lastProps = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](props);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](function() {
+        lastProps.current = props;
+    }, [
+        props
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](function() {
+        if (props.inert) {
+            document.body.classList.add("block-interactivity-".concat(id));
+            var allow_1 = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__spreadArray"])([
+                props.lockRef.current
+            ], (props.shards || []).map(extractRef), true).filter(Boolean);
+            allow_1.forEach(function(el) {
+                return el.classList.add("allow-interactivity-".concat(id));
+            });
+            return function() {
+                document.body.classList.remove("block-interactivity-".concat(id));
+                allow_1.forEach(function(el) {
+                    return el.classList.remove("allow-interactivity-".concat(id));
+                });
+            };
+        }
+        return;
+    }, [
+        props.inert,
+        props.lockRef.current,
+        props.shards
+    ]);
+    var shouldCancelEvent = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(event, parent) {
+        if ('touches' in event && event.touches.length === 2 || event.type === 'wheel' && event.ctrlKey) {
+            return !lastProps.current.allowPinchZoom;
+        }
+        var touch = getTouchXY(event);
+        var touchStart = touchStartRef.current;
+        var deltaX = 'deltaX' in event ? event.deltaX : touchStart[0] - touch[0];
+        var deltaY = 'deltaY' in event ? event.deltaY : touchStart[1] - touch[1];
+        var currentAxis;
+        var target = event.target;
+        var moveDirection = Math.abs(deltaX) > Math.abs(deltaY) ? 'h' : 'v';
+        // allow horizontal touch move on Range inputs. They will not cause any scroll
+        if ('touches' in event && moveDirection === 'h' && target.type === 'range') {
+            return false;
+        }
+        // allow drag selection (iOS); check if selection's anchorNode is the same as target or contains target
+        var selection = window.getSelection();
+        var anchorNode = selection && selection.anchorNode;
+        var isTouchingSelection = anchorNode ? anchorNode === target || anchorNode.contains(target) : false;
+        if (isTouchingSelection) {
+            return false;
+        }
+        var canBeScrolledInMainDirection = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$handleScroll$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["locationCouldBeScrolled"])(moveDirection, target);
+        if (!canBeScrolledInMainDirection) {
+            return true;
+        }
+        if (canBeScrolledInMainDirection) {
+            currentAxis = moveDirection;
+        } else {
+            currentAxis = moveDirection === 'v' ? 'h' : 'v';
+            canBeScrolledInMainDirection = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$handleScroll$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["locationCouldBeScrolled"])(moveDirection, target);
+        // other axis might be not scrollable
+        }
+        if (!canBeScrolledInMainDirection) {
+            return false;
+        }
+        if (!activeAxis.current && 'changedTouches' in event && (deltaX || deltaY)) {
+            activeAxis.current = currentAxis;
+        }
+        if (!currentAxis) {
+            return true;
+        }
+        var cancelingAxis = activeAxis.current || currentAxis;
+        return (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$handleScroll$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["handleScroll"])(cancelingAxis, parent, event, cancelingAxis === 'h' ? deltaX : deltaY, true);
+    }, []);
+    var shouldPrevent = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(_event) {
+        var event = _event;
+        if (!lockStack.length || lockStack[lockStack.length - 1] !== Style) {
+            // not the last active
+            return;
+        }
+        var delta = 'deltaY' in event ? getDeltaXY(event) : getTouchXY(event);
+        var sourceEvent = shouldPreventQueue.current.filter(function(e) {
+            return e.name === event.type && (e.target === event.target || event.target === e.shadowParent) && deltaCompare(e.delta, delta);
+        })[0];
+        // self event, and should be canceled
+        if (sourceEvent && sourceEvent.should) {
+            if (event.cancelable) {
+                event.preventDefault();
+            }
+            return;
+        }
+        // outside or shard event
+        if (!sourceEvent) {
+            var shardNodes = (lastProps.current.shards || []).map(extractRef).filter(Boolean).filter(function(node) {
+                return node.contains(event.target);
+            });
+            var shouldStop = shardNodes.length > 0 ? shouldCancelEvent(event, shardNodes[0]) : !lastProps.current.noIsolation;
+            if (shouldStop) {
+                if (event.cancelable) {
+                    event.preventDefault();
+                }
+            }
+        }
+    }, []);
+    var shouldCancel = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(name, delta, target, should) {
+        var event = {
+            name: name,
+            delta: delta,
+            target: target,
+            should: should,
+            shadowParent: getOutermostShadowParent(target)
+        };
+        shouldPreventQueue.current.push(event);
+        setTimeout(function() {
+            shouldPreventQueue.current = shouldPreventQueue.current.filter(function(e) {
+                return e !== event;
+            });
+        }, 1);
+    }, []);
+    var scrollTouchStart = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(event) {
+        touchStartRef.current = getTouchXY(event);
+        activeAxis.current = undefined;
+    }, []);
+    var scrollWheel = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(event) {
+        shouldCancel(event.type, getDeltaXY(event), event.target, shouldCancelEvent(event, props.lockRef.current));
+    }, []);
+    var scrollTouchMove = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"](function(event) {
+        shouldCancel(event.type, getTouchXY(event), event.target, shouldCancelEvent(event, props.lockRef.current));
+    }, []);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](function() {
+        lockStack.push(Style);
+        props.setCallbacks({
+            onScrollCapture: scrollWheel,
+            onWheelCapture: scrollWheel,
+            onTouchMoveCapture: scrollTouchMove
+        });
+        document.addEventListener('wheel', shouldPrevent, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+        document.addEventListener('touchmove', shouldPrevent, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+        document.addEventListener('touchstart', scrollTouchStart, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+        return function() {
+            lockStack = lockStack.filter(function(inst) {
+                return inst !== Style;
+            });
+            document.removeEventListener('wheel', shouldPrevent, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+            document.removeEventListener('touchmove', shouldPrevent, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+            document.removeEventListener('touchstart', scrollTouchStart, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$aggresiveCapture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["nonPassive"]);
+        };
+    }, []);
+    var removeScrollBar = props.removeScrollBar, inert = props.inert;
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], null, inert ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](Style, {
+        styles: generateStyle(id)
+    }) : null, removeScrollBar ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2d$bar$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["RemoveScrollBar"], {
+        noRelative: props.noRelative,
+        gapMode: props.gapMode
+    }) : null);
+}
+function getOutermostShadowParent(node) {
+    var shadowParent = null;
+    while(node !== null){
+        if (node instanceof ShadowRoot) {
+            shadowParent = node.host;
+            node = node.host;
+        }
+        node = node.parentNode;
+    }
+    return shadowParent;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/sidecar.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$sidecar$2f$dist$2f$es2015$2f$exports$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/use-sidecar/dist/es2015/exports.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$SideEffect$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/SideEffect.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/medium.js [app-ssr] (ecmascript)");
+;
+;
+;
+const __TURBOPACK__default__export__ = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$use$2d$sidecar$2f$dist$2f$es2015$2f$exports$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["exportSidecar"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$medium$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["effectCar"], __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$SideEffect$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["RemoveScrollSideCar"]);
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/Combination.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$UI$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/UI.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$sidecar$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/sidecar.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+var ReactRemoveScroll = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"](function(props, ref) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$UI$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["RemoveScroll"], (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, props, {
+        ref: ref,
+        sideCar: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$sidecar$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+    }));
+});
+ReactRemoveScroll.classNames = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$UI$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["RemoveScroll"].classNames;
+const __TURBOPACK__default__export__ = ReactRemoveScroll;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/Combination.js [app-ssr] (ecmascript) <export default as RemoveScroll>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "RemoveScroll",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$Combination$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$remove$2d$scroll$2f$dist$2f$es2015$2f$Combination$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-remove-scroll/dist/es2015/Combination.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/get-nonce/dist/es2015/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "getNonce",
+    ()=>getNonce,
+    "setNonce",
+    ()=>setNonce
+]);
+var currentNonce;
+var setNonce = function(nonce) {
+    currentNonce = nonce;
+};
+var getNonce = function() {
+    if (currentNonce) {
+        return currentNonce;
+    }
+    if (typeof __webpack_nonce__ !== 'undefined') {
+        return __webpack_nonce__;
+    }
+    return undefined;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/singleton.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "stylesheetSingleton",
+    ()=>stylesheetSingleton
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$get$2d$nonce$2f$dist$2f$es2015$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/get-nonce/dist/es2015/index.js [app-ssr] (ecmascript)");
+;
+function makeStyleTag() {
+    if (!document) return null;
+    var tag = document.createElement('style');
+    tag.type = 'text/css';
+    var nonce = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$get$2d$nonce$2f$dist$2f$es2015$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getNonce"])();
+    if (nonce) {
+        tag.setAttribute('nonce', nonce);
+    }
+    return tag;
+}
+function injectStyles(tag, css) {
+    // @ts-ignore
+    if (tag.styleSheet) {
+        // @ts-ignore
+        tag.styleSheet.cssText = css;
+    } else {
+        tag.appendChild(document.createTextNode(css));
+    }
+}
+function insertStyleTag(tag) {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    head.appendChild(tag);
+}
+var stylesheetSingleton = function() {
+    var counter = 0;
+    var stylesheet = null;
+    return {
+        add: function(style) {
+            if (counter == 0) {
+                if (stylesheet = makeStyleTag()) {
+                    injectStyles(stylesheet, style);
+                    insertStyleTag(stylesheet);
+                }
+            }
+            counter++;
+        },
+        remove: function() {
+            counter--;
+            if (!counter && stylesheet) {
+                stylesheet.parentNode && stylesheet.parentNode.removeChild(stylesheet);
+                stylesheet = null;
+            }
+        }
+    };
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/hook.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "styleHookSingleton",
+    ()=>styleHookSingleton
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$singleton$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/singleton.js [app-ssr] (ecmascript)");
+;
+;
+var styleHookSingleton = function() {
+    var sheet = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$singleton$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["stylesheetSingleton"])();
+    return function(styles, isDynamic) {
+        __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](function() {
+            sheet.add(styles);
+            return function() {
+                sheet.remove();
+            };
+        }, [
+            styles && isDynamic
+        ]);
+    };
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/component.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "styleSingleton",
+    ()=>styleSingleton
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$hook$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/hook.js [app-ssr] (ecmascript)");
+;
+var styleSingleton = function() {
+    var useStyle = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$hook$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["styleHookSingleton"])();
+    var Sheet = function(_a) {
+        var styles = _a.styles, dynamic = _a.dynamic;
+        useStyle(styles, dynamic);
+        return null;
+    };
+    return Sheet;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/index.js [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$component$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/component.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$singleton$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/singleton.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$style$2d$singleton$2f$dist$2f$es2015$2f$hook$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-style-singleton/dist/es2015/hook.js [app-ssr] (ecmascript)");
+;
+;
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/hooks/use-async-callback.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// src/hooks/use-async-callback.tsx
+__turbopack_context__.s([
+    "useAsyncCallback",
+    ()=>useAsyncCallback,
+    "useAsyncCallbackWithLoggedError",
+    ()=>useAsyncCallbackWithLoggedError
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/errors.js [app-ssr] (ecmascript)");
+;
+;
+function useAsyncCallback(callback, deps) {
+    const [error, setError] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(void 0);
+    const [loadingCount, setLoadingCount] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(0);
+    const cb = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(async (...args)=>{
+        setLoadingCount((c)=>c + 1);
+        try {
+            return await callback(...args);
+        } catch (e) {
+            setError(e);
+            throw e;
+        } finally{
+            setLoadingCount((c)=>c - 1);
+        }
+    }, deps);
+    return [
+        cb,
+        loadingCount > 0,
+        error
+    ];
+}
+function useAsyncCallbackWithLoggedError(callback, deps) {
+    const [newCallback, loading] = useAsyncCallback(async (...args)=>{
+        try {
+            return await callback(...args);
+        } catch (e) {
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["captureError"])("async-callback", e);
+            throw e;
+        }
+    }, deps);
+    return [
+        newCallback,
+        loading
+    ];
+}
+;
+ //# sourceMappingURL=use-async-callback.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/hooks/use-hash.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// src/hooks/use-hash.tsx
+__turbopack_context__.s([
+    "useHash",
+    ()=>useHash
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/react.js [app-ssr] (ecmascript)");
+;
+;
+var useHash = ()=>{
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["suspendIfSsr"])("useHash");
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useSyncExternalStore"])((onChange)=>{
+        const interval = setInterval(()=>onChange(), 10);
+        return ()=>clearInterval(interval);
+    }, ()=>window.location.hash.substring(1));
+};
+;
+ //# sourceMappingURL=use-hash.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/dates.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// src/utils/dates.tsx
+__turbopack_context__.s([
+    "FAR_FUTURE_DATE",
+    ()=>FAR_FUTURE_DATE,
+    "addInterval",
+    ()=>addInterval,
+    "fromNow",
+    ()=>fromNow,
+    "fromNowDetailed",
+    ()=>fromNowDetailed,
+    "getInputDatetimeLocalString",
+    ()=>getInputDatetimeLocalString,
+    "getIntervalsElapsed",
+    ()=>getIntervalsElapsed,
+    "isWeekend",
+    ()=>isWeekend,
+    "subtractInterval",
+    ()=>subtractInterval
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$schema$2d$fields$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/schema-fields.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/errors.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$math$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/math.js [app-ssr] (ecmascript)");
+;
+;
+;
+function isWeekend(date) {
+    return date.getDay() === 0 || date.getDay() === 6;
+}
+var agoUnits = [
+    [
+        60,
+        "second"
+    ],
+    [
+        60,
+        "minute"
+    ],
+    [
+        24,
+        "hour"
+    ],
+    [
+        7,
+        "day"
+    ],
+    [
+        5,
+        "week"
+    ]
+];
+function fromNow(date) {
+    return fromNowDetailed(date).result;
+}
+function fromNowDetailed(date) {
+    if (!(date instanceof Date)) {
+        throw new Error(`fromNow only accepts Date objects (received: ${date})`);
+    }
+    const now = /* @__PURE__ */ new Date();
+    const elapsed = now.getTime() - date.getTime();
+    let remainingInUnit = Math.abs(elapsed) / 1e3;
+    if (remainingInUnit < 15) {
+        return {
+            result: "just now",
+            secondsUntilChange: 15 - remainingInUnit
+        };
+    }
+    let unitInSeconds = 1;
+    for (const [nextUnitSize, unitName] of agoUnits){
+        const rounded = Math.round(remainingInUnit);
+        if (rounded < nextUnitSize) {
+            if (elapsed < 0) {
+                return {
+                    result: `in ${rounded} ${unitName}${rounded === 1 ? "" : "s"}`,
+                    secondsUntilChange: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$math$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["remainder"])((remainingInUnit - rounded + 0.5) * unitInSeconds, unitInSeconds)
+                };
+            } else {
+                return {
+                    result: `${rounded} ${unitName}${rounded === 1 ? "" : "s"} ago`,
+                    secondsUntilChange: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$math$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["remainder"])((rounded - remainingInUnit - 0.5) * unitInSeconds, unitInSeconds)
+                };
+            }
+        }
+        unitInSeconds *= nextUnitSize;
+        remainingInUnit /= nextUnitSize;
+    }
+    return {
+        result: date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        }),
+        secondsUntilChange: Infinity
+    };
+}
+function getInputDatetimeLocalString(date) {
+    date = new Date(date);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 19);
+}
+function applyInterval(date, times, interval) {
+    if (!__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$schema$2d$fields$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["intervalSchema"].isValidSync(interval)) {
+        throw new __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["StackAssertionError"](`Invalid interval`, {
+            interval
+        });
+    }
+    const [amount, unit] = interval;
+    switch(unit){
+        case "millisecond":
+            {
+                date.setMilliseconds(date.getMilliseconds() + amount * times);
+                break;
+            }
+        case "second":
+            {
+                date.setSeconds(date.getSeconds() + amount * times);
+                break;
+            }
+        case "minute":
+            {
+                date.setMinutes(date.getMinutes() + amount * times);
+                break;
+            }
+        case "hour":
+            {
+                date.setHours(date.getHours() + amount * times);
+                break;
+            }
+        case "day":
+            {
+                date.setDate(date.getDate() + amount * times);
+                break;
+            }
+        case "week":
+            {
+                date.setDate(date.getDate() + amount * times * 7);
+                break;
+            }
+        case "month":
+            {
+                date.setMonth(date.getMonth() + amount * times);
+                break;
+            }
+        case "year":
+            {
+                date.setFullYear(date.getFullYear() + amount * times);
+                break;
+            }
+        default:
+            {
+                throw new __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$utils$2f$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["StackAssertionError"](`Invalid interval despite schema validation`, {
+                    interval
+                });
+            }
+    }
+    return date;
+}
+function subtractInterval(date, interval) {
+    return applyInterval(date, -1, interval);
+}
+function addInterval(date, interval) {
+    return applyInterval(date, 1, interval);
+}
+var FAR_FUTURE_DATE = /* @__PURE__ */ new Date(864e13);
+function getMsPerDayIntervalUnit(unit) {
+    if (unit === "day") {
+        return 24 * 60 * 60 * 1e3;
+    }
+    return 7 * 24 * 60 * 60 * 1e3;
+}
+function getIntervalsElapsed(anchor, to, repeat) {
+    const [amount, unit] = repeat;
+    if (to <= anchor) return 0;
+    if (unit === "day" || unit === "week") {
+        const msPerUnit = getMsPerDayIntervalUnit(unit);
+        const diffMs = to.getTime() - anchor.getTime();
+        return Math.floor(diffMs / (msPerUnit * amount));
+    }
+    if ([
+        "month",
+        "year"
+    ].includes(unit)) {
+        let count = 0;
+        let current = new Date(anchor);
+        for(;;){
+            const next = addInterval(new Date(current), [
+                amount,
+                unit
+            ]);
+            if (next > to) break;
+            current = next;
+            count += 1;
+        }
+        return count;
+    }
+    return 0;
+}
+;
+ //# sourceMappingURL=dates.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/helpers/password.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// src/helpers/password.ts
+__turbopack_context__.s([
+    "getPasswordError",
+    ()=>getPasswordError
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$known$2d$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/known-errors.js [app-ssr] (ecmascript)");
+;
+var minLength = 8;
+var maxLength = 70;
+function getPasswordError(password) {
+    if (password.length < minLength) {
+        return new __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$known$2d$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["KnownErrors"].PasswordTooShort(minLength);
+    }
+    if (password.length > maxLength) {
+        return new __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$shared$2f$dist$2f$esm$2f$known$2d$errors$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["KnownErrors"].PasswordTooLong(maxLength);
+    }
+    return void 0;
+}
+;
+ //# sourceMappingURL=password.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-shared/dist/esm/utils/base64.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// src/utils/base64.tsx
+__turbopack_context__.s([
+    "fileToBase64",
+    ()=>fileToBase64,
+    "validateBase64Image",
+    ()=>validateBase64Image
+]);
+function fileToBase64(file) {
+    return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = (error)=>reject(error);
+    });
+}
+function validateBase64Image(base64) {
+    const base64ImageRegex = /^data:image\/(png|jpg|jpeg|gif|bmp|webp);base64,[A-Za-z0-9+/]+={0,2}$|^[A-Za-z0-9+/]+={0,2}$/;
+    return base64ImageRegex.test(base64);
+}
+;
+ //# sourceMappingURL=base64.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "mergeClasses",
+    ()=>mergeClasses,
+    "toKebabCase",
+    ()=>toKebabCase
+]);
+const toKebabCase = (string)=>string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const mergeClasses = (...classes)=>classes.filter((className, index, array)=>{
+        return Boolean(className) && array.indexOf(className) === index;
+    }).join(" ");
+;
+ //# sourceMappingURL=utils.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>defaultAttributes
+]);
+var defaultAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+};
+;
+ //# sourceMappingURL=defaultAttributes.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Icon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+;
+;
+;
+const Icon = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ color = "currentColor", size = 24, strokeWidth = 2, absoluteStrokeWidth, className = "", children, iconNode, ...rest }, ref)=>{
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])("svg", {
+        ref,
+        ...__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"],
+        width: size,
+        height: size,
+        stroke: color,
+        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+        className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])("lucide", className),
+        ...rest
+    }, [
+        ...iconNode.map(([tag, attrs])=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(tag, attrs)),
+        ...Array.isArray(children) ? children : [
+            children
+        ]
+    ]);
+});
+;
+ //# sourceMappingURL=Icon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>createLucideIcon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)");
+;
+;
+;
+const createLucideIcon = (iconName, iconNode)=>{
+    const Component = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ className, ...props }, ref)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
+            ref,
+            iconNode,
+            className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])(`lucide-${(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toKebabCase"])(iconName)}`, className),
+            ...props
+        }));
+    Component.displayName = `${iconName}`;
+    return Component;
+};
+;
+ //# sourceMappingURL=createLucideIcon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-user.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>CircleUser
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const CircleUser = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("CircleUser", [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "10",
+            key: "1mglay"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "10",
+            r: "3",
+            key: "ilqhr7"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662",
+            key: "154egf"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=circle-user.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-user.js [app-ssr] (ecmascript) <export default as CircleUser>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "CircleUser",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$user$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$user$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-user.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-in.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>LogIn
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const LogIn = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("LogIn", [
+    [
+        "path",
+        {
+            d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4",
+            key: "u53s6r"
+        }
+    ],
+    [
+        "polyline",
+        {
+            points: "10 17 15 12 10 7",
+            key: "1ail0h"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "15",
+            x2: "3",
+            y1: "12",
+            y2: "12",
+            key: "v6grx8"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=log-in.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-in.js [app-ssr] (ecmascript) <export default as LogIn>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "LogIn",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$in$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$in$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-in.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-out.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>LogOut
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const LogOut = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("LogOut", [
+    [
+        "path",
+        {
+            d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+            key: "1uf3rs"
+        }
+    ],
+    [
+        "polyline",
+        {
+            points: "16 17 21 12 16 7",
+            key: "1gabdz"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "21",
+            x2: "9",
+            y1: "12",
+            y2: "12",
+            key: "1uyos4"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=log-out.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-out.js [app-ssr] (ecmascript) <export default as LogOut>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "LogOut",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/log-out.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/sun-moon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>SunMoon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const SunMoon = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("SunMoon", [
+    [
+        "path",
+        {
+            d: "M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4",
+            key: "1fu5g2"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 2v2",
+            key: "tus03m"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 20v2",
+            key: "1lh1kg"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m4.9 4.9 1.4 1.4",
+            key: "b9915j"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m17.7 17.7 1.4 1.4",
+            key: "qc3ed3"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M2 12h2",
+            key: "1t8f8n"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M20 12h2",
+            key: "1q8mjw"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m6.3 17.7-1.4 1.4",
+            key: "5gca6"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m19.1 4.9-1.4 1.4",
+            key: "wpu9u6"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=sun-moon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/sun-moon.js [app-ssr] (ecmascript) <export default as SunMoon>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "SunMoon",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$sun$2d$moon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$sun$2d$moon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/sun-moon.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-plus.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>UserPlus
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const UserPlus = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("UserPlus", [
+    [
+        "path",
+        {
+            d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+            key: "1yyitq"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "9",
+            cy: "7",
+            r: "4",
+            key: "nufk8"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "19",
+            x2: "19",
+            y1: "8",
+            y2: "14",
+            key: "1bvyxn"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "22",
+            x2: "16",
+            y1: "11",
+            y2: "11",
+            key: "1shjgl"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=user-plus.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-plus.js [app-ssr] (ecmascript) <export default as UserPlus>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "UserPlus",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-plus.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-round.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>UserRound
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const UserRound = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("UserRound", [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "8",
+            r: "5",
+            key: "1hypcn"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M20 21a8 8 0 0 0-16 0",
+            key: "rfgkzh"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=user-round.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-round.js [app-ssr] (ecmascript) <export default as UserRound>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "UserRound",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$round$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$round$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-round.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/contact.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Contact
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Contact = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Contact", [
+    [
+        "path",
+        {
+            d: "M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2",
+            key: "1mghuy"
+        }
+    ],
+    [
+        "rect",
+        {
+            width: "18",
+            height: "18",
+            x: "3",
+            y: "4",
+            rx: "2",
+            key: "1hopcy"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "10",
+            r: "2",
+            key: "1yojzk"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "8",
+            x2: "8",
+            y1: "2",
+            y2: "4",
+            key: "1ff9gb"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "16",
+            x2: "16",
+            y1: "2",
+            y2: "4",
+            key: "1ufoma"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=contact.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/contact.js [app-ssr] (ecmascript) <export default as Contact>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Contact",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$contact$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$contact$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/contact.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/shield-check.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>ShieldCheck
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const ShieldCheck = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("ShieldCheck", [
+    [
+        "path",
+        {
+            d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+            key: "oel41y"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m9 12 2 2 4-4",
+            key: "dzmm74"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=shield-check.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/shield-check.js [app-ssr] (ecmascript) <export default as ShieldCheck>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "ShieldCheck",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shield$2d$check$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shield$2d$check$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/shield-check.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/bell.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Bell
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Bell = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Bell", [
+    [
+        "path",
+        {
+            d: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9",
+            key: "1qo2s2"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M10.3 21a1.94 1.94 0 0 0 3.4 0",
+            key: "qgo35s"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=bell.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/bell.js [app-ssr] (ecmascript) <export default as Bell>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Bell",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bell$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bell$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/bell.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/monitor.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Monitor
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Monitor = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Monitor", [
+    [
+        "rect",
+        {
+            width: "20",
+            height: "14",
+            x: "2",
+            y: "3",
+            rx: "2",
+            key: "48i651"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "8",
+            x2: "16",
+            y1: "21",
+            y2: "21",
+            key: "1svkeh"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "12",
+            x2: "12",
+            y1: "17",
+            y2: "21",
+            key: "vw1qmm"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=monitor.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/monitor.js [app-ssr] (ecmascript) <export default as Monitor>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Monitor",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$monitor$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$monitor$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/monitor.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/key.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Key
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Key = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Key", [
+    [
+        "circle",
+        {
+            cx: "7.5",
+            cy: "15.5",
+            r: "5.5",
+            key: "yqb3hr"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m21 2-9.6 9.6",
+            key: "1j0ho8"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m15.5 7.5 3 3L22 7l-3-3",
+            key: "1rn1fs"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=key.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/key.js [app-ssr] (ecmascript) <export default as Key>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Key",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$key$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$key$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/key.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Settings
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Settings = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Settings", [
+    [
+        "path",
+        {
+            d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
+            key: "1qme2f"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "3",
+            key: "1v7zrd"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=settings.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript) <export default as Settings>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Settings",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-plus.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>CirclePlus
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const CirclePlus = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("CirclePlus", [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "10",
+            key: "1mglay"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M8 12h8",
+            key: "1wcyev"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 8v8",
+            key: "napkw2"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=circle-plus.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-plus.js [app-ssr] (ecmascript) <export default as CirclePlus>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "CirclePlus",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/circle-plus.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/x.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>X
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const X = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("X", [
+    [
+        "path",
+        {
+            d: "M18 6 6 18",
+            key: "1bl5f8"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m6 6 12 12",
+            key: "d8bk6v"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=x.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/x.js [app-ssr] (ecmascript) <export default as XIcon>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "XIcon",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/x.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-round.js [app-ssr] (ecmascript) <export default as User2>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "User2",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$round$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2d$round$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/user-round.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "hasA11yProp",
+    ()=>hasA11yProp,
+    "mergeClasses",
+    ()=>mergeClasses,
+    "toCamelCase",
+    ()=>toCamelCase,
+    "toKebabCase",
+    ()=>toKebabCase,
+    "toPascalCase",
+    ()=>toPascalCase
+]);
+const toKebabCase = (string)=>string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const toCamelCase = (string)=>string.replace(/^([A-Z])|[\s-_]+(\w)/g, (match, p1, p2)=>p2 ? p2.toUpperCase() : p1.toLowerCase());
+const toPascalCase = (string)=>{
+    const camelCase = toCamelCase(string);
+    return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+const mergeClasses = (...classes)=>classes.filter((className, index, array)=>{
+        return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+    }).join(" ").trim();
+const hasA11yProp = (props)=>{
+    for(const prop in props){
+        if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+            return true;
+        }
+    }
+};
+;
+ //# sourceMappingURL=utils.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>defaultAttributes
+]);
+var defaultAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+};
+;
+ //# sourceMappingURL=defaultAttributes.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Icon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+;
+;
+;
+const Icon = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ color = "currentColor", size = 24, strokeWidth = 2, absoluteStrokeWidth, className = "", children, iconNode, ...rest }, ref)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])("svg", {
+        ref,
+        ...__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"],
+        width: size,
+        height: size,
+        stroke: color,
+        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+        className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])("lucide", className),
+        ...!children && !(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["hasA11yProp"])(rest) && {
+            "aria-hidden": "true"
+        },
+        ...rest
+    }, [
+        ...iconNode.map(([tag, attrs])=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(tag, attrs)),
+        ...Array.isArray(children) ? children : [
+            children
+        ]
+    ]));
+;
+ //# sourceMappingURL=Icon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>createLucideIcon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)");
+;
+;
+;
+const createLucideIcon = (iconName, iconNode)=>{
+    const Component = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ className, ...props }, ref)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
+            ref,
+            iconNode,
+            className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])(`lucide-${(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toKebabCase"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toPascalCase"])(iconName))}`, `lucide-${iconName}`, className),
+            ...props
+        }));
+    Component.displayName = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toPascalCase"])(iconName);
+    return Component;
+};
+;
+ //# sourceMappingURL=createLucideIcon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/circle-alert.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>CircleAlert
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "10",
+            key: "1mglay"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "12",
+            x2: "12",
+            y1: "8",
+            y2: "12",
+            key: "1pkeuh"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "12",
+            x2: "12.01",
+            y1: "16",
+            y2: "16",
+            key: "4dfq90"
+        }
+    ]
+];
+const CircleAlert = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("circle-alert", __iconNode);
+;
+ //# sourceMappingURL=circle-alert.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/circle-alert.js [app-ssr] (ecmascript) <export default as CircleAlert>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "CircleAlert",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$alert$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$alert$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/circle-alert.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Info
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "10",
+            key: "1mglay"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 16v-4",
+            key: "1dtifu"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 8h.01",
+            key: "e9boi3"
+        }
+    ]
+];
+const Info = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("info", __iconNode);
+;
+ //# sourceMappingURL=info.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript) <export default as Info>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Info",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$info$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$info$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/copy.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Copy
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "rect",
+        {
+            width: "14",
+            height: "14",
+            x: "8",
+            y: "8",
+            rx: "2",
+            ry: "2",
+            key: "17jyea"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2",
+            key: "zix9uf"
+        }
+    ]
+];
+const Copy = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("copy", __iconNode);
+;
+ //# sourceMappingURL=copy.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/copy.js [app-ssr] (ecmascript) <export default as Copy>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Copy",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$copy$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$copy$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/copy.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/download.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Download
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+            key: "ih7n3h"
+        }
+    ],
+    [
+        "polyline",
+        {
+            points: "7 10 12 15 17 10",
+            key: "2ggqvy"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "12",
+            x2: "12",
+            y1: "15",
+            y2: "3",
+            key: "1vk2je"
+        }
+    ]
+];
+const Download = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("download", __iconNode);
+;
+ //# sourceMappingURL=download.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/download.js [app-ssr] (ecmascript) <export default as DownloadIcon>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "DownloadIcon",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/download.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-down.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>ArrowDown
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M12 5v14",
+            key: "s699le"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m19 12-7 7-7-7",
+            key: "1idqje"
+        }
+    ]
+];
+const ArrowDown = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("arrow-down", __iconNode);
+;
+ //# sourceMappingURL=arrow-down.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-down.js [app-ssr] (ecmascript) <export default as ArrowDown>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "ArrowDown",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$down$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$down$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-down.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-up.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>ArrowUp
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "m5 12 7-7 7 7",
+            key: "hav0vg"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 19V5",
+            key: "x0mq9r"
+        }
+    ]
+];
+const ArrowUp = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("arrow-up", __iconNode);
+;
+ //# sourceMappingURL=arrow-up.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-up.js [app-ssr] (ecmascript) <export default as ArrowUp>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "ArrowUp",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$up$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$arrow$2d$up$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/arrow-up.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/list-filter.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>ListFilter
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M3 6h18",
+            key: "d0wm0j"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M7 12h10",
+            key: "b7w52i"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M10 18h4",
+            key: "1ulq68"
+        }
+    ]
+];
+const ListFilter = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("list-filter", __iconNode);
+;
+ //# sourceMappingURL=list-filter.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/list-filter.js [app-ssr] (ecmascript) <export default as ListFilter>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "ListFilter",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$list$2d$filter$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$list$2d$filter$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/list-filter.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Eye
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+            key: "1nclc0"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "3",
+            key: "1v7zrd"
+        }
+    ]
+];
+const Eye = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("eye", __iconNode);
+;
+ //# sourceMappingURL=eye.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye.js [app-ssr] (ecmascript) <export default as EyeIcon>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "EyeIcon",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye-off.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.508.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>EyeOff
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+            key: "ct8e1f"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M14.084 14.158a3 3 0 0 1-4.242-4.242",
+            key: "151rxh"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+            key: "13bj9a"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m2 2 20 20",
+            key: "1ooewy"
+        }
+    ]
+];
+const EyeOff = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("eye-off", __iconNode);
+;
+ //# sourceMappingURL=eye-off.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye-off.js [app-ssr] (ecmascript) <export default as EyeOffIcon>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "EyeOffIcon",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2d$off$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2d$ui$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2d$off$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack-ui/node_modules/lucide-react/dist/esm/icons/eye-off.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/upload.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Upload
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Upload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Upload", [
+    [
+        "path",
+        {
+            d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+            key: "ih7n3h"
+        }
+    ],
+    [
+        "polyline",
+        {
+            points: "17 8 12 3 7 8",
+            key: "t8dd8p"
+        }
+    ],
+    [
+        "line",
+        {
+            x1: "12",
+            x2: "12",
+            y1: "3",
+            y2: "15",
+            key: "widbto"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=upload.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/upload.js [app-ssr] (ecmascript) <export default as Upload>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Upload",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/upload.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/square-pen.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>SquarePen
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const SquarePen = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("SquarePen", [
+    [
+        "path",
+        {
+            d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7",
+            key: "1m0v6g"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z",
+            key: "1lpok0"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=square-pen.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/square-pen.js [app-ssr] (ecmascript) <export default as Edit>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Edit",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$pen$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$pen$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/square-pen.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/trash.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.378.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Trash
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const Trash = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("Trash", [
+    [
+        "path",
+        {
+            d: "M3 6h18",
+            key: "d0wm0j"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6",
+            key: "4alrt4"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2",
+            key: "v07s0e"
+        }
+    ]
+]);
+;
+ //# sourceMappingURL=trash.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/trash.js [app-ssr] (ecmascript) <export default as Trash>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Trash",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$stackframe$2f$stack$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@stackframe/stack/node_modules/lucide-react/dist/esm/icons/trash.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/class-variance-authority/dist/index.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * Copyright 2022 Joe Bell. All rights reserved.
+ *
+ * This file is licensed to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR REPRESENTATIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */ __turbopack_context__.s([
+    "cva",
+    ()=>cva,
+    "cx",
+    ()=>cx
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/clsx/dist/clsx.mjs [app-ssr] (ecmascript)");
+;
+const falsyToString = (value)=>typeof value === "boolean" ? `${value}` : value === 0 ? "0" : value;
+const cx = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clsx"];
+const cva = (base, config)=>(props)=>{
+        var _config_compoundVariants;
+        if ((config === null || config === void 0 ? void 0 : config.variants) == null) return cx(base, props === null || props === void 0 ? void 0 : props.class, props === null || props === void 0 ? void 0 : props.className);
+        const { variants, defaultVariants } = config;
+        const getVariantClassNames = Object.keys(variants).map((variant)=>{
+            const variantProp = props === null || props === void 0 ? void 0 : props[variant];
+            const defaultVariantProp = defaultVariants === null || defaultVariants === void 0 ? void 0 : defaultVariants[variant];
+            if (variantProp === null) return null;
+            const variantKey = falsyToString(variantProp) || falsyToString(defaultVariantProp);
+            return variants[variant][variantKey];
+        });
+        const propsWithoutUndefined = props && Object.entries(props).reduce((acc, param)=>{
+            let [key, value] = param;
+            if (value === undefined) {
+                return acc;
+            }
+            acc[key] = value;
+            return acc;
+        }, {});
+        const getCompoundVariantClassNames = config === null || config === void 0 ? void 0 : (_config_compoundVariants = config.compoundVariants) === null || _config_compoundVariants === void 0 ? void 0 : _config_compoundVariants.reduce((acc, param)=>{
+            let { class: cvClass, className: cvClassName, ...compoundVariantOptions } = param;
+            return Object.entries(compoundVariantOptions).every((param)=>{
+                let [key, value] = param;
+                return Array.isArray(value) ? value.includes({
+                    ...defaultVariants,
+                    ...propsWithoutUndefined
+                }[key]) : ({
+                    ...defaultVariants,
+                    ...propsWithoutUndefined
+                })[key] === value;
+            }) ? [
+                ...acc,
+                cvClass,
+                cvClassName
+            ] : acc;
+        }, []);
+        return cx(base, getVariantClassNames, getCompoundVariantClassNames, props === null || props === void 0 ? void 0 : props.class, props === null || props === void 0 ? void 0 : props.className);
+    };
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "hasA11yProp",
+    ()=>hasA11yProp,
+    "mergeClasses",
+    ()=>mergeClasses,
+    "toCamelCase",
+    ()=>toCamelCase,
+    "toKebabCase",
+    ()=>toKebabCase,
+    "toPascalCase",
+    ()=>toPascalCase
+]);
+const toKebabCase = (string)=>string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const toCamelCase = (string)=>string.replace(/^([A-Z])|[\s-_]+(\w)/g, (match, p1, p2)=>p2 ? p2.toUpperCase() : p1.toLowerCase());
+const toPascalCase = (string)=>{
+    const camelCase = toCamelCase(string);
+    return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+const mergeClasses = (...classes)=>classes.filter((className, index, array)=>{
+        return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+    }).join(" ").trim();
+const hasA11yProp = (props)=>{
+    for(const prop in props){
+        if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+            return true;
+        }
+    }
+};
+;
+ //# sourceMappingURL=utils.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>defaultAttributes
+]);
+var defaultAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+};
+;
+ //# sourceMappingURL=defaultAttributes.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>Icon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/defaultAttributes.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+;
+;
+;
+const Icon = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ color = "currentColor", size = 24, strokeWidth = 2, absoluteStrokeWidth, className = "", children, iconNode, ...rest }, ref)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])("svg", {
+        ref,
+        ...__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$defaultAttributes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"],
+        width: size,
+        height: size,
+        stroke: color,
+        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+        className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])("lucide", className),
+        ...!children && !(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["hasA11yProp"])(rest) && {
+            "aria-hidden": "true"
+        },
+        ...rest
+    }, [
+        ...iconNode.map(([tag, attrs])=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(tag, attrs)),
+        ...Array.isArray(children) ? children : [
+            children
+        ]
+    ]));
+;
+ //# sourceMappingURL=Icon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "default",
+    ()=>createLucideIcon
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/shared/src/utils.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/Icon.js [app-ssr] (ecmascript)");
+;
+;
+;
+const createLucideIcon = (iconName, iconNode)=>{
+    const Component = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ className, ...props }, ref)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$Icon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
+            ref,
+            iconNode,
+            className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["mergeClasses"])(`lucide-${(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toKebabCase"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toPascalCase"])(iconName))}`, `lucide-${iconName}`, className),
+            ...props
+        }));
+    Component.displayName = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$shared$2f$src$2f$utils$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toPascalCase"])(iconName);
+    return Component;
+};
+;
+ //# sourceMappingURL=createLucideIcon.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/chart-column.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>ChartColumn
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M3 3v16a2 2 0 0 0 2 2h16",
+            key: "c24i48"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M18 17V9",
+            key: "2bz60n"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M13 17V5",
+            key: "1frdt8"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M8 17v-3",
+            key: "17ska0"
+        }
+    ]
+];
+const ChartColumn = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("chart-column", __iconNode);
+;
+ //# sourceMappingURL=chart-column.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/chart-column.js [app-ssr] (ecmascript) <export default as BarChart3>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "BarChart3",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chart$2d$column$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chart$2d$column$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/chart-column.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/package.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Package
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z",
+            key: "1a0edw"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 22V12",
+            key: "d0xqtd"
+        }
+    ],
+    [
+        "polyline",
+        {
+            points: "3.29 7 12 12 20.71 7",
+            key: "ousv84"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "m7.5 4.27 9 5.15",
+            key: "1c824w"
+        }
+    ]
+];
+const Package = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("package", __iconNode);
+;
+ //# sourceMappingURL=package.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/package.js [app-ssr] (ecmascript) <export default as Package>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Package",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/package.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/plus.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Plus
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M5 12h14",
+            key: "1ays0h"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 5v14",
+            key: "s699le"
+        }
+    ]
+];
+const Plus = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("plus", __iconNode);
+;
+ //# sourceMappingURL=plus.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/plus.js [app-ssr] (ecmascript) <export default as Plus>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Plus",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/plus.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Settings
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "path",
+        {
+            d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
+            key: "1i5ecw"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "3",
+            key: "1v7zrd"
+        }
+    ]
+];
+const Settings = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("settings", __iconNode);
+;
+ //# sourceMappingURL=settings.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript) <export default as Settings>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Settings",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>Info
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "circle",
+        {
+            cx: "12",
+            cy: "12",
+            r: "10",
+            key: "1mglay"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 16v-4",
+            key: "1dtifu"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M12 8h.01",
+            key: "e9boi3"
+        }
+    ]
+];
+const Info = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("info", __iconNode);
+;
+ //# sourceMappingURL=info.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript) <export default as Info>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Info",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$info$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$info$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/info.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/shopping-cart.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * @license lucide-react v0.556.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */ __turbopack_context__.s([
+    "__iconNode",
+    ()=>__iconNode,
+    "default",
+    ()=>ShoppingCart
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-ssr] (ecmascript)");
+;
+const __iconNode = [
+    [
+        "circle",
+        {
+            cx: "8",
+            cy: "21",
+            r: "1",
+            key: "jimo8o"
+        }
+    ],
+    [
+        "circle",
+        {
+            cx: "19",
+            cy: "21",
+            r: "1",
+            key: "13723u"
+        }
+    ],
+    [
+        "path",
+        {
+            d: "M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12",
+            key: "9zh506"
+        }
+    ]
+];
+const ShoppingCart = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])("shopping-cart", __iconNode);
+;
+ //# sourceMappingURL=shopping-cart.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/shopping-cart.js [app-ssr] (ecmascript) <export default as ShoppingCart>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "ShoppingCart",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shopping$2d$cart$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shopping$2d$cart$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/lucide-react/dist/esm/icons/shopping-cart.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.development.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+/**
+ * @license React
+ * use-sync-external-store-shim.development.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */ "production" !== ("TURBOPACK compile-time value", "development") && function() {
+    function is(x, y) {
+        return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
+    }
+    function useSyncExternalStore$2(subscribe, getSnapshot) {
+        didWarnOld18Alpha || void 0 === React.startTransition || (didWarnOld18Alpha = !0, console.error("You are using an outdated, pre-release alpha of React 18 that does not support useSyncExternalStore. The use-sync-external-store shim will not work correctly. Upgrade to a newer pre-release."));
+        var value = getSnapshot();
+        if (!didWarnUncachedGetSnapshot) {
+            var cachedValue = getSnapshot();
+            objectIs(value, cachedValue) || (console.error("The result of getSnapshot should be cached to avoid an infinite loop"), didWarnUncachedGetSnapshot = !0);
+        }
+        cachedValue = useState({
+            inst: {
+                value: value,
+                getSnapshot: getSnapshot
+            }
+        });
+        var inst = cachedValue[0].inst, forceUpdate = cachedValue[1];
+        useLayoutEffect(function() {
+            inst.value = value;
+            inst.getSnapshot = getSnapshot;
+            checkIfSnapshotChanged(inst) && forceUpdate({
+                inst: inst
+            });
+        }, [
+            subscribe,
+            value,
+            getSnapshot
+        ]);
+        useEffect(function() {
+            checkIfSnapshotChanged(inst) && forceUpdate({
+                inst: inst
+            });
+            return subscribe(function() {
+                checkIfSnapshotChanged(inst) && forceUpdate({
+                    inst: inst
+                });
+            });
+        }, [
+            subscribe
+        ]);
+        useDebugValue(value);
+        return value;
+    }
+    function checkIfSnapshotChanged(inst) {
+        var latestGetSnapshot = inst.getSnapshot;
+        inst = inst.value;
+        try {
+            var nextValue = latestGetSnapshot();
+            return !objectIs(inst, nextValue);
+        } catch (error) {
+            return !0;
+        }
+    }
+    function useSyncExternalStore$1(subscribe, getSnapshot) {
+        return getSnapshot();
+    }
+    "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
+    var React = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)"), objectIs = "function" === typeof Object.is ? Object.is : is, useState = React.useState, useEffect = React.useEffect, useLayoutEffect = React.useLayoutEffect, useDebugValue = React.useDebugValue, didWarnOld18Alpha = !1, didWarnUncachedGetSnapshot = !1, shim = ("TURBOPACK compile-time truthy", 1) ? useSyncExternalStore$1 : "TURBOPACK unreachable";
+    exports.useSyncExternalStore = void 0 !== React.useSyncExternalStore ? React.useSyncExternalStore : shim;
+    "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
+}();
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/use-sync-external-store/shim/index.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+;
+else {
+    module.exports = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.development.js [app-ssr] (ecmascript)");
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-hook-form/dist/index.esm.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Controller",
+    ()=>Controller,
+    "Form",
+    ()=>Form,
+    "FormProvider",
+    ()=>FormProvider,
+    "FormStateSubscribe",
+    ()=>FormStateSubscribe,
+    "Watch",
+    ()=>Watch,
+    "appendErrors",
+    ()=>appendErrors,
+    "createFormControl",
+    ()=>createFormControl,
+    "get",
+    ()=>get,
+    "set",
+    ()=>set,
+    "useController",
+    ()=>useController,
+    "useFieldArray",
+    ()=>useFieldArray,
+    "useForm",
+    ()=>useForm,
+    "useFormContext",
+    ()=>useFormContext,
+    "useFormState",
+    ()=>useFormState,
+    "useWatch",
+    ()=>useWatch
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+;
+var isCheckBoxInput = (element)=>element.type === 'checkbox';
+var isDateObject = (value1)=>value1 instanceof Date;
+var isNullOrUndefined = (value1)=>value1 == null;
+const isObjectType = (value1)=>typeof value1 === 'object';
+var isObject = (value1)=>!isNullOrUndefined(value1) && !Array.isArray(value1) && isObjectType(value1) && !isDateObject(value1);
+var getEventValue = (event)=>isObject(event) && event.target ? isCheckBoxInput(event.target) ? event.target.checked : event.target.value : event;
+var getNodeParentName = (name)=>name.substring(0, name.search(/\.\d+(\.|$)/)) || name;
+var isNameInFieldArray = (names, name)=>names.has(getNodeParentName(name));
+var isPlainObject = (tempObject)=>{
+    const prototypeCopy = tempObject.constructor && tempObject.constructor.prototype;
+    return isObject(prototypeCopy) && prototypeCopy.hasOwnProperty('isPrototypeOf');
+};
+var isWeb = ("TURBOPACK compile-time value", "undefined") !== 'undefined' && typeof window.HTMLElement !== 'undefined' && typeof document !== 'undefined';
+function cloneObject(data) {
+    let copy;
+    const isArray = Array.isArray(data);
+    const isFileListInstance = typeof FileList !== 'undefined' ? data instanceof FileList : false;
+    if (data instanceof Date) {
+        copy = new Date(data);
+    } else if (!(isWeb && (data instanceof Blob || isFileListInstance)) && (isArray || isObject(data))) {
+        copy = isArray ? [] : Object.create(Object.getPrototypeOf(data));
+        if (!isArray && !isPlainObject(data)) {
+            copy = data;
+        } else {
+            for(const key in data){
+                if (data.hasOwnProperty(key)) {
+                    copy[key] = cloneObject(data[key]);
+                }
+            }
+        }
+    } else {
+        return data;
+    }
+    return copy;
+}
+var isKey = (value1)=>/^\w*$/.test(value1);
+var isUndefined = (val)=>val === undefined;
+var compact = (value1)=>Array.isArray(value1) ? value1.filter(Boolean) : [];
+var stringToPath = (input)=>compact(input.replace(/["|']|\]/g, '').split(/\.|\[/));
+var get = (object, path, defaultValue)=>{
+    if (!path || !isObject(object)) {
+        return defaultValue;
+    }
+    const result = (isKey(path) ? [
+        path
+    ] : stringToPath(path)).reduce((result, key)=>isNullOrUndefined(result) ? result : result[key], object);
+    return isUndefined(result) || result === object ? isUndefined(object[path]) ? defaultValue : object[path] : result;
+};
+var isBoolean = (value1)=>typeof value1 === 'boolean';
+var set = (object, path, value1)=>{
+    let index = -1;
+    const tempPath = isKey(path) ? [
+        path
+    ] : stringToPath(path);
+    const length = tempPath.length;
+    const lastIndex = length - 1;
+    while(++index < length){
+        const key = tempPath[index];
+        let newValue = value1;
+        if (index !== lastIndex) {
+            const objValue = object[key];
+            newValue = isObject(objValue) || Array.isArray(objValue) ? objValue : !isNaN(+tempPath[index + 1]) ? [] : {};
+        }
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            return;
+        }
+        object[key] = newValue;
+        object = object[key];
+    }
+};
+const EVENTS = {
+    BLUR: 'blur',
+    FOCUS_OUT: 'focusout',
+    CHANGE: 'change'
+};
+const VALIDATION_MODE = {
+    onBlur: 'onBlur',
+    onChange: 'onChange',
+    onSubmit: 'onSubmit',
+    onTouched: 'onTouched',
+    all: 'all'
+};
+const INPUT_VALIDATION_RULES = {
+    max: 'max',
+    min: 'min',
+    maxLength: 'maxLength',
+    minLength: 'minLength',
+    pattern: 'pattern',
+    required: 'required',
+    validate: 'validate'
+};
+const HookFormContext = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].createContext(null);
+HookFormContext.displayName = 'HookFormContext';
+/**
+ * This custom hook allows you to access the form context. useFormContext is intended to be used in deeply nested structures, where it would become inconvenient to pass the context as a prop. To be used with {@link FormProvider}.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/useformcontext) • [Demo](https://codesandbox.io/s/react-hook-form-v7-form-context-ytudi)
+ *
+ * @returns return all useForm methods
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const methods = useForm();
+ *   const onSubmit = data => console.log(data);
+ *
+ *   return (
+ *     <FormProvider {...methods} >
+ *       <form onSubmit={methods.handleSubmit(onSubmit)}>
+ *         <NestedInput />
+ *         <input type="submit" />
+ *       </form>
+ *     </FormProvider>
+ *   );
+ * }
+ *
+ *  function NestedInput() {
+ *   const { register } = useFormContext(); // retrieve all hook methods
+ *   return <input {...register("test")} />;
+ * }
+ * ```
+ */ const useFormContext = ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useContext(HookFormContext);
+/**
+ * A provider component that propagates the `useForm` methods to all children components via [React Context](https://react.dev/reference/react/useContext) API. To be used with {@link useFormContext}.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/useformcontext) • [Demo](https://codesandbox.io/s/react-hook-form-v7-form-context-ytudi)
+ *
+ * @param props - all useForm methods
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const methods = useForm();
+ *   const onSubmit = data => console.log(data);
+ *
+ *   return (
+ *     <FormProvider {...methods} >
+ *       <form onSubmit={methods.handleSubmit(onSubmit)}>
+ *         <NestedInput />
+ *         <input type="submit" />
+ *       </form>
+ *     </FormProvider>
+ *   );
+ * }
+ *
+ *  function NestedInput() {
+ *   const { register } = useFormContext(); // retrieve all hook methods
+ *   return <input {...register("test")} />;
+ * }
+ * ```
+ */ const FormProvider = (props)=>{
+    const { children, ...data } = props;
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].createElement(HookFormContext.Provider, {
+        value: data
+    }, children);
+};
+var getProxyFormState = (formState, control, localProxyFormState, isRoot = true)=>{
+    const result = {
+        defaultValues: control._defaultValues
+    };
+    for(const key in formState){
+        Object.defineProperty(result, key, {
+            get: ()=>{
+                const _key = key;
+                if (control._proxyFormState[_key] !== VALIDATION_MODE.all) {
+                    control._proxyFormState[_key] = !isRoot || VALIDATION_MODE.all;
+                }
+                localProxyFormState && (localProxyFormState[_key] = true);
+                return formState[_key];
+            }
+        });
+    }
+    return result;
+};
+const useIsomorphicLayoutEffect = ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect;
+/**
+ * This custom hook allows you to subscribe to each form state, and isolate the re-render at the custom hook level. It has its scope in terms of form state subscription, so it would not affect other useFormState and useForm. Using this hook can reduce the re-render impact on large and complex form application.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/useformstate) • [Demo](https://codesandbox.io/s/useformstate-75xly)
+ *
+ * @param props - include options on specify fields to subscribe. {@link UseFormStateReturn}
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const { register, handleSubmit, control } = useForm({
+ *     defaultValues: {
+ *     firstName: "firstName"
+ *   }});
+ *   const { dirtyFields } = useFormState({
+ *     control
+ *   });
+ *   const onSubmit = (data) => console.log(data);
+ *
+ *   return (
+ *     <form onSubmit={handleSubmit(onSubmit)}>
+ *       <input {...register("firstName")} placeholder="First Name" />
+ *       {dirtyFields.firstName && <p>Field is dirty.</p>}
+ *       <input type="submit" />
+ *     </form>
+ *   );
+ * }
+ * ```
+ */ function useFormState(props) {
+    const methods = useFormContext();
+    const { control = methods.control, disabled, name, exact } = props || {};
+    const [formState, updateFormState] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(control._formState);
+    const _localProxyFormState = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef({
+        isDirty: false,
+        isLoading: false,
+        dirtyFields: false,
+        touchedFields: false,
+        validatingFields: false,
+        isValidating: false,
+        isValid: false,
+        errors: false
+    });
+    useIsomorphicLayoutEffect(()=>control._subscribe({
+            name,
+            formState: _localProxyFormState.current,
+            exact,
+            callback: (formState)=>{
+                !disabled && updateFormState({
+                    ...control._formState,
+                    ...formState
+                });
+            }
+        }), [
+        name,
+        disabled,
+        exact
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        _localProxyFormState.current.isValid && control._setValid(true);
+    }, [
+        control
+    ]);
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>getProxyFormState(formState, control, _localProxyFormState.current, false), [
+        formState,
+        control
+    ]);
+}
+var isString = (value1)=>typeof value1 === 'string';
+var generateWatchOutput = (names, _names, formValues, isGlobal, defaultValue)=>{
+    if (isString(names)) {
+        isGlobal && _names.watch.add(names);
+        return get(formValues, names, defaultValue);
+    }
+    if (Array.isArray(names)) {
+        return names.map((fieldName)=>(isGlobal && _names.watch.add(fieldName), get(formValues, fieldName)));
+    }
+    isGlobal && (_names.watchAll = true);
+    return formValues;
+};
+var isPrimitive = (value1)=>isNullOrUndefined(value1) || !isObjectType(value1);
+function deepEqual(object1, object2, _internal_visited = new WeakSet()) {
+    if (isPrimitive(object1) || isPrimitive(object2)) {
+        return Object.is(object1, object2);
+    }
+    if (isDateObject(object1) && isDateObject(object2)) {
+        return object1.getTime() === object2.getTime();
+    }
+    const keys1 = Object.keys(object1);
+    const keys2 = Object.keys(object2);
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+    if (_internal_visited.has(object1) || _internal_visited.has(object2)) {
+        return true;
+    }
+    _internal_visited.add(object1);
+    _internal_visited.add(object2);
+    for (const key of keys1){
+        const val1 = object1[key];
+        if (!keys2.includes(key)) {
+            return false;
+        }
+        if (key !== 'ref') {
+            const val2 = object2[key];
+            if (isDateObject(val1) && isDateObject(val2) || isObject(val1) && isObject(val2) || Array.isArray(val1) && Array.isArray(val2) ? !deepEqual(val1, val2, _internal_visited) : !Object.is(val1, val2)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+/**
+ * Custom hook to subscribe to field change and isolate re-rendering at the component level.
+ *
+ * @remarks
+ *
+ * [API](https://react-hook-form.com/docs/usewatch) • [Demo](https://codesandbox.io/s/react-hook-form-v7-ts-usewatch-h9i5e)
+ *
+ * @example
+ * ```tsx
+ * const { control } = useForm();
+ * const values = useWatch({
+ *   name: "fieldName"
+ *   control,
+ * })
+ * ```
+ */ function useWatch(props) {
+    const methods = useFormContext();
+    const { control = methods.control, name, defaultValue, disabled, exact, compute } = props || {};
+    const _defaultValue = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(defaultValue);
+    const _compute = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(compute);
+    const _computeFormValues = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(undefined);
+    const _prevControl = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(control);
+    const _prevName = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(name);
+    _compute.current = compute;
+    const [value1, updateValue] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(()=>{
+        const defaultValue = control._getWatch(name, _defaultValue.current);
+        return _compute.current ? _compute.current(defaultValue) : defaultValue;
+    });
+    const getCurrentOutput = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback((values)=>{
+        const formValues = generateWatchOutput(name, control._names, values || control._formValues, false, _defaultValue.current);
+        return _compute.current ? _compute.current(formValues) : formValues;
+    }, [
+        control._formValues,
+        control._names,
+        name
+    ]);
+    const refreshValue = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback((values)=>{
+        if (!disabled) {
+            const formValues = generateWatchOutput(name, control._names, values || control._formValues, false, _defaultValue.current);
+            if (_compute.current) {
+                const computedFormValues = _compute.current(formValues);
+                if (!deepEqual(computedFormValues, _computeFormValues.current)) {
+                    updateValue(computedFormValues);
+                    _computeFormValues.current = computedFormValues;
+                }
+            } else {
+                updateValue(formValues);
+            }
+        }
+    }, [
+        control._formValues,
+        control._names,
+        disabled,
+        name
+    ]);
+    useIsomorphicLayoutEffect(()=>{
+        if (_prevControl.current !== control || !deepEqual(_prevName.current, name)) {
+            _prevControl.current = control;
+            _prevName.current = name;
+            refreshValue();
+        }
+        return control._subscribe({
+            name,
+            formState: {
+                values: true
+            },
+            exact,
+            callback: (formState)=>{
+                refreshValue(formState.values);
+            }
+        });
+    }, [
+        control,
+        exact,
+        name,
+        refreshValue
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>control._removeUnmounted());
+    // If name or control changed for this render, synchronously reflect the
+    // latest value so callers (like useController) see the correct value
+    // immediately on the same render.
+    // Optimize: Check control reference first before expensive deepEqual
+    const controlChanged = _prevControl.current !== control;
+    const prevName = _prevName.current;
+    // Cache the computed output to avoid duplicate calls within the same render
+    // We include shouldReturnImmediate in deps to ensure proper recomputation
+    const computedOutput = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>{
+        if (disabled) {
+            return null;
+        }
+        const nameChanged = !controlChanged && !deepEqual(prevName, name);
+        const shouldReturnImmediate = controlChanged || nameChanged;
+        return shouldReturnImmediate ? getCurrentOutput() : null;
+    }, [
+        disabled,
+        controlChanged,
+        name,
+        prevName,
+        getCurrentOutput
+    ]);
+    return computedOutput !== null ? computedOutput : value1;
+}
+/**
+ * Custom hook to work with controlled component, this function provide you with both form and field level state. Re-render is isolated at the hook level.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/usecontroller) • [Demo](https://codesandbox.io/s/usecontroller-0o8px)
+ *
+ * @param props - the path name to the form field value, and validation rules.
+ *
+ * @returns field properties, field and form state. {@link UseControllerReturn}
+ *
+ * @example
+ * ```tsx
+ * function Input(props) {
+ *   const { field, fieldState, formState } = useController(props);
+ *   return (
+ *     <div>
+ *       <input {...field} placeholder={props.name} />
+ *       <p>{fieldState.isTouched && "Touched"}</p>
+ *       <p>{formState.isSubmitted ? "submitted" : ""}</p>
+ *     </div>
+ *   );
+ * }
+ * ```
+ */ function useController(props) {
+    const methods = useFormContext();
+    const { name, disabled, control = methods.control, shouldUnregister, defaultValue, exact = true } = props;
+    const isArrayField = isNameInFieldArray(control._names.array, name);
+    const defaultValueMemo = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>get(control._formValues, name, get(control._defaultValues, name, defaultValue)), [
+        control,
+        name,
+        defaultValue
+    ]);
+    const value1 = useWatch({
+        control,
+        name,
+        defaultValue: defaultValueMemo,
+        exact
+    });
+    const formState = useFormState({
+        control,
+        name,
+        exact
+    });
+    const _props = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(props);
+    const _previousNameRef = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(undefined);
+    const _registerProps = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(control.register(name, {
+        ...props.rules,
+        value: value1,
+        ...isBoolean(props.disabled) ? {
+            disabled: props.disabled
+        } : {}
+    }));
+    _props.current = props;
+    const fieldState = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>Object.defineProperties({}, {
+            invalid: {
+                enumerable: true,
+                get: ()=>!!get(formState.errors, name)
+            },
+            isDirty: {
+                enumerable: true,
+                get: ()=>!!get(formState.dirtyFields, name)
+            },
+            isTouched: {
+                enumerable: true,
+                get: ()=>!!get(formState.touchedFields, name)
+            },
+            isValidating: {
+                enumerable: true,
+                get: ()=>!!get(formState.validatingFields, name)
+            },
+            error: {
+                enumerable: true,
+                get: ()=>get(formState.errors, name)
+            }
+        }), [
+        formState,
+        name
+    ]);
+    const onChange = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback((event)=>_registerProps.current.onChange({
+            target: {
+                value: getEventValue(event),
+                name: name
+            },
+            type: EVENTS.CHANGE
+        }), [
+        name
+    ]);
+    const onBlur = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(()=>_registerProps.current.onBlur({
+            target: {
+                value: get(control._formValues, name),
+                name: name
+            },
+            type: EVENTS.BLUR
+        }), [
+        name,
+        control._formValues
+    ]);
+    const ref = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback((elm)=>{
+        const field = get(control._fields, name);
+        if (field && elm) {
+            field._f.ref = {
+                focus: ()=>elm.focus && elm.focus(),
+                select: ()=>elm.select && elm.select(),
+                setCustomValidity: (message)=>elm.setCustomValidity(message),
+                reportValidity: ()=>elm.reportValidity()
+            };
+        }
+    }, [
+        control._fields,
+        name
+    ]);
+    const field = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>({
+            name,
+            value: value1,
+            ...isBoolean(disabled) || formState.disabled ? {
+                disabled: formState.disabled || disabled
+            } : {},
+            onChange,
+            onBlur,
+            ref
+        }), [
+        name,
+        disabled,
+        formState.disabled,
+        onChange,
+        onBlur,
+        ref,
+        value1
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        const _shouldUnregisterField = control._options.shouldUnregister || shouldUnregister;
+        const previousName = _previousNameRef.current;
+        if (previousName && previousName !== name && !isArrayField) {
+            control.unregister(previousName);
+        }
+        control.register(name, {
+            ..._props.current.rules,
+            ...isBoolean(_props.current.disabled) ? {
+                disabled: _props.current.disabled
+            } : {}
+        });
+        const updateMounted = (name, value1)=>{
+            const field = get(control._fields, name);
+            if (field && field._f) {
+                field._f.mount = value1;
+            }
+        };
+        updateMounted(name, true);
+        if (_shouldUnregisterField) {
+            const value1 = cloneObject(get(control._options.defaultValues, name, _props.current.defaultValue));
+            set(control._defaultValues, name, value1);
+            if (isUndefined(get(control._formValues, name))) {
+                set(control._formValues, name, value1);
+            }
+        }
+        !isArrayField && control.register(name);
+        _previousNameRef.current = name;
+        return ()=>{
+            (isArrayField ? _shouldUnregisterField && !control._state.action : _shouldUnregisterField) ? control.unregister(name) : updateMounted(name, false);
+        };
+    }, [
+        name,
+        control,
+        isArrayField,
+        shouldUnregister
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        control._setDisabledField({
+            disabled,
+            name
+        });
+    }, [
+        disabled,
+        name,
+        control
+    ]);
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>({
+            field,
+            formState,
+            fieldState
+        }), [
+        field,
+        formState,
+        fieldState
+    ]);
+}
+/**
+ * Component based on `useController` hook to work with controlled component.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/usecontroller/controller) • [Demo](https://codesandbox.io/s/react-hook-form-v6-controller-ts-jwyzw) • [Video](https://www.youtube.com/watch?v=N2UNk_UCVyA)
+ *
+ * @param props - the path name to the form field value, and validation rules.
+ *
+ * @returns provide field handler functions, field and form state.
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const { control } = useForm<FormValues>({
+ *     defaultValues: {
+ *       test: ""
+ *     }
+ *   });
+ *
+ *   return (
+ *     <form>
+ *       <Controller
+ *         control={control}
+ *         name="test"
+ *         render={({ field: { onChange, onBlur, value, ref }, formState, fieldState }) => (
+ *           <>
+ *             <input
+ *               onChange={onChange} // send value to hook form
+ *               onBlur={onBlur} // notify when input is touched
+ *               value={value} // return updated value
+ *               ref={ref} // set ref for focus management
+ *             />
+ *             <p>{formState.isSubmitted ? "submitted" : ""}</p>
+ *             <p>{fieldState.isTouched ? "touched" : ""}</p>
+ *           </>
+ *         )}
+ *       />
+ *     </form>
+ *   );
+ * }
+ * ```
+ */ const Controller = (props)=>props.render(useController(props));
+const flatten = (obj)=>{
+    const output = {};
+    for (const key of Object.keys(obj)){
+        if (isObjectType(obj[key]) && obj[key] !== null) {
+            const nested = flatten(obj[key]);
+            for (const nestedKey of Object.keys(nested)){
+                output[`${key}.${nestedKey}`] = nested[nestedKey];
+            }
+        } else {
+            output[key] = obj[key];
+        }
+    }
+    return output;
+};
+const POST_REQUEST = 'post';
+/**
+ * Form component to manage submission.
+ *
+ * @param props - to setup submission detail. {@link FormProps}
+ *
+ * @returns form component or headless render prop.
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const { control, formState: { errors } } = useForm();
+ *
+ *   return (
+ *     <Form action="/api" control={control}>
+ *       <input {...register("name")} />
+ *       <p>{errors?.root?.server && 'Server error'}</p>
+ *       <button>Submit</button>
+ *     </Form>
+ *   );
+ * }
+ * ```
+ */ function Form(props) {
+    const methods = useFormContext();
+    const [mounted, setMounted] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(false);
+    const { control = methods.control, onSubmit, children, action, method = POST_REQUEST, headers, encType, onError, render, onSuccess, validateStatus, ...rest } = props;
+    const submit = async (event)=>{
+        let hasError = false;
+        let type = '';
+        await control.handleSubmit(async (data)=>{
+            const formData = new FormData();
+            let formDataJson = '';
+            try {
+                formDataJson = JSON.stringify(data);
+            } catch (_a) {}
+            const flattenFormValues = flatten(control._formValues);
+            for(const key in flattenFormValues){
+                formData.append(key, flattenFormValues[key]);
+            }
+            if (onSubmit) {
+                await onSubmit({
+                    data,
+                    event,
+                    method,
+                    formData,
+                    formDataJson
+                });
+            }
+            if (action) {
+                try {
+                    const shouldStringifySubmissionData = [
+                        headers && headers['Content-Type'],
+                        encType
+                    ].some((value1)=>value1 && value1.includes('json'));
+                    const response = await fetch(String(action), {
+                        method,
+                        headers: {
+                            ...headers,
+                            ...encType && encType !== 'multipart/form-data' ? {
+                                'Content-Type': encType
+                            } : {}
+                        },
+                        body: shouldStringifySubmissionData ? formDataJson : formData
+                    });
+                    if (response && (validateStatus ? !validateStatus(response.status) : response.status < 200 || response.status >= 300)) {
+                        hasError = true;
+                        onError && onError({
+                            response
+                        });
+                        type = String(response.status);
+                    } else {
+                        onSuccess && onSuccess({
+                            response
+                        });
+                    }
+                } catch (error) {
+                    hasError = true;
+                    onError && onError({
+                        error
+                    });
+                }
+            }
+        })(event);
+        if (hasError && props.control) {
+            props.control._subjects.state.next({
+                isSubmitSuccessful: false
+            });
+            props.control.setError('root.server', {
+                type
+            });
+        }
+    };
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        setMounted(true);
+    }, []);
+    return render ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].createElement(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].Fragment, null, render({
+        submit
+    })) : __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].createElement("form", {
+        noValidate: mounted,
+        action: action,
+        method: method,
+        encType: encType,
+        onSubmit: submit,
+        ...rest
+    }, children);
+}
+const FormStateSubscribe = ({ control, disabled, exact, name, render })=>render(useFormState({
+        control,
+        name,
+        disabled,
+        exact
+    }));
+var appendErrors = (name, validateAllFieldCriteria, errors, type, message)=>validateAllFieldCriteria ? {
+        ...errors[name],
+        types: {
+            ...errors[name] && errors[name].types ? errors[name].types : {},
+            [type]: message || true
+        }
+    } : {};
+var convertToArrayPayload = (value1)=>Array.isArray(value1) ? value1 : [
+        value1
+    ];
+var createSubject = ()=>{
+    let _observers = [];
+    const next = (value1)=>{
+        for (const observer of _observers){
+            observer.next && observer.next(value1);
+        }
+    };
+    const subscribe = (observer)=>{
+        _observers.push(observer);
+        return {
+            unsubscribe: ()=>{
+                _observers = _observers.filter((o)=>o !== observer);
+            }
+        };
+    };
+    const unsubscribe = ()=>{
+        _observers = [];
+    };
+    return {
+        get observers () {
+            return _observers;
+        },
+        next,
+        subscribe,
+        unsubscribe
+    };
+};
+function extractFormValues(fieldsState, formValues) {
+    const values = {};
+    for(const key in fieldsState){
+        if (fieldsState.hasOwnProperty(key)) {
+            const fieldState = fieldsState[key];
+            const fieldValue = formValues[key];
+            if (fieldState && isObject(fieldState) && fieldValue) {
+                const nestedFieldsState = extractFormValues(fieldState, fieldValue);
+                if (isObject(nestedFieldsState)) {
+                    values[key] = nestedFieldsState;
+                }
+            } else if (fieldsState[key]) {
+                values[key] = fieldValue;
+            }
+        }
+    }
+    return values;
+}
+var isEmptyObject = (value1)=>isObject(value1) && !Object.keys(value1).length;
+var isFileInput = (element)=>element.type === 'file';
+var isFunction = (value1)=>typeof value1 === 'function';
+var isHTMLElement = (value1)=>{
+    if ("TURBOPACK compile-time truthy", 1) {
+        return false;
+    }
+    //TURBOPACK unreachable
+    ;
+    const owner = undefined;
+};
+var isMultipleSelect = (element)=>element.type === `select-multiple`;
+var isRadioInput = (element)=>element.type === 'radio';
+var isRadioOrCheckbox = (ref)=>isRadioInput(ref) || isCheckBoxInput(ref);
+var live = (ref)=>isHTMLElement(ref) && ref.isConnected;
+function baseGet(object, updatePath) {
+    const length = updatePath.slice(0, -1).length;
+    let index = 0;
+    while(index < length){
+        object = isUndefined(object) ? index++ : object[updatePath[index++]];
+    }
+    return object;
+}
+function isEmptyArray(obj) {
+    for(const key in obj){
+        if (obj.hasOwnProperty(key) && !isUndefined(obj[key])) {
+            return false;
+        }
+    }
+    return true;
+}
+function unset(object, path) {
+    const paths = Array.isArray(path) ? path : isKey(path) ? [
+        path
+    ] : stringToPath(path);
+    const childObject = paths.length === 1 ? object : baseGet(object, paths);
+    const index = paths.length - 1;
+    const key = paths[index];
+    if (childObject) {
+        delete childObject[key];
+    }
+    if (index !== 0 && (isObject(childObject) && isEmptyObject(childObject) || Array.isArray(childObject) && isEmptyArray(childObject))) {
+        unset(object, paths.slice(0, -1));
+    }
+    return object;
+}
+var objectHasFunction = (data)=>{
+    for(const key in data){
+        if (isFunction(data[key])) {
+            return true;
+        }
+    }
+    return false;
+};
+function isTraversable(value1) {
+    return Array.isArray(value1) || isObject(value1) && !objectHasFunction(value1);
+}
+function markFieldsDirty(data, fields = {}) {
+    for(const key in data){
+        const value1 = data[key];
+        if (isTraversable(value1)) {
+            fields[key] = Array.isArray(value1) ? [] : {};
+            markFieldsDirty(value1, fields[key]);
+        } else if (!isUndefined(value1)) {
+            fields[key] = true;
+        }
+    }
+    return fields;
+}
+function getDirtyFields(data, formValues, dirtyFieldsFromValues) {
+    if (!dirtyFieldsFromValues) {
+        dirtyFieldsFromValues = markFieldsDirty(formValues);
+    }
+    for(const key in data){
+        const value1 = data[key];
+        if (isTraversable(value1)) {
+            if (isUndefined(formValues) || isPrimitive(dirtyFieldsFromValues[key])) {
+                dirtyFieldsFromValues[key] = markFieldsDirty(value1, Array.isArray(value1) ? [] : {});
+            } else {
+                getDirtyFields(value1, isNullOrUndefined(formValues) ? {} : formValues[key], dirtyFieldsFromValues[key]);
+            }
+        } else {
+            const formValue = formValues[key];
+            dirtyFieldsFromValues[key] = !deepEqual(value1, formValue);
+        }
+    }
+    return dirtyFieldsFromValues;
+}
+const defaultResult = {
+    value: false,
+    isValid: false
+};
+const validResult = {
+    value: true,
+    isValid: true
+};
+var getCheckboxValue = (options)=>{
+    if (Array.isArray(options)) {
+        if (options.length > 1) {
+            const values = options.filter((option)=>option && option.checked && !option.disabled).map((option)=>option.value);
+            return {
+                value: values,
+                isValid: !!values.length
+            };
+        }
+        return options[0].checked && !options[0].disabled ? options[0].attributes && !isUndefined(options[0].attributes.value) ? isUndefined(options[0].value) || options[0].value === '' ? validResult : {
+            value: options[0].value,
+            isValid: true
+        } : validResult : defaultResult;
+    }
+    return defaultResult;
+};
+var getFieldValueAs = (value1, { valueAsNumber, valueAsDate, setValueAs })=>isUndefined(value1) ? value1 : valueAsNumber ? value1 === '' ? NaN : value1 ? +value1 : value1 : valueAsDate && isString(value1) ? new Date(value1) : setValueAs ? setValueAs(value1) : value1;
+const defaultReturn = {
+    isValid: false,
+    value: null
+};
+var getRadioValue = (options)=>Array.isArray(options) ? options.reduce((previous, option)=>option && option.checked && !option.disabled ? {
+            isValid: true,
+            value: option.value
+        } : previous, defaultReturn) : defaultReturn;
+function getFieldValue(_f) {
+    const ref = _f.ref;
+    if (isFileInput(ref)) {
+        return ref.files;
+    }
+    if (isRadioInput(ref)) {
+        return getRadioValue(_f.refs).value;
+    }
+    if (isMultipleSelect(ref)) {
+        return [
+            ...ref.selectedOptions
+        ].map(({ value: value1 })=>value1);
+    }
+    if (isCheckBoxInput(ref)) {
+        return getCheckboxValue(_f.refs).value;
+    }
+    return getFieldValueAs(isUndefined(ref.value) ? _f.ref.value : ref.value, _f);
+}
+var getResolverOptions = (fieldsNames, _fields, criteriaMode, shouldUseNativeValidation)=>{
+    const fields = {};
+    for (const name of fieldsNames){
+        const field = get(_fields, name);
+        field && set(fields, name, field._f);
+    }
+    return {
+        criteriaMode,
+        names: [
+            ...fieldsNames
+        ],
+        fields,
+        shouldUseNativeValidation
+    };
+};
+var isRegex = (value1)=>value1 instanceof RegExp;
+var getRuleValue = (rule)=>isUndefined(rule) ? rule : isRegex(rule) ? rule.source : isObject(rule) ? isRegex(rule.value) ? rule.value.source : rule.value : rule;
+var getValidationModes = (mode)=>({
+        isOnSubmit: !mode || mode === VALIDATION_MODE.onSubmit,
+        isOnBlur: mode === VALIDATION_MODE.onBlur,
+        isOnChange: mode === VALIDATION_MODE.onChange,
+        isOnAll: mode === VALIDATION_MODE.all,
+        isOnTouch: mode === VALIDATION_MODE.onTouched
+    });
+const ASYNC_FUNCTION = 'AsyncFunction';
+var hasPromiseValidation = (fieldReference)=>!!fieldReference && !!fieldReference.validate && !!(isFunction(fieldReference.validate) && fieldReference.validate.constructor.name === ASYNC_FUNCTION || isObject(fieldReference.validate) && Object.values(fieldReference.validate).find((validateFunction)=>validateFunction.constructor.name === ASYNC_FUNCTION));
+var hasValidation = (options)=>options.mount && (options.required || options.min || options.max || options.maxLength || options.minLength || options.pattern || options.validate);
+var isWatched = (name, _names, isBlurEvent)=>!isBlurEvent && (_names.watchAll || _names.watch.has(name) || [
+        ..._names.watch
+    ].some((watchName)=>name.startsWith(watchName) && /^\.\w+/.test(name.slice(watchName.length))));
+const iterateFieldsByAction = (fields, action, fieldsNames, abortEarly)=>{
+    for (const key of fieldsNames || Object.keys(fields)){
+        const field = get(fields, key);
+        if (field) {
+            const { _f, ...currentField } = field;
+            if (_f) {
+                if (_f.refs && _f.refs[0] && action(_f.refs[0], key) && !abortEarly) {
+                    return true;
+                } else if (_f.ref && action(_f.ref, _f.name) && !abortEarly) {
+                    return true;
+                } else {
+                    if (iterateFieldsByAction(currentField, action)) {
+                        break;
+                    }
+                }
+            } else if (isObject(currentField)) {
+                if (iterateFieldsByAction(currentField, action)) {
+                    break;
+                }
+            }
+        }
+    }
+    return;
+};
+function schemaErrorLookup(errors, _fields, name) {
+    const error = get(errors, name);
+    if (error || isKey(name)) {
+        return {
+            error,
+            name
+        };
+    }
+    const names = name.split('.');
+    while(names.length){
+        const fieldName = names.join('.');
+        const field = get(_fields, fieldName);
+        const foundError = get(errors, fieldName);
+        if (field && !Array.isArray(field) && name !== fieldName) {
+            return {
+                name
+            };
+        }
+        if (foundError && foundError.type) {
+            return {
+                name: fieldName,
+                error: foundError
+            };
+        }
+        if (foundError && foundError.root && foundError.root.type) {
+            return {
+                name: `${fieldName}.root`,
+                error: foundError.root
+            };
+        }
+        names.pop();
+    }
+    return {
+        name
+    };
+}
+var shouldRenderFormState = (formStateData, _proxyFormState, updateFormState, isRoot)=>{
+    updateFormState(formStateData);
+    const { name, ...formState } = formStateData;
+    return isEmptyObject(formState) || Object.keys(formState).length >= Object.keys(_proxyFormState).length || Object.keys(formState).find((key)=>_proxyFormState[key] === (!isRoot || VALIDATION_MODE.all));
+};
+var shouldSubscribeByName = (name, signalName, exact)=>!name || !signalName || name === signalName || convertToArrayPayload(name).some((currentName)=>currentName && (exact ? currentName === signalName : currentName.startsWith(signalName) || signalName.startsWith(currentName)));
+var skipValidation = (isBlurEvent, isTouched, isSubmitted, reValidateMode, mode)=>{
+    if (mode.isOnAll) {
+        return false;
+    } else if (!isSubmitted && mode.isOnTouch) {
+        return !(isTouched || isBlurEvent);
+    } else if (isSubmitted ? reValidateMode.isOnBlur : mode.isOnBlur) {
+        return !isBlurEvent;
+    } else if (isSubmitted ? reValidateMode.isOnChange : mode.isOnChange) {
+        return isBlurEvent;
+    }
+    return true;
+};
+var unsetEmptyArray = (ref, name)=>!compact(get(ref, name)).length && unset(ref, name);
+var updateFieldArrayRootError = (errors, error, name)=>{
+    const fieldArrayErrors = convertToArrayPayload(get(errors, name));
+    set(fieldArrayErrors, 'root', error[name]);
+    set(errors, name, fieldArrayErrors);
+    return errors;
+};
+function getValidateError(result, ref, type = 'validate') {
+    if (isString(result) || Array.isArray(result) && result.every(isString) || isBoolean(result) && !result) {
+        return {
+            type,
+            message: isString(result) ? result : '',
+            ref
+        };
+    }
+}
+var getValueAndMessage = (validationData)=>isObject(validationData) && !isRegex(validationData) ? validationData : {
+        value: validationData,
+        message: ''
+    };
+var validateField = async (field, disabledFieldNames, formValues, validateAllFieldCriteria, shouldUseNativeValidation, isFieldArray)=>{
+    const { ref, refs, required, maxLength, minLength, min, max, pattern, validate, name, valueAsNumber, mount } = field._f;
+    const inputValue = get(formValues, name);
+    if (!mount || disabledFieldNames.has(name)) {
+        return {};
+    }
+    const inputRef = refs ? refs[0] : ref;
+    const setCustomValidity = (message)=>{
+        if (shouldUseNativeValidation && inputRef.reportValidity) {
+            inputRef.setCustomValidity(isBoolean(message) ? '' : message || '');
+            inputRef.reportValidity();
+        }
+    };
+    const error = {};
+    const isRadio = isRadioInput(ref);
+    const isCheckBox = isCheckBoxInput(ref);
+    const isRadioOrCheckbox = isRadio || isCheckBox;
+    const isEmpty = (valueAsNumber || isFileInput(ref)) && isUndefined(ref.value) && isUndefined(inputValue) || isHTMLElement(ref) && ref.value === '' || inputValue === '' || Array.isArray(inputValue) && !inputValue.length;
+    const appendErrorsCurry = appendErrors.bind(null, name, validateAllFieldCriteria, error);
+    const getMinMaxMessage = (exceedMax, maxLengthMessage, minLengthMessage, maxType = INPUT_VALIDATION_RULES.maxLength, minType = INPUT_VALIDATION_RULES.minLength)=>{
+        const message = exceedMax ? maxLengthMessage : minLengthMessage;
+        error[name] = {
+            type: exceedMax ? maxType : minType,
+            message,
+            ref,
+            ...appendErrorsCurry(exceedMax ? maxType : minType, message)
+        };
+    };
+    if (isFieldArray ? !Array.isArray(inputValue) || !inputValue.length : required && (!isRadioOrCheckbox && (isEmpty || isNullOrUndefined(inputValue)) || isBoolean(inputValue) && !inputValue || isCheckBox && !getCheckboxValue(refs).isValid || isRadio && !getRadioValue(refs).isValid)) {
+        const { value: value1, message } = isString(required) ? {
+            value: !!required,
+            message: required
+        } : getValueAndMessage(required);
+        if (value1) {
+            error[name] = {
+                type: INPUT_VALIDATION_RULES.required,
+                message,
+                ref: inputRef,
+                ...appendErrorsCurry(INPUT_VALIDATION_RULES.required, message)
+            };
+            if (!validateAllFieldCriteria) {
+                setCustomValidity(message);
+                return error;
+            }
+        }
+    }
+    if (!isEmpty && (!isNullOrUndefined(min) || !isNullOrUndefined(max))) {
+        let exceedMax;
+        let exceedMin;
+        const maxOutput = getValueAndMessage(max);
+        const minOutput = getValueAndMessage(min);
+        if (!isNullOrUndefined(inputValue) && !isNaN(inputValue)) {
+            const valueNumber = ref.valueAsNumber || (inputValue ? +inputValue : inputValue);
+            if (!isNullOrUndefined(maxOutput.value)) {
+                exceedMax = valueNumber > maxOutput.value;
+            }
+            if (!isNullOrUndefined(minOutput.value)) {
+                exceedMin = valueNumber < minOutput.value;
+            }
+        } else {
+            const valueDate = ref.valueAsDate || new Date(inputValue);
+            const convertTimeToDate = (time)=>new Date(new Date().toDateString() + ' ' + time);
+            const isTime = ref.type == 'time';
+            const isWeek = ref.type == 'week';
+            if (isString(maxOutput.value) && inputValue) {
+                exceedMax = isTime ? convertTimeToDate(inputValue) > convertTimeToDate(maxOutput.value) : isWeek ? inputValue > maxOutput.value : valueDate > new Date(maxOutput.value);
+            }
+            if (isString(minOutput.value) && inputValue) {
+                exceedMin = isTime ? convertTimeToDate(inputValue) < convertTimeToDate(minOutput.value) : isWeek ? inputValue < minOutput.value : valueDate < new Date(minOutput.value);
+            }
+        }
+        if (exceedMax || exceedMin) {
+            getMinMaxMessage(!!exceedMax, maxOutput.message, minOutput.message, INPUT_VALIDATION_RULES.max, INPUT_VALIDATION_RULES.min);
+            if (!validateAllFieldCriteria) {
+                setCustomValidity(error[name].message);
+                return error;
+            }
+        }
+    }
+    if ((maxLength || minLength) && !isEmpty && (isString(inputValue) || isFieldArray && Array.isArray(inputValue))) {
+        const maxLengthOutput = getValueAndMessage(maxLength);
+        const minLengthOutput = getValueAndMessage(minLength);
+        const exceedMax = !isNullOrUndefined(maxLengthOutput.value) && inputValue.length > +maxLengthOutput.value;
+        const exceedMin = !isNullOrUndefined(minLengthOutput.value) && inputValue.length < +minLengthOutput.value;
+        if (exceedMax || exceedMin) {
+            getMinMaxMessage(exceedMax, maxLengthOutput.message, minLengthOutput.message);
+            if (!validateAllFieldCriteria) {
+                setCustomValidity(error[name].message);
+                return error;
+            }
+        }
+    }
+    if (pattern && !isEmpty && isString(inputValue)) {
+        const { value: patternValue, message } = getValueAndMessage(pattern);
+        if (isRegex(patternValue) && !inputValue.match(patternValue)) {
+            error[name] = {
+                type: INPUT_VALIDATION_RULES.pattern,
+                message,
+                ref,
+                ...appendErrorsCurry(INPUT_VALIDATION_RULES.pattern, message)
+            };
+            if (!validateAllFieldCriteria) {
+                setCustomValidity(message);
+                return error;
+            }
+        }
+    }
+    if (validate) {
+        if (isFunction(validate)) {
+            const result = await validate(inputValue, formValues);
+            const validateError = getValidateError(result, inputRef);
+            if (validateError) {
+                error[name] = {
+                    ...validateError,
+                    ...appendErrorsCurry(INPUT_VALIDATION_RULES.validate, validateError.message)
+                };
+                if (!validateAllFieldCriteria) {
+                    setCustomValidity(validateError.message);
+                    return error;
+                }
+            }
+        } else if (isObject(validate)) {
+            let validationResult = {};
+            for(const key in validate){
+                if (!isEmptyObject(validationResult) && !validateAllFieldCriteria) {
+                    break;
+                }
+                const validateError = getValidateError(await validate[key](inputValue, formValues), inputRef, key);
+                if (validateError) {
+                    validationResult = {
+                        ...validateError,
+                        ...appendErrorsCurry(key, validateError.message)
+                    };
+                    setCustomValidity(validateError.message);
+                    if (validateAllFieldCriteria) {
+                        error[name] = validationResult;
+                    }
+                }
+            }
+            if (!isEmptyObject(validationResult)) {
+                error[name] = {
+                    ref: inputRef,
+                    ...validationResult
+                };
+                if (!validateAllFieldCriteria) {
+                    return error;
+                }
+            }
+        }
+    }
+    setCustomValidity(true);
+    return error;
+};
+const defaultOptions = {
+    mode: VALIDATION_MODE.onSubmit,
+    reValidateMode: VALIDATION_MODE.onChange,
+    shouldFocusError: true
+};
+function createFormControl(props = {}) {
+    let _options = {
+        ...defaultOptions,
+        ...props
+    };
+    let _formState = {
+        submitCount: 0,
+        isDirty: false,
+        isReady: false,
+        isLoading: isFunction(_options.defaultValues),
+        isValidating: false,
+        isSubmitted: false,
+        isSubmitting: false,
+        isSubmitSuccessful: false,
+        isValid: false,
+        touchedFields: {},
+        dirtyFields: {},
+        validatingFields: {},
+        errors: _options.errors || {},
+        disabled: _options.disabled || false
+    };
+    let _fields = {};
+    let _defaultValues = isObject(_options.defaultValues) || isObject(_options.values) ? cloneObject(_options.defaultValues || _options.values) || {} : {};
+    let _formValues = _options.shouldUnregister ? {} : cloneObject(_defaultValues);
+    let _state = {
+        action: false,
+        mount: false,
+        watch: false
+    };
+    let _names = {
+        mount: new Set(),
+        disabled: new Set(),
+        unMount: new Set(),
+        array: new Set(),
+        watch: new Set()
+    };
+    let delayErrorCallback;
+    let timer = 0;
+    const _proxyFormState = {
+        isDirty: false,
+        dirtyFields: false,
+        validatingFields: false,
+        touchedFields: false,
+        isValidating: false,
+        isValid: false,
+        errors: false
+    };
+    let _proxySubscribeFormState = {
+        ..._proxyFormState
+    };
+    const _subjects = {
+        array: createSubject(),
+        state: createSubject()
+    };
+    const shouldDisplayAllAssociatedErrors = _options.criteriaMode === VALIDATION_MODE.all;
+    const debounce = (callback)=>(wait)=>{
+            clearTimeout(timer);
+            timer = setTimeout(callback, wait);
+        };
+    const _setValid = async (shouldUpdateValid)=>{
+        if (!_options.disabled && (_proxyFormState.isValid || _proxySubscribeFormState.isValid || shouldUpdateValid)) {
+            const isValid = _options.resolver ? isEmptyObject((await _runSchema()).errors) : await executeBuiltInValidation(_fields, true);
+            if (isValid !== _formState.isValid) {
+                _subjects.state.next({
+                    isValid
+                });
+            }
+        }
+    };
+    const _updateIsValidating = (names, isValidating)=>{
+        if (!_options.disabled && (_proxyFormState.isValidating || _proxyFormState.validatingFields || _proxySubscribeFormState.isValidating || _proxySubscribeFormState.validatingFields)) {
+            (names || Array.from(_names.mount)).forEach((name)=>{
+                if (name) {
+                    isValidating ? set(_formState.validatingFields, name, isValidating) : unset(_formState.validatingFields, name);
+                }
+            });
+            _subjects.state.next({
+                validatingFields: _formState.validatingFields,
+                isValidating: !isEmptyObject(_formState.validatingFields)
+            });
+        }
+    };
+    const _setFieldArray = (name, values = [], method, args, shouldSetValues = true, shouldUpdateFieldsAndState = true)=>{
+        if (args && method && !_options.disabled) {
+            _state.action = true;
+            if (shouldUpdateFieldsAndState && Array.isArray(get(_fields, name))) {
+                const fieldValues = method(get(_fields, name), args.argA, args.argB);
+                shouldSetValues && set(_fields, name, fieldValues);
+            }
+            if (shouldUpdateFieldsAndState && Array.isArray(get(_formState.errors, name))) {
+                const errors = method(get(_formState.errors, name), args.argA, args.argB);
+                shouldSetValues && set(_formState.errors, name, errors);
+                unsetEmptyArray(_formState.errors, name);
+            }
+            if ((_proxyFormState.touchedFields || _proxySubscribeFormState.touchedFields) && shouldUpdateFieldsAndState && Array.isArray(get(_formState.touchedFields, name))) {
+                const touchedFields = method(get(_formState.touchedFields, name), args.argA, args.argB);
+                shouldSetValues && set(_formState.touchedFields, name, touchedFields);
+            }
+            if (_proxyFormState.dirtyFields || _proxySubscribeFormState.dirtyFields) {
+                _formState.dirtyFields = getDirtyFields(_defaultValues, _formValues);
+            }
+            _subjects.state.next({
+                name,
+                isDirty: _getDirty(name, values),
+                dirtyFields: _formState.dirtyFields,
+                errors: _formState.errors,
+                isValid: _formState.isValid
+            });
+        } else {
+            set(_formValues, name, values);
+        }
+    };
+    const updateErrors = (name, error)=>{
+        set(_formState.errors, name, error);
+        _subjects.state.next({
+            errors: _formState.errors
+        });
+    };
+    const _setErrors = (errors)=>{
+        _formState.errors = errors;
+        _subjects.state.next({
+            errors: _formState.errors,
+            isValid: false
+        });
+    };
+    const updateValidAndValue = (name, shouldSkipSetValueAs, value1, ref)=>{
+        const field = get(_fields, name);
+        if (field) {
+            const defaultValue = get(_formValues, name, isUndefined(value1) ? get(_defaultValues, name) : value1);
+            isUndefined(defaultValue) || ref && ref.defaultChecked || shouldSkipSetValueAs ? set(_formValues, name, shouldSkipSetValueAs ? defaultValue : getFieldValue(field._f)) : setFieldValue(name, defaultValue);
+            _state.mount && !_state.action && _setValid();
+        }
+    };
+    const updateTouchAndDirty = (name, fieldValue, isBlurEvent, shouldDirty, shouldRender)=>{
+        let shouldUpdateField = false;
+        let isPreviousDirty = false;
+        const output = {
+            name
+        };
+        if (!_options.disabled) {
+            if (!isBlurEvent || shouldDirty) {
+                if (_proxyFormState.isDirty || _proxySubscribeFormState.isDirty) {
+                    isPreviousDirty = _formState.isDirty;
+                    _formState.isDirty = output.isDirty = _getDirty();
+                    shouldUpdateField = isPreviousDirty !== output.isDirty;
+                }
+                const isCurrentFieldPristine = deepEqual(get(_defaultValues, name), fieldValue);
+                isPreviousDirty = !!get(_formState.dirtyFields, name);
+                isCurrentFieldPristine ? unset(_formState.dirtyFields, name) : set(_formState.dirtyFields, name, true);
+                output.dirtyFields = _formState.dirtyFields;
+                shouldUpdateField = shouldUpdateField || (_proxyFormState.dirtyFields || _proxySubscribeFormState.dirtyFields) && isPreviousDirty !== !isCurrentFieldPristine;
+            }
+            if (isBlurEvent) {
+                const isPreviousFieldTouched = get(_formState.touchedFields, name);
+                if (!isPreviousFieldTouched) {
+                    set(_formState.touchedFields, name, isBlurEvent);
+                    output.touchedFields = _formState.touchedFields;
+                    shouldUpdateField = shouldUpdateField || (_proxyFormState.touchedFields || _proxySubscribeFormState.touchedFields) && isPreviousFieldTouched !== isBlurEvent;
+                }
+            }
+            shouldUpdateField && shouldRender && _subjects.state.next(output);
+        }
+        return shouldUpdateField ? output : {};
+    };
+    const shouldRenderByError = (name, isValid, error, fieldState)=>{
+        const previousFieldError = get(_formState.errors, name);
+        const shouldUpdateValid = (_proxyFormState.isValid || _proxySubscribeFormState.isValid) && isBoolean(isValid) && _formState.isValid !== isValid;
+        if (_options.delayError && error) {
+            delayErrorCallback = debounce(()=>updateErrors(name, error));
+            delayErrorCallback(_options.delayError);
+        } else {
+            clearTimeout(timer);
+            delayErrorCallback = null;
+            error ? set(_formState.errors, name, error) : unset(_formState.errors, name);
+        }
+        if ((error ? !deepEqual(previousFieldError, error) : previousFieldError) || !isEmptyObject(fieldState) || shouldUpdateValid) {
+            const updatedFormState = {
+                ...fieldState,
+                ...shouldUpdateValid && isBoolean(isValid) ? {
+                    isValid
+                } : {},
+                errors: _formState.errors,
+                name
+            };
+            _formState = {
+                ..._formState,
+                ...updatedFormState
+            };
+            _subjects.state.next(updatedFormState);
+        }
+    };
+    const _runSchema = async (name)=>{
+        _updateIsValidating(name, true);
+        const result = await _options.resolver(_formValues, _options.context, getResolverOptions(name || _names.mount, _fields, _options.criteriaMode, _options.shouldUseNativeValidation));
+        _updateIsValidating(name);
+        return result;
+    };
+    const executeSchemaAndUpdateState = async (names)=>{
+        const { errors } = await _runSchema(names);
+        if (names) {
+            for (const name of names){
+                const error = get(errors, name);
+                error ? set(_formState.errors, name, error) : unset(_formState.errors, name);
+            }
+        } else {
+            _formState.errors = errors;
+        }
+        return errors;
+    };
+    const executeBuiltInValidation = async (fields, shouldOnlyCheckValid, context = {
+        valid: true
+    })=>{
+        for(const name in fields){
+            const field = fields[name];
+            if (field) {
+                const { _f, ...fieldValue } = field;
+                if (_f) {
+                    const isFieldArrayRoot = _names.array.has(_f.name);
+                    const isPromiseFunction = field._f && hasPromiseValidation(field._f);
+                    if (isPromiseFunction && _proxyFormState.validatingFields) {
+                        _updateIsValidating([
+                            _f.name
+                        ], true);
+                    }
+                    const fieldError = await validateField(field, _names.disabled, _formValues, shouldDisplayAllAssociatedErrors, _options.shouldUseNativeValidation && !shouldOnlyCheckValid, isFieldArrayRoot);
+                    if (isPromiseFunction && _proxyFormState.validatingFields) {
+                        _updateIsValidating([
+                            _f.name
+                        ]);
+                    }
+                    if (fieldError[_f.name]) {
+                        context.valid = false;
+                        if (shouldOnlyCheckValid) {
+                            break;
+                        }
+                    }
+                    !shouldOnlyCheckValid && (get(fieldError, _f.name) ? isFieldArrayRoot ? updateFieldArrayRootError(_formState.errors, fieldError, _f.name) : set(_formState.errors, _f.name, fieldError[_f.name]) : unset(_formState.errors, _f.name));
+                }
+                !isEmptyObject(fieldValue) && await executeBuiltInValidation(fieldValue, shouldOnlyCheckValid, context);
+            }
+        }
+        return context.valid;
+    };
+    const _removeUnmounted = ()=>{
+        for (const name of _names.unMount){
+            const field = get(_fields, name);
+            field && (field._f.refs ? field._f.refs.every((ref)=>!live(ref)) : !live(field._f.ref)) && unregister(name);
+        }
+        _names.unMount = new Set();
+    };
+    const _getDirty = (name, data)=>!_options.disabled && (name && data && set(_formValues, name, data), !deepEqual(getValues(), _defaultValues));
+    const _getWatch = (names, defaultValue, isGlobal)=>generateWatchOutput(names, _names, {
+            ..._state.mount ? _formValues : isUndefined(defaultValue) ? _defaultValues : isString(names) ? {
+                [names]: defaultValue
+            } : defaultValue
+        }, isGlobal, defaultValue);
+    const _getFieldArray = (name)=>compact(get(_state.mount ? _formValues : _defaultValues, name, _options.shouldUnregister ? get(_defaultValues, name, []) : []));
+    const setFieldValue = (name, value1, options = {})=>{
+        const field = get(_fields, name);
+        let fieldValue = value1;
+        if (field) {
+            const fieldReference = field._f;
+            if (fieldReference) {
+                !fieldReference.disabled && set(_formValues, name, getFieldValueAs(value1, fieldReference));
+                fieldValue = isHTMLElement(fieldReference.ref) && isNullOrUndefined(value1) ? '' : value1;
+                if (isMultipleSelect(fieldReference.ref)) {
+                    [
+                        ...fieldReference.ref.options
+                    ].forEach((optionRef)=>optionRef.selected = fieldValue.includes(optionRef.value));
+                } else if (fieldReference.refs) {
+                    if (isCheckBoxInput(fieldReference.ref)) {
+                        fieldReference.refs.forEach((checkboxRef)=>{
+                            if (!checkboxRef.defaultChecked || !checkboxRef.disabled) {
+                                if (Array.isArray(fieldValue)) {
+                                    checkboxRef.checked = !!fieldValue.find((data)=>data === checkboxRef.value);
+                                } else {
+                                    checkboxRef.checked = fieldValue === checkboxRef.value || !!fieldValue;
+                                }
+                            }
+                        });
+                    } else {
+                        fieldReference.refs.forEach((radioRef)=>radioRef.checked = radioRef.value === fieldValue);
+                    }
+                } else if (isFileInput(fieldReference.ref)) {
+                    fieldReference.ref.value = '';
+                } else {
+                    fieldReference.ref.value = fieldValue;
+                    if (!fieldReference.ref.type) {
+                        _subjects.state.next({
+                            name,
+                            values: cloneObject(_formValues)
+                        });
+                    }
+                }
+            }
+        }
+        (options.shouldDirty || options.shouldTouch) && updateTouchAndDirty(name, fieldValue, options.shouldTouch, options.shouldDirty, true);
+        options.shouldValidate && trigger(name);
+    };
+    const setValues = (name, value1, options)=>{
+        for(const fieldKey in value1){
+            if (!value1.hasOwnProperty(fieldKey)) {
+                return;
+            }
+            const fieldValue = value1[fieldKey];
+            const fieldName = name + '.' + fieldKey;
+            const field = get(_fields, fieldName);
+            (_names.array.has(name) || isObject(fieldValue) || field && !field._f) && !isDateObject(fieldValue) ? setValues(fieldName, fieldValue, options) : setFieldValue(fieldName, fieldValue, options);
+        }
+    };
+    const setValue = (name, value1, options = {})=>{
+        const field = get(_fields, name);
+        const isFieldArray = _names.array.has(name);
+        const cloneValue = cloneObject(value1);
+        set(_formValues, name, cloneValue);
+        if (isFieldArray) {
+            _subjects.array.next({
+                name,
+                values: cloneObject(_formValues)
+            });
+            if ((_proxyFormState.isDirty || _proxyFormState.dirtyFields || _proxySubscribeFormState.isDirty || _proxySubscribeFormState.dirtyFields) && options.shouldDirty) {
+                _subjects.state.next({
+                    name,
+                    dirtyFields: getDirtyFields(_defaultValues, _formValues),
+                    isDirty: _getDirty(name, cloneValue)
+                });
+            }
+        } else {
+            field && !field._f && !isNullOrUndefined(cloneValue) ? setValues(name, cloneValue, options) : setFieldValue(name, cloneValue, options);
+        }
+        isWatched(name, _names) && _subjects.state.next({
+            ..._formState,
+            name
+        });
+        _subjects.state.next({
+            name: _state.mount ? name : undefined,
+            values: cloneObject(_formValues)
+        });
+    };
+    const onChange = async (event)=>{
+        _state.mount = true;
+        const target = event.target;
+        let name = target.name;
+        let isFieldValueUpdated = true;
+        const field = get(_fields, name);
+        const _updateIsFieldValueUpdated = (fieldValue)=>{
+            isFieldValueUpdated = Number.isNaN(fieldValue) || isDateObject(fieldValue) && isNaN(fieldValue.getTime()) || deepEqual(fieldValue, get(_formValues, name, fieldValue));
+        };
+        const validationModeBeforeSubmit = getValidationModes(_options.mode);
+        const validationModeAfterSubmit = getValidationModes(_options.reValidateMode);
+        if (field) {
+            let error;
+            let isValid;
+            const fieldValue = target.type ? getFieldValue(field._f) : getEventValue(event);
+            const isBlurEvent = event.type === EVENTS.BLUR || event.type === EVENTS.FOCUS_OUT;
+            const shouldSkipValidation = !hasValidation(field._f) && !_options.resolver && !get(_formState.errors, name) && !field._f.deps || skipValidation(isBlurEvent, get(_formState.touchedFields, name), _formState.isSubmitted, validationModeAfterSubmit, validationModeBeforeSubmit);
+            const watched = isWatched(name, _names, isBlurEvent);
+            set(_formValues, name, fieldValue);
+            if (isBlurEvent) {
+                if (!target || !target.readOnly) {
+                    field._f.onBlur && field._f.onBlur(event);
+                    delayErrorCallback && delayErrorCallback(0);
+                }
+            } else if (field._f.onChange) {
+                field._f.onChange(event);
+            }
+            const fieldState = updateTouchAndDirty(name, fieldValue, isBlurEvent);
+            const shouldRender = !isEmptyObject(fieldState) || watched;
+            !isBlurEvent && _subjects.state.next({
+                name,
+                type: event.type,
+                values: cloneObject(_formValues)
+            });
+            if (shouldSkipValidation) {
+                if (_proxyFormState.isValid || _proxySubscribeFormState.isValid) {
+                    if (_options.mode === 'onBlur') {
+                        if (isBlurEvent) {
+                            _setValid();
+                        }
+                    } else if (!isBlurEvent) {
+                        _setValid();
+                    }
+                }
+                return shouldRender && _subjects.state.next({
+                    name,
+                    ...watched ? {} : fieldState
+                });
+            }
+            !isBlurEvent && watched && _subjects.state.next({
+                ..._formState
+            });
+            if (_options.resolver) {
+                const { errors } = await _runSchema([
+                    name
+                ]);
+                _updateIsFieldValueUpdated(fieldValue);
+                if (isFieldValueUpdated) {
+                    const previousErrorLookupResult = schemaErrorLookup(_formState.errors, _fields, name);
+                    const errorLookupResult = schemaErrorLookup(errors, _fields, previousErrorLookupResult.name || name);
+                    error = errorLookupResult.error;
+                    name = errorLookupResult.name;
+                    isValid = isEmptyObject(errors);
+                }
+            } else {
+                _updateIsValidating([
+                    name
+                ], true);
+                error = (await validateField(field, _names.disabled, _formValues, shouldDisplayAllAssociatedErrors, _options.shouldUseNativeValidation))[name];
+                _updateIsValidating([
+                    name
+                ]);
+                _updateIsFieldValueUpdated(fieldValue);
+                if (isFieldValueUpdated) {
+                    if (error) {
+                        isValid = false;
+                    } else if (_proxyFormState.isValid || _proxySubscribeFormState.isValid) {
+                        isValid = await executeBuiltInValidation(_fields, true);
+                    }
+                }
+            }
+            if (isFieldValueUpdated) {
+                field._f.deps && (!Array.isArray(field._f.deps) || field._f.deps.length > 0) && trigger(field._f.deps);
+                shouldRenderByError(name, isValid, error, fieldState);
+            }
+        }
+    };
+    const _focusInput = (ref, key)=>{
+        if (get(_formState.errors, key) && ref.focus) {
+            ref.focus();
+            return 1;
+        }
+        return;
+    };
+    const trigger = async (name, options = {})=>{
+        let isValid;
+        let validationResult;
+        const fieldNames = convertToArrayPayload(name);
+        if (_options.resolver) {
+            const errors = await executeSchemaAndUpdateState(isUndefined(name) ? name : fieldNames);
+            isValid = isEmptyObject(errors);
+            validationResult = name ? !fieldNames.some((name)=>get(errors, name)) : isValid;
+        } else if (name) {
+            validationResult = (await Promise.all(fieldNames.map(async (fieldName)=>{
+                const field = get(_fields, fieldName);
+                return await executeBuiltInValidation(field && field._f ? {
+                    [fieldName]: field
+                } : field);
+            }))).every(Boolean);
+            !(!validationResult && !_formState.isValid) && _setValid();
+        } else {
+            validationResult = isValid = await executeBuiltInValidation(_fields);
+        }
+        _subjects.state.next({
+            ...!isString(name) || (_proxyFormState.isValid || _proxySubscribeFormState.isValid) && isValid !== _formState.isValid ? {} : {
+                name
+            },
+            ..._options.resolver || !name ? {
+                isValid
+            } : {},
+            errors: _formState.errors
+        });
+        options.shouldFocus && !validationResult && iterateFieldsByAction(_fields, _focusInput, name ? fieldNames : _names.mount);
+        return validationResult;
+    };
+    const getValues = (fieldNames, config)=>{
+        let values = {
+            ..._state.mount ? _formValues : _defaultValues
+        };
+        if (config) {
+            values = extractFormValues(config.dirtyFields ? _formState.dirtyFields : _formState.touchedFields, values);
+        }
+        return isUndefined(fieldNames) ? values : isString(fieldNames) ? get(values, fieldNames) : fieldNames.map((name)=>get(values, name));
+    };
+    const getFieldState = (name, formState)=>({
+            invalid: !!get((formState || _formState).errors, name),
+            isDirty: !!get((formState || _formState).dirtyFields, name),
+            error: get((formState || _formState).errors, name),
+            isValidating: !!get(_formState.validatingFields, name),
+            isTouched: !!get((formState || _formState).touchedFields, name)
+        });
+    const clearErrors = (name)=>{
+        name && convertToArrayPayload(name).forEach((inputName)=>unset(_formState.errors, inputName));
+        _subjects.state.next({
+            errors: name ? _formState.errors : {}
+        });
+    };
+    const setError = (name, error, options)=>{
+        const ref = (get(_fields, name, {
+            _f: {}
+        })._f || {}).ref;
+        const currentError = get(_formState.errors, name) || {};
+        // Don't override existing error messages elsewhere in the object tree.
+        const { ref: currentRef, message, type, ...restOfErrorTree } = currentError;
+        set(_formState.errors, name, {
+            ...restOfErrorTree,
+            ...error,
+            ref
+        });
+        _subjects.state.next({
+            name,
+            errors: _formState.errors,
+            isValid: false
+        });
+        options && options.shouldFocus && ref && ref.focus && ref.focus();
+    };
+    const watch = (name, defaultValue)=>isFunction(name) ? _subjects.state.subscribe({
+            next: (payload)=>'values' in payload && name(_getWatch(undefined, defaultValue), payload)
+        }) : _getWatch(name, defaultValue, true);
+    const _subscribe = (props)=>_subjects.state.subscribe({
+            next: (formState)=>{
+                if (shouldSubscribeByName(props.name, formState.name, props.exact) && shouldRenderFormState(formState, props.formState || _proxyFormState, _setFormState, props.reRenderRoot)) {
+                    props.callback({
+                        values: {
+                            ..._formValues
+                        },
+                        ..._formState,
+                        ...formState,
+                        defaultValues: _defaultValues
+                    });
+                }
+            }
+        }).unsubscribe;
+    const subscribe = (props)=>{
+        _state.mount = true;
+        _proxySubscribeFormState = {
+            ..._proxySubscribeFormState,
+            ...props.formState
+        };
+        return _subscribe({
+            ...props,
+            formState: _proxySubscribeFormState
+        });
+    };
+    const unregister = (name, options = {})=>{
+        for (const fieldName of name ? convertToArrayPayload(name) : _names.mount){
+            _names.mount.delete(fieldName);
+            _names.array.delete(fieldName);
+            if (!options.keepValue) {
+                unset(_fields, fieldName);
+                unset(_formValues, fieldName);
+            }
+            !options.keepError && unset(_formState.errors, fieldName);
+            !options.keepDirty && unset(_formState.dirtyFields, fieldName);
+            !options.keepTouched && unset(_formState.touchedFields, fieldName);
+            !options.keepIsValidating && unset(_formState.validatingFields, fieldName);
+            !_options.shouldUnregister && !options.keepDefaultValue && unset(_defaultValues, fieldName);
+        }
+        _subjects.state.next({
+            values: cloneObject(_formValues)
+        });
+        _subjects.state.next({
+            ..._formState,
+            ...!options.keepDirty ? {} : {
+                isDirty: _getDirty()
+            }
+        });
+        !options.keepIsValid && _setValid();
+    };
+    const _setDisabledField = ({ disabled, name })=>{
+        if (isBoolean(disabled) && _state.mount || !!disabled || _names.disabled.has(name)) {
+            disabled ? _names.disabled.add(name) : _names.disabled.delete(name);
+        }
+    };
+    const register = (name, options = {})=>{
+        let field = get(_fields, name);
+        const disabledIsDefined = isBoolean(options.disabled) || isBoolean(_options.disabled);
+        set(_fields, name, {
+            ...field || {},
+            _f: {
+                ...field && field._f ? field._f : {
+                    ref: {
+                        name
+                    }
+                },
+                name,
+                mount: true,
+                ...options
+            }
+        });
+        _names.mount.add(name);
+        if (field) {
+            _setDisabledField({
+                disabled: isBoolean(options.disabled) ? options.disabled : _options.disabled,
+                name
+            });
+        } else {
+            updateValidAndValue(name, true, options.value);
+        }
+        return {
+            ...disabledIsDefined ? {
+                disabled: options.disabled || _options.disabled
+            } : {},
+            ..._options.progressive ? {
+                required: !!options.required,
+                min: getRuleValue(options.min),
+                max: getRuleValue(options.max),
+                minLength: getRuleValue(options.minLength),
+                maxLength: getRuleValue(options.maxLength),
+                pattern: getRuleValue(options.pattern)
+            } : {},
+            name,
+            onChange,
+            onBlur: onChange,
+            ref: (ref)=>{
+                if (ref) {
+                    register(name, options);
+                    field = get(_fields, name);
+                    const fieldRef = isUndefined(ref.value) ? ref.querySelectorAll ? ref.querySelectorAll('input,select,textarea')[0] || ref : ref : ref;
+                    const radioOrCheckbox = isRadioOrCheckbox(fieldRef);
+                    const refs = field._f.refs || [];
+                    if (radioOrCheckbox ? refs.find((option)=>option === fieldRef) : fieldRef === field._f.ref) {
+                        return;
+                    }
+                    set(_fields, name, {
+                        _f: {
+                            ...field._f,
+                            ...radioOrCheckbox ? {
+                                refs: [
+                                    ...refs.filter(live),
+                                    fieldRef,
+                                    ...Array.isArray(get(_defaultValues, name)) ? [
+                                        {}
+                                    ] : []
+                                ],
+                                ref: {
+                                    type: fieldRef.type,
+                                    name
+                                }
+                            } : {
+                                ref: fieldRef
+                            }
+                        }
+                    });
+                    updateValidAndValue(name, false, undefined, fieldRef);
+                } else {
+                    field = get(_fields, name, {});
+                    if (field._f) {
+                        field._f.mount = false;
+                    }
+                    (_options.shouldUnregister || options.shouldUnregister) && !(isNameInFieldArray(_names.array, name) && _state.action) && _names.unMount.add(name);
+                }
+            }
+        };
+    };
+    const _focusError = ()=>_options.shouldFocusError && iterateFieldsByAction(_fields, _focusInput, _names.mount);
+    const _disableForm = (disabled)=>{
+        if (isBoolean(disabled)) {
+            _subjects.state.next({
+                disabled
+            });
+            iterateFieldsByAction(_fields, (ref, name)=>{
+                const currentField = get(_fields, name);
+                if (currentField) {
+                    ref.disabled = currentField._f.disabled || disabled;
+                    if (Array.isArray(currentField._f.refs)) {
+                        currentField._f.refs.forEach((inputRef)=>{
+                            inputRef.disabled = currentField._f.disabled || disabled;
+                        });
+                    }
+                }
+            }, 0, false);
+        }
+    };
+    const handleSubmit = (onValid, onInvalid)=>async (e)=>{
+            let onValidError = undefined;
+            if (e) {
+                e.preventDefault && e.preventDefault();
+                e.persist && e.persist();
+            }
+            let fieldValues = cloneObject(_formValues);
+            _subjects.state.next({
+                isSubmitting: true
+            });
+            if (_options.resolver) {
+                const { errors, values } = await _runSchema();
+                _formState.errors = errors;
+                fieldValues = cloneObject(values);
+            } else {
+                await executeBuiltInValidation(_fields);
+            }
+            if (_names.disabled.size) {
+                for (const name of _names.disabled){
+                    unset(fieldValues, name);
+                }
+            }
+            unset(_formState.errors, 'root');
+            if (isEmptyObject(_formState.errors)) {
+                _subjects.state.next({
+                    errors: {}
+                });
+                try {
+                    await onValid(fieldValues, e);
+                } catch (error) {
+                    onValidError = error;
+                }
+            } else {
+                if (onInvalid) {
+                    await onInvalid({
+                        ..._formState.errors
+                    }, e);
+                }
+                _focusError();
+                setTimeout(_focusError);
+            }
+            _subjects.state.next({
+                isSubmitted: true,
+                isSubmitting: false,
+                isSubmitSuccessful: isEmptyObject(_formState.errors) && !onValidError,
+                submitCount: _formState.submitCount + 1,
+                errors: _formState.errors
+            });
+            if (onValidError) {
+                throw onValidError;
+            }
+        };
+    const resetField = (name, options = {})=>{
+        if (get(_fields, name)) {
+            if (isUndefined(options.defaultValue)) {
+                setValue(name, cloneObject(get(_defaultValues, name)));
+            } else {
+                setValue(name, options.defaultValue);
+                set(_defaultValues, name, cloneObject(options.defaultValue));
+            }
+            if (!options.keepTouched) {
+                unset(_formState.touchedFields, name);
+            }
+            if (!options.keepDirty) {
+                unset(_formState.dirtyFields, name);
+                _formState.isDirty = options.defaultValue ? _getDirty(name, cloneObject(get(_defaultValues, name))) : _getDirty();
+            }
+            if (!options.keepError) {
+                unset(_formState.errors, name);
+                _proxyFormState.isValid && _setValid();
+            }
+            _subjects.state.next({
+                ..._formState
+            });
+        }
+    };
+    const _reset = (formValues, keepStateOptions = {})=>{
+        const updatedValues = formValues ? cloneObject(formValues) : _defaultValues;
+        const cloneUpdatedValues = cloneObject(updatedValues);
+        const isEmptyResetValues = isEmptyObject(formValues);
+        const values = isEmptyResetValues ? _defaultValues : cloneUpdatedValues;
+        if (!keepStateOptions.keepDefaultValues) {
+            _defaultValues = updatedValues;
+        }
+        if (!keepStateOptions.keepValues) {
+            if (keepStateOptions.keepDirtyValues) {
+                const fieldsToCheck = new Set([
+                    ..._names.mount,
+                    ...Object.keys(getDirtyFields(_defaultValues, _formValues))
+                ]);
+                for (const fieldName of Array.from(fieldsToCheck)){
+                    get(_formState.dirtyFields, fieldName) ? set(values, fieldName, get(_formValues, fieldName)) : setValue(fieldName, get(values, fieldName));
+                }
+            } else {
+                if (isWeb && isUndefined(formValues)) //TURBOPACK unreachable
+                ;
+                if (keepStateOptions.keepFieldsRef) {
+                    for (const fieldName of _names.mount){
+                        setValue(fieldName, get(values, fieldName));
+                    }
+                } else {
+                    _fields = {};
+                }
+            }
+            _formValues = _options.shouldUnregister ? keepStateOptions.keepDefaultValues ? cloneObject(_defaultValues) : {} : cloneObject(values);
+            _subjects.array.next({
+                values: {
+                    ...values
+                }
+            });
+            _subjects.state.next({
+                values: {
+                    ...values
+                }
+            });
+        }
+        _names = {
+            mount: keepStateOptions.keepDirtyValues ? _names.mount : new Set(),
+            unMount: new Set(),
+            array: new Set(),
+            disabled: new Set(),
+            watch: new Set(),
+            watchAll: false,
+            focus: ''
+        };
+        _state.mount = !_proxyFormState.isValid || !!keepStateOptions.keepIsValid || !!keepStateOptions.keepDirtyValues || !_options.shouldUnregister && !isEmptyObject(values);
+        _state.watch = !!_options.shouldUnregister;
+        _state.action = false;
+        // Clear errors synchronously to prevent validation errors on subsequent submissions
+        // This fixes the issue where form.reset() causes validation errors on subsequent
+        // submissions in Next.js 16 with Server Actions
+        if (!keepStateOptions.keepErrors) {
+            _formState.errors = {};
+        }
+        _subjects.state.next({
+            submitCount: keepStateOptions.keepSubmitCount ? _formState.submitCount : 0,
+            isDirty: isEmptyResetValues ? false : keepStateOptions.keepDirty ? _formState.isDirty : !!(keepStateOptions.keepDefaultValues && !deepEqual(formValues, _defaultValues)),
+            isSubmitted: keepStateOptions.keepIsSubmitted ? _formState.isSubmitted : false,
+            dirtyFields: isEmptyResetValues ? {} : keepStateOptions.keepDirtyValues ? keepStateOptions.keepDefaultValues && _formValues ? getDirtyFields(_defaultValues, _formValues) : _formState.dirtyFields : keepStateOptions.keepDefaultValues && formValues ? getDirtyFields(_defaultValues, formValues) : keepStateOptions.keepDirty ? _formState.dirtyFields : {},
+            touchedFields: keepStateOptions.keepTouched ? _formState.touchedFields : {},
+            errors: keepStateOptions.keepErrors ? _formState.errors : {},
+            isSubmitSuccessful: keepStateOptions.keepIsSubmitSuccessful ? _formState.isSubmitSuccessful : false,
+            isSubmitting: false,
+            defaultValues: _defaultValues
+        });
+    };
+    const reset = (formValues, keepStateOptions)=>_reset(isFunction(formValues) ? formValues(_formValues) : formValues, keepStateOptions);
+    const setFocus = (name, options = {})=>{
+        const field = get(_fields, name);
+        const fieldReference = field && field._f;
+        if (fieldReference) {
+            const fieldRef = fieldReference.refs ? fieldReference.refs[0] : fieldReference.ref;
+            if (fieldRef.focus) {
+                fieldRef.focus();
+                options.shouldSelect && isFunction(fieldRef.select) && fieldRef.select();
+            }
+        }
+    };
+    const _setFormState = (updatedFormState)=>{
+        _formState = {
+            ..._formState,
+            ...updatedFormState
+        };
+    };
+    const _resetDefaultValues = ()=>isFunction(_options.defaultValues) && _options.defaultValues().then((values)=>{
+            reset(values, _options.resetOptions);
+            _subjects.state.next({
+                isLoading: false
+            });
+        });
+    const methods = {
+        control: {
+            register,
+            unregister,
+            getFieldState,
+            handleSubmit,
+            setError,
+            _subscribe,
+            _runSchema,
+            _focusError,
+            _getWatch,
+            _getDirty,
+            _setValid,
+            _setFieldArray,
+            _setDisabledField,
+            _setErrors,
+            _getFieldArray,
+            _reset,
+            _resetDefaultValues,
+            _removeUnmounted,
+            _disableForm,
+            _subjects,
+            _proxyFormState,
+            get _fields () {
+                return _fields;
+            },
+            get _formValues () {
+                return _formValues;
+            },
+            get _state () {
+                return _state;
+            },
+            set _state (value){
+                _state = value;
+            },
+            get _defaultValues () {
+                return _defaultValues;
+            },
+            get _names () {
+                return _names;
+            },
+            set _names (value){
+                _names = value;
+            },
+            get _formState () {
+                return _formState;
+            },
+            get _options () {
+                return _options;
+            },
+            set _options (value){
+                _options = {
+                    ..._options,
+                    ...value
+                };
+            }
+        },
+        subscribe,
+        trigger,
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        getValues,
+        reset,
+        resetField,
+        clearErrors,
+        unregister,
+        setError,
+        setFocus,
+        getFieldState
+    };
+    return {
+        ...methods,
+        formControl: methods
+    };
+}
+var generateId = ()=>{
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    const d = typeof performance === 'undefined' ? Date.now() : performance.now() * 1000;
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c)=>{
+        const r = (Math.random() * 16 + d) % 16 | 0;
+        return (c == 'x' ? r : r & 0x3 | 0x8).toString(16);
+    });
+};
+var getFocusFieldName = (name, index, options = {})=>options.shouldFocus || isUndefined(options.shouldFocus) ? options.focusName || `${name}.${isUndefined(options.focusIndex) ? index : options.focusIndex}.` : '';
+var appendAt = (data, value1)=>[
+        ...data,
+        ...convertToArrayPayload(value1)
+    ];
+var fillEmptyArray = (value1)=>Array.isArray(value1) ? value1.map(()=>undefined) : undefined;
+function insert(data, index, value1) {
+    return [
+        ...data.slice(0, index),
+        ...convertToArrayPayload(value1),
+        ...data.slice(index)
+    ];
+}
+var moveArrayAt = (data, from, to)=>{
+    if (!Array.isArray(data)) {
+        return [];
+    }
+    if (isUndefined(data[to])) {
+        data[to] = undefined;
+    }
+    data.splice(to, 0, data.splice(from, 1)[0]);
+    return data;
+};
+var prependAt = (data, value1)=>[
+        ...convertToArrayPayload(value1),
+        ...convertToArrayPayload(data)
+    ];
+function removeAtIndexes(data, indexes) {
+    let i = 0;
+    const temp = [
+        ...data
+    ];
+    for (const index of indexes){
+        temp.splice(index - i, 1);
+        i++;
+    }
+    return compact(temp).length ? temp : [];
+}
+var removeArrayAt = (data, index)=>isUndefined(index) ? [] : removeAtIndexes(data, convertToArrayPayload(index).sort((a, b)=>a - b));
+var swapArrayAt = (data, indexA, indexB)=>{
+    [data[indexA], data[indexB]] = [
+        data[indexB],
+        data[indexA]
+    ];
+};
+var updateAt = (fieldValues, index, value1)=>{
+    fieldValues[index] = value1;
+    return fieldValues;
+};
+/**
+ * A custom hook that exposes convenient methods to perform operations with a list of dynamic inputs that need to be appended, updated, removed etc. • [Demo](https://codesandbox.io/s/react-hook-form-usefieldarray-ssugn) • [Video](https://youtu.be/4MrbfGSFY2A)
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/usefieldarray) • [Demo](https://codesandbox.io/s/react-hook-form-usefieldarray-ssugn)
+ *
+ * @param props - useFieldArray props
+ *
+ * @returns methods - functions to manipulate with the Field Arrays (dynamic inputs) {@link UseFieldArrayReturn}
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const { register, control, handleSubmit, reset, trigger, setError } = useForm({
+ *     defaultValues: {
+ *       test: []
+ *     }
+ *   });
+ *   const { fields, append } = useFieldArray({
+ *     control,
+ *     name: "test"
+ *   });
+ *
+ *   return (
+ *     <form onSubmit={handleSubmit(data => console.log(data))}>
+ *       {fields.map((item, index) => (
+ *          <input key={item.id} {...register(`test.${index}.firstName`)}  />
+ *       ))}
+ *       <button type="button" onClick={() => append({ firstName: "bill" })}>
+ *         append
+ *       </button>
+ *       <input type="submit" />
+ *     </form>
+ *   );
+ * }
+ * ```
+ */ function useFieldArray(props) {
+    const methods = useFormContext();
+    const { control = methods.control, name, keyName = 'id', shouldUnregister, rules } = props;
+    const [fields, setFields] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState(control._getFieldArray(name));
+    const ids = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(control._getFieldArray(name).map(generateId));
+    const _actioned = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(false);
+    control._names.array.add(name);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>rules && fields.length >= 0 && control.register(name, rules), [
+        control,
+        name,
+        fields.length,
+        rules
+    ]);
+    useIsomorphicLayoutEffect(()=>control._subjects.array.subscribe({
+            next: ({ values, name: fieldArrayName })=>{
+                if (fieldArrayName === name || !fieldArrayName) {
+                    const fieldValues = get(values, name);
+                    if (Array.isArray(fieldValues)) {
+                        setFields(fieldValues);
+                        ids.current = fieldValues.map(generateId);
+                    }
+                }
+            }
+        }).unsubscribe, [
+        control,
+        name
+    ]);
+    const updateValues = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback((updatedFieldArrayValues)=>{
+        _actioned.current = true;
+        control._setFieldArray(name, updatedFieldArrayValues);
+    }, [
+        control,
+        name
+    ]);
+    const append = (value1, options)=>{
+        const appendValue = convertToArrayPayload(cloneObject(value1));
+        const updatedFieldArrayValues = appendAt(control._getFieldArray(name), appendValue);
+        control._names.focus = getFocusFieldName(name, updatedFieldArrayValues.length - 1, options);
+        ids.current = appendAt(ids.current, appendValue.map(generateId));
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        control._setFieldArray(name, updatedFieldArrayValues, appendAt, {
+            argA: fillEmptyArray(value1)
+        });
+    };
+    const prepend = (value1, options)=>{
+        const prependValue = convertToArrayPayload(cloneObject(value1));
+        const updatedFieldArrayValues = prependAt(control._getFieldArray(name), prependValue);
+        control._names.focus = getFocusFieldName(name, 0, options);
+        ids.current = prependAt(ids.current, prependValue.map(generateId));
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        control._setFieldArray(name, updatedFieldArrayValues, prependAt, {
+            argA: fillEmptyArray(value1)
+        });
+    };
+    const remove = (index)=>{
+        const updatedFieldArrayValues = removeArrayAt(control._getFieldArray(name), index);
+        ids.current = removeArrayAt(ids.current, index);
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        !Array.isArray(get(control._fields, name)) && set(control._fields, name, undefined);
+        control._setFieldArray(name, updatedFieldArrayValues, removeArrayAt, {
+            argA: index
+        });
+    };
+    const insert$1 = (index, value1, options)=>{
+        const insertValue = convertToArrayPayload(cloneObject(value1));
+        const updatedFieldArrayValues = insert(control._getFieldArray(name), index, insertValue);
+        control._names.focus = getFocusFieldName(name, index, options);
+        ids.current = insert(ids.current, index, insertValue.map(generateId));
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        control._setFieldArray(name, updatedFieldArrayValues, insert, {
+            argA: index,
+            argB: fillEmptyArray(value1)
+        });
+    };
+    const swap = (indexA, indexB)=>{
+        const updatedFieldArrayValues = control._getFieldArray(name);
+        swapArrayAt(updatedFieldArrayValues, indexA, indexB);
+        swapArrayAt(ids.current, indexA, indexB);
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        control._setFieldArray(name, updatedFieldArrayValues, swapArrayAt, {
+            argA: indexA,
+            argB: indexB
+        }, false);
+    };
+    const move = (from, to)=>{
+        const updatedFieldArrayValues = control._getFieldArray(name);
+        moveArrayAt(updatedFieldArrayValues, from, to);
+        moveArrayAt(ids.current, from, to);
+        updateValues(updatedFieldArrayValues);
+        setFields(updatedFieldArrayValues);
+        control._setFieldArray(name, updatedFieldArrayValues, moveArrayAt, {
+            argA: from,
+            argB: to
+        }, false);
+    };
+    const update = (index, value1)=>{
+        const updateValue = cloneObject(value1);
+        const updatedFieldArrayValues = updateAt(control._getFieldArray(name), index, updateValue);
+        ids.current = [
+            ...updatedFieldArrayValues
+        ].map((item, i)=>!item || i === index ? generateId() : ids.current[i]);
+        updateValues(updatedFieldArrayValues);
+        setFields([
+            ...updatedFieldArrayValues
+        ]);
+        control._setFieldArray(name, updatedFieldArrayValues, updateAt, {
+            argA: index,
+            argB: updateValue
+        }, true, false);
+    };
+    const replace = (value1)=>{
+        const updatedFieldArrayValues = convertToArrayPayload(cloneObject(value1));
+        ids.current = updatedFieldArrayValues.map(generateId);
+        updateValues([
+            ...updatedFieldArrayValues
+        ]);
+        setFields([
+            ...updatedFieldArrayValues
+        ]);
+        control._setFieldArray(name, [
+            ...updatedFieldArrayValues
+        ], (data)=>data, {}, true, false);
+    };
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        control._state.action = false;
+        isWatched(name, control._names) && control._subjects.state.next({
+            ...control._formState
+        });
+        if (_actioned.current && (!getValidationModes(control._options.mode).isOnSubmit || control._formState.isSubmitted) && !getValidationModes(control._options.reValidateMode).isOnSubmit) {
+            if (control._options.resolver) {
+                control._runSchema([
+                    name
+                ]).then((result)=>{
+                    const error = get(result.errors, name);
+                    const existingError = get(control._formState.errors, name);
+                    if (existingError ? !error && existingError.type || error && (existingError.type !== error.type || existingError.message !== error.message) : error && error.type) {
+                        error ? set(control._formState.errors, name, error) : unset(control._formState.errors, name);
+                        control._subjects.state.next({
+                            errors: control._formState.errors
+                        });
+                    }
+                });
+            } else {
+                const field = get(control._fields, name);
+                if (field && field._f && !(getValidationModes(control._options.reValidateMode).isOnSubmit && getValidationModes(control._options.mode).isOnSubmit)) {
+                    validateField(field, control._names.disabled, control._formValues, control._options.criteriaMode === VALIDATION_MODE.all, control._options.shouldUseNativeValidation, true).then((error)=>!isEmptyObject(error) && control._subjects.state.next({
+                            errors: updateFieldArrayRootError(control._formState.errors, error, name)
+                        }));
+                }
+            }
+        }
+        control._subjects.state.next({
+            name,
+            values: cloneObject(control._formValues)
+        });
+        control._names.focus && iterateFieldsByAction(control._fields, (ref, key)=>{
+            if (control._names.focus && key.startsWith(control._names.focus) && ref.focus) {
+                ref.focus();
+                return 1;
+            }
+            return;
+        });
+        control._names.focus = '';
+        control._setValid();
+        _actioned.current = false;
+    }, [
+        fields,
+        name,
+        control
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        !get(control._formValues, name) && control._setFieldArray(name);
+        return ()=>{
+            const updateMounted = (name, value1)=>{
+                const field = get(control._fields, name);
+                if (field && field._f) {
+                    field._f.mount = value1;
+                }
+            };
+            control._options.shouldUnregister || shouldUnregister ? control.unregister(name) : updateMounted(name, false);
+        };
+    }, [
+        name,
+        control,
+        keyName,
+        shouldUnregister
+    ]);
+    return {
+        swap: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(swap, [
+            updateValues,
+            name,
+            control
+        ]),
+        move: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(move, [
+            updateValues,
+            name,
+            control
+        ]),
+        prepend: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(prepend, [
+            updateValues,
+            name,
+            control
+        ]),
+        append: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(append, [
+            updateValues,
+            name,
+            control
+        ]),
+        remove: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(remove, [
+            updateValues,
+            name,
+            control
+        ]),
+        insert: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(insert$1, [
+            updateValues,
+            name,
+            control
+        ]),
+        update: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(update, [
+            updateValues,
+            name,
+            control
+        ]),
+        replace: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useCallback(replace, [
+            updateValues,
+            name,
+            control
+        ]),
+        fields: __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useMemo(()=>fields.map((field, index)=>({
+                    ...field,
+                    [keyName]: ids.current[index] || generateId()
+                })), [
+            fields,
+            keyName
+        ])
+    };
+}
+/**
+ * Custom hook to manage the entire form.
+ *
+ * @remarks
+ * [API](https://react-hook-form.com/docs/useform) • [Demo](https://codesandbox.io/s/react-hook-form-get-started-ts-5ksmm) • [Video](https://www.youtube.com/watch?v=RkXv4AXXC_4)
+ *
+ * @param props - form configuration and validation parameters.
+ *
+ * @returns methods - individual functions to manage the form state. {@link UseFormReturn}
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   const { register, handleSubmit, watch, formState: { errors } } = useForm();
+ *   const onSubmit = data => console.log(data);
+ *
+ *   console.log(watch("example"));
+ *
+ *   return (
+ *     <form onSubmit={handleSubmit(onSubmit)}>
+ *       <input defaultValue="test" {...register("example")} />
+ *       <input {...register("exampleRequired", { required: true })} />
+ *       {errors.exampleRequired && <span>This field is required</span>}
+ *       <button>Submit</button>
+ *     </form>
+ *   );
+ * }
+ * ```
+ */ function useForm(props = {}) {
+    const _formControl = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(undefined);
+    const _values = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useRef(undefined);
+    const [formState, updateFormState] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useState({
+        isDirty: false,
+        isValidating: false,
+        isLoading: isFunction(props.defaultValues),
+        isSubmitted: false,
+        isSubmitting: false,
+        isSubmitSuccessful: false,
+        isValid: false,
+        submitCount: 0,
+        dirtyFields: {},
+        touchedFields: {},
+        validatingFields: {},
+        errors: props.errors || {},
+        disabled: props.disabled || false,
+        isReady: false,
+        defaultValues: isFunction(props.defaultValues) ? undefined : props.defaultValues
+    });
+    if (!_formControl.current) {
+        if (props.formControl) {
+            _formControl.current = {
+                ...props.formControl,
+                formState
+            };
+            if (props.defaultValues && !isFunction(props.defaultValues)) {
+                props.formControl.reset(props.defaultValues, props.resetOptions);
+            }
+        } else {
+            const { formControl, ...rest } = createFormControl(props);
+            _formControl.current = {
+                ...rest,
+                formState
+            };
+        }
+    }
+    const control = _formControl.current.control;
+    control._options = props;
+    useIsomorphicLayoutEffect(()=>{
+        const sub = control._subscribe({
+            formState: control._proxyFormState,
+            callback: ()=>updateFormState({
+                    ...control._formState
+                }),
+            reRenderRoot: true
+        });
+        updateFormState((data)=>({
+                ...data,
+                isReady: true
+            }));
+        control._formState.isReady = true;
+        return sub;
+    }, [
+        control
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>control._disableForm(props.disabled), [
+        control,
+        props.disabled
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        if (props.mode) {
+            control._options.mode = props.mode;
+        }
+        if (props.reValidateMode) {
+            control._options.reValidateMode = props.reValidateMode;
+        }
+    }, [
+        control,
+        props.mode,
+        props.reValidateMode
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        if (props.errors) {
+            control._setErrors(props.errors);
+            control._focusError();
+        }
+    }, [
+        control,
+        props.errors
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        props.shouldUnregister && control._subjects.state.next({
+            values: control._getWatch()
+        });
+    }, [
+        control,
+        props.shouldUnregister
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        if (control._proxyFormState.isDirty) {
+            const isDirty = control._getDirty();
+            if (isDirty !== formState.isDirty) {
+                control._subjects.state.next({
+                    isDirty
+                });
+            }
+        }
+    }, [
+        control,
+        formState.isDirty
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        var _a;
+        if (props.values && !deepEqual(props.values, _values.current)) {
+            control._reset(props.values, {
+                keepFieldsRef: true,
+                ...control._options.resetOptions
+            });
+            if (!((_a = control._options.resetOptions) === null || _a === void 0 ? void 0 : _a.keepIsValid)) {
+                control._setValid();
+            }
+            _values.current = props.values;
+            updateFormState((state)=>({
+                    ...state
+                }));
+        } else {
+            control._resetDefaultValues();
+        }
+    }, [
+        control,
+        props.values
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].useEffect(()=>{
+        if (!control._state.mount) {
+            control._setValid();
+            control._state.mount = true;
+        }
+        if (control._state.watch) {
+            control._state.watch = false;
+            control._subjects.state.next({
+                ...control._formState
+            });
+        }
+        control._removeUnmounted();
+    });
+    _formControl.current.formState = getProxyFormState(formState, control);
+    return _formControl.current;
+}
+/**
+ * Watch component that subscribes to form field changes and re-renders when watched fields update.
+ *
+ * @param control - The form control object from useForm
+ * @param names - Array of field names to watch for changes
+ * @param render - The function that receives watched values and returns ReactNode
+ * @returns The result of calling render function with watched values
+ *
+ * @example
+ * The `Watch` component only re-render when the values of `foo`, `bar`, and `baz.qux` change.
+ * The types of `foo`, `bar`, and `baz.qux` are precisely inferred.
+ *
+ * ```tsx
+ * const { control } = useForm();
+ *
+ * <Watch
+ *   control={control}
+ *   names={['foo', 'bar', 'baz.qux']}
+ *   render={([foo, bar, baz_qux]) => <div>{foo}{bar}{baz_qux}</div>}
+ * />
+ * ```
+ */ const Watch = ({ control, names, render })=>render(useWatch({
+        control,
+        name: names
+    }));
+;
+ //# sourceMappingURL=index.esm.mjs.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@hookform/resolvers/dist/resolvers.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "toNestErrors",
+    ()=>r,
+    "validateFieldsNatively",
+    ()=>o
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-hook-form/dist/index.esm.mjs [app-ssr] (ecmascript)");
+;
+const s = (e, s, o)=>{
+    if (e && "reportValidity" in e) {
+        const r = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["get"])(o, s);
+        e.setCustomValidity(r && r.message || ""), e.reportValidity();
+    }
+}, o = (t, e)=>{
+    for(const o in e.fields){
+        const r = e.fields[o];
+        r && r.ref && "reportValidity" in r.ref ? s(r.ref, o, t) : r.refs && r.refs.forEach((e)=>s(e, o, t));
+    }
+}, r = (s, r)=>{
+    r.shouldUseNativeValidation && o(s, r);
+    const f = {};
+    for(const o in s){
+        const n = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["get"])(r.fields, o), a = Object.assign(s[o] || {}, {
+            ref: n && n.ref
+        });
+        if (i(r.names || Object.keys(s), o)) {
+            const s = Object.assign({}, (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["get"])(f, o));
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["set"])(s, "root", a), (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["set"])(f, o, s);
+        } else (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["set"])(f, o, a);
+    }
+    return f;
+}, i = (t, e)=>t.some((t)=>t.startsWith(e + "."));
+;
+ //# sourceMappingURL=resolvers.mjs.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@hookform/resolvers/yup/dist/yup.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "yupResolver",
+    ()=>o
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$hookform$2f$resolvers$2f$dist$2f$resolvers$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@hookform/resolvers/dist/resolvers.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/react-hook-form/dist/index.esm.mjs [app-ssr] (ecmascript)");
+;
+;
+function o(o, n, a) {
+    return void 0 === n && (n = {}), void 0 === a && (a = {}), function(s, i, c) {
+        try {
+            return Promise.resolve(function(t, r) {
+                try {
+                    var u = (n.context && "development" === ("TURBOPACK compile-time value", "development") && console.warn("You should not used the yup options context. Please, use the 'useForm' context object instead"), Promise.resolve(o["sync" === a.mode ? "validateSync" : "validate"](s, Object.assign({
+                        abortEarly: !1
+                    }, n, {
+                        context: i
+                    }))).then(function(t) {
+                        return c.shouldUseNativeValidation && (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$hookform$2f$resolvers$2f$dist$2f$resolvers$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["validateFieldsNatively"])({}, c), {
+                            values: a.raw ? s : t,
+                            errors: {}
+                        };
+                    }));
+                } catch (e) {
+                    return r(e);
+                }
+                return u && u.then ? u.then(void 0, r) : u;
+            }(0, function(e) {
+                if (!e.inner) throw e;
+                return {
+                    values: {},
+                    errors: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$hookform$2f$resolvers$2f$dist$2f$resolvers$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["toNestErrors"])((o = e, n = !c.shouldUseNativeValidation && "all" === c.criteriaMode, (o.inner || []).reduce(function(e, t) {
+                        if (e[t.path] || (e[t.path] = {
+                            message: t.message,
+                            type: t.type
+                        }), n) {
+                            var o = e[t.path].types, a = o && o[t.type];
+                            e[t.path] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["appendErrors"])(t.path, n, e, t.type, a ? [].concat(a, t.message) : t.message);
+                        }
+                        return e;
+                    }, {})), c)
+                };
+                //TURBOPACK unreachable
+                ;
+                var o, n;
+            }));
+        } catch (e) {
+            return Promise.reject(e);
+        }
+    };
+}
+;
+ //# sourceMappingURL=yup.module.js.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@tanstack/react-table/build/lib/index.mjs [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+/**
+   * react-table
+   *
+   * Copyright (c) TanStack
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE.md file in the root directory of this source tree.
+   *
+   * @license MIT
+   */ __turbopack_context__.s([
+    "flexRender",
+    ()=>flexRender,
+    "useReactTable",
+    ()=>useReactTable
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$tanstack$2f$table$2d$core$2f$build$2f$lib$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@tanstack/table-core/build/lib/index.mjs [app-ssr] (ecmascript)");
+;
+;
+;
+//
+/**
+ * If rendering headers, cells, or footers with custom markup, use flexRender instead of `cell.getValue()` or `cell.renderValue()`.
+ */ function flexRender(Comp, props) {
+    return !Comp ? null : isReactComponent(Comp) ? /*#__PURE__*/ __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](Comp, props) : Comp;
+}
+function isReactComponent(component) {
+    return isClassComponent(component) || typeof component === 'function' || isExoticComponent(component);
+}
+function isClassComponent(component) {
+    return typeof component === 'function' && (()=>{
+        const proto = Object.getPrototypeOf(component);
+        return proto.prototype && proto.prototype.isReactComponent;
+    })();
+}
+function isExoticComponent(component) {
+    return typeof component === 'object' && typeof component.$$typeof === 'symbol' && [
+        'react.memo',
+        'react.forward_ref'
+    ].includes(component.$$typeof.description);
+}
+function useReactTable(options) {
+    // Compose in the generic options to the user options
+    const resolvedOptions = {
+        state: {},
+        // Dummy state
+        onStateChange: ()=>{},
+        // noop
+        renderFallbackValue: null,
+        ...options
+    };
+    // Create a new table and store it in state
+    const [tableRef] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"](()=>({
+            current: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$tanstack$2f$table$2d$core$2f$build$2f$lib$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createTable"])(resolvedOptions)
+        }));
+    // By default, manage table state here using the table's initial state
+    const [state, setState] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"](()=>tableRef.current.initialState);
+    // Compose the default state above with any user state. This will allow the user
+    // to only control a subset of the state if desired.
+    tableRef.current.setOptions((prev)=>({
+            ...prev,
+            ...options,
+            state: {
+                ...state,
+                ...options.state
+            },
+            // Similarly, we'll maintain both our internal state and any user-provided
+            // state.
+            onStateChange: (updater)=>{
+                setState(updater);
+                options.onStateChange == null || options.onStateChange(updater);
+            }
+        }));
+    return tableRef.current;
+}
+;
+ //# sourceMappingURL=index.mjs.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/export-to-csv/output/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "MediaType",
+    ()=>q,
+    "asBlob",
+    ()=>f,
+    "asString",
+    ()=>k,
+    "download",
+    ()=>LW,
+    "generateCsv",
+    ()=>BW,
+    "mkConfig",
+    ()=>G
+]);
+var q;
+(function(x) {
+    x["csv"] = "text/csv";
+    x["tsv"] = "text/tab-separated-values";
+    x["plain"] = "text/plain";
+})(q || (q = {}));
+var X = (W)=>W, z = (W)=>W, Z = X, _ = X, Y = X, N = X, V = X;
+var h = {
+    fieldSeparator: ",",
+    decimalSeparator: ".",
+    quoteStrings: !0,
+    quoteCharacter: '"',
+    showTitle: !1,
+    title: "My Generated Report",
+    filename: "generated",
+    showColumnHeaders: !0,
+    useTextFile: !1,
+    fileExtension: "csv",
+    mediaType: q.csv,
+    useBom: !0,
+    columnHeaders: [],
+    useKeysAsHeaders: !1,
+    boolDisplay: {
+        true: "TRUE",
+        false: "FALSE"
+    },
+    replaceUndefinedWith: ""
+}, F = "\r\n", R = "\uFEFF", G = (W)=>Object.assign({}, h, W);
+class K extends Error {
+    constructor(W){
+        super(W);
+        this.name = "CsvGenerationError";
+    }
+}
+class B extends Error {
+    constructor(W){
+        super(W);
+        this.name = "EmptyHeadersError";
+    }
+}
+class L extends Error {
+    constructor(W){
+        super(W);
+        this.name = "CsvDownloadEnvironmentError";
+    }
+}
+class P extends Error {
+    constructor(W){
+        super(W);
+        this.name = "UnsupportedDataFormatError";
+    }
+}
+var s = function(W, $) {
+    if ($ == '"' && W.indexOf('"') > -1) return W.replace(/"/g, '""');
+    return W;
+}, w = (W)=>typeof W === "object" ? N(W.key) : N(W), y = (W)=>typeof W === "object" ? V(W.displayLabel) : V(W), T = (W, ...$)=>$.reduce((j, x)=>x(j), W), E = (W)=>($)=>W.useBom ? _(z($) + R) : $, M = (W)=>($)=>W.showTitle ? S(_(z($) + W.title))(Y("")) : $, S = (W)=>($)=>_(z(W) + z($) + F), O = (W)=>($, j)=>l(W)(Y(z($) + z(j))), l = (W)=>($)=>X(z($) + W.fieldSeparator), b = (W, $)=>(j)=>{
+        if (!W.showColumnHeaders) return j;
+        if ($.length < 1) throw new B("Option to show headers but none supplied. Make sure there are keys in your collection or that you've supplied headers through the config options.");
+        let x = Y("");
+        for(let A = 0; A < $.length; A++){
+            const J = y($[A]);
+            x = O(W)(x, v(W, z(J)));
+        }
+        return x = Y(z(x).slice(0, -1)), S(j)(x);
+    }, C = (W, $, j)=>(x)=>{
+        let A = x;
+        for(var J = 0; J < j.length; J++){
+            let I = Y("");
+            for(let U = 0; U < $.length; U++){
+                const H = w($[U]), D = j[J][z(H)];
+                I = O(W)(I, v(W, D));
+            }
+            I = Y(z(I).slice(0, -1)), A = S(A)(I);
+        }
+        return A;
+    }, k = z, m = (W)=>+W === W && (!isFinite(W) || Boolean(W % 1)), p = (W, $)=>{
+    if (m($)) {
+        if (W.decimalSeparator === "locale") return Z($.toLocaleString());
+        if (W.decimalSeparator) return Z($.toString().replace(".", W.decimalSeparator));
+    }
+    return Z($.toString());
+}, Q = (W, $)=>{
+    let j = $;
+    if (W.quoteStrings || W.fieldSeparator && $.indexOf(W.fieldSeparator) > -1 || W.quoteCharacter && $.indexOf(W.quoteCharacter) > -1 || $.indexOf("\n") > -1 || $.indexOf("\r") > -1) j = W.quoteCharacter + s($, W.quoteCharacter) + W.quoteCharacter;
+    return Z(j);
+}, g = (W, $)=>{
+    const j = $ ? "true" : "false";
+    return Z(W.boolDisplay[j]);
+}, r = (W, $)=>{
+    if (typeof $ === "undefined" && W.replaceUndefinedWith !== void 0) return Q(W, W.replaceUndefinedWith + "");
+    if ($ === null) return Q(W, "null");
+    return Q(W, "");
+}, v = (W, $)=>{
+    if (typeof $ === "number") return p(W, $);
+    if (typeof $ === "string") return Q(W, $);
+    if (typeof $ === "boolean" && W.boolDisplay) return g(W, $);
+    if ($ === null || typeof $ === "undefined") return r(W, $);
+    throw new P(`
+    typeof ${typeof $} isn't supported. Only number, string, boolean, null and undefined are supported.
+    Please convert the data in your object to one of those before generating the CSV.
+    `);
+};
+var BW = (W)=>($)=>{
+        const j = G(W), x = j.useKeysAsHeaders ? Object.keys($[0]) : j.columnHeaders;
+        let A = T(_(""), E(j), M(j), b(j, x), C(j, x, $));
+        if (z(A).length < 1) throw new K("Output is empty. Is your data formatted correctly?");
+        return A;
+    }, f = (W)=>($)=>{
+        const j = G(W), x = z($), A = j.useTextFile ? "text/plain" : j.mediaType;
+        return new Blob([
+            x
+        ], {
+            type: `${A};charset=utf8;`
+        });
+    }, LW = (W)=>($)=>{
+        if (!window) throw new L("Downloading only supported in a browser environment.");
+        const j = f(W)($), x = G(W), A = x.useTextFile ? "txt" : x.fileExtension, J = `${x.filename}.${A}`, I = document.createElement("a");
+        I.download = J, I.href = URL.createObjectURL(j), I.setAttribute("visibility", "hidden"), document.body.appendChild(I), I.click(), document.body.removeChild(I);
+    };
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/cmdk/dist/chunk-NZJY6EH4.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "a",
+    ()=>W
+]);
+var U = 1, Y = .9, H = .8, J = .17, p = .1, u = .999, $ = .9999;
+var k = .99, m = /[\\\/_+.#"@\[\(\{&]/, B = /[\\\/_+.#"@\[\(\{&]/g, K = /[\s-]/, X = /[\s-]/g;
+function G(_, C, h, P, A, f, O) {
+    if (f === C.length) return A === _.length ? U : k;
+    var T = `${A},${f}`;
+    if (O[T] !== void 0) return O[T];
+    for(var L = P.charAt(f), c = h.indexOf(L, A), S = 0, E, N, R, M; c >= 0;)E = G(_, C, h, P, c + 1, f + 1, O), E > S && (c === A ? E *= U : m.test(_.charAt(c - 1)) ? (E *= H, R = _.slice(A, c - 1).match(B), R && A > 0 && (E *= Math.pow(u, R.length))) : K.test(_.charAt(c - 1)) ? (E *= Y, M = _.slice(A, c - 1).match(X), M && A > 0 && (E *= Math.pow(u, M.length))) : (E *= J, A > 0 && (E *= Math.pow(u, c - A))), _.charAt(c) !== C.charAt(f) && (E *= $)), (E < p && h.charAt(c - 1) === P.charAt(f + 1) || P.charAt(f + 1) === P.charAt(f) && h.charAt(c - 1) !== P.charAt(f)) && (N = G(_, C, h, P, c + 1, f + 2, O), N * p > E && (E = N * p)), E > S && (S = E), c = h.indexOf(L, c + 1);
+    return O[T] = S, S;
+}
+function D(_) {
+    return _.toLowerCase().replace(X, " ");
+}
+function W(_, C, h) {
+    return _ = h && h.length > 0 ? `${_ + " " + h.join(" ")}` : _, G(_, C, D(_), D(C), 0, 0, {});
+}
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/cmdk/dist/index.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "Command",
+    ()=>_e,
+    "CommandDialog",
+    ()=>xe,
+    "CommandEmpty",
+    ()=>Ie,
+    "CommandGroup",
+    ()=>Ee,
+    "CommandInput",
+    ()=>Se,
+    "CommandItem",
+    ()=>he,
+    "CommandList",
+    ()=>Ce,
+    "CommandLoading",
+    ()=>Pe,
+    "CommandRoot",
+    ()=>me,
+    "CommandSeparator",
+    ()=>ye,
+    "defaultFilter",
+    ()=>Re,
+    "useCommandState",
+    ()=>P
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$cmdk$2f$dist$2f$chunk$2d$NZJY6EH4$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/cmdk/dist/chunk-NZJY6EH4.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@radix-ui/react-dialog/dist/index.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@radix-ui/react-primitive/dist/index.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@radix-ui/react-id/dist/index.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@radix-ui/react-compose-refs/dist/index.mjs [app-ssr] (ecmascript)");
+"use client";
+;
+;
+;
+;
+;
+;
+var N = '[cmdk-group=""]', Y = '[cmdk-group-items=""]', be = '[cmdk-group-heading=""]', le = '[cmdk-item=""]', ce = `${le}:not([aria-disabled="true"])`, Z = "cmdk-item-select", T = "data-value", Re = (r, o, n)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$cmdk$2f$dist$2f$chunk$2d$NZJY6EH4$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["a"])(r, o, n), ue = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"](void 0), K = ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"](ue), de = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"](void 0), ee = ()=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"](de), fe = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"](void 0), me = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let n = L(()=>{
+        var e, a;
+        return {
+            search: "",
+            value: (a = (e = r.value) != null ? e : r.defaultValue) != null ? a : "",
+            selectedItemId: void 0,
+            filtered: {
+                count: 0,
+                items: new Map,
+                groups: new Set
+            }
+        };
+    }), u = L(()=>new Set), c = L(()=>new Map), d = L(()=>new Map), f = L(()=>new Set), p = pe(r), { label: b, children: m, value: R, onValueChange: x, filter: C, shouldFilter: S, loop: A, disablePointerSelection: ge = !1, vimBindings: j = !0, ...O } = r, $ = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), q = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), _ = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), I = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), v = ke();
+    k(()=>{
+        if (R !== void 0) {
+            let e = R.trim();
+            n.current.value = e, E.emit();
+        }
+    }, [
+        R
+    ]), k(()=>{
+        v(6, ne);
+    }, []);
+    let E = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"](()=>({
+            subscribe: (e)=>(f.current.add(e), ()=>f.current.delete(e)),
+            snapshot: ()=>n.current,
+            setState: (e, a, s)=>{
+                var i, l, g, y;
+                if (!Object.is(n.current[e], a)) {
+                    if (n.current[e] = a, e === "search") J(), z(), v(1, W);
+                    else if (e === "value") {
+                        if (document.activeElement.hasAttribute("cmdk-input") || document.activeElement.hasAttribute("cmdk-root")) {
+                            let h = document.getElementById(_);
+                            h ? h.focus() : (i = document.getElementById($)) == null || i.focus();
+                        }
+                        if (v(7, ()=>{
+                            var h;
+                            n.current.selectedItemId = (h = M()) == null ? void 0 : h.id, E.emit();
+                        }), s || v(5, ne), ((l = p.current) == null ? void 0 : l.value) !== void 0) {
+                            let h = a != null ? a : "";
+                            (y = (g = p.current).onValueChange) == null || y.call(g, h);
+                            return;
+                        }
+                    }
+                    E.emit();
+                }
+            },
+            emit: ()=>{
+                f.current.forEach((e)=>e());
+            }
+        }), []), U = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"](()=>({
+            value: (e, a, s)=>{
+                var i;
+                a !== ((i = d.current.get(e)) == null ? void 0 : i.value) && (d.current.set(e, {
+                    value: a,
+                    keywords: s
+                }), n.current.filtered.items.set(e, te(a, s)), v(2, ()=>{
+                    z(), E.emit();
+                }));
+            },
+            item: (e, a)=>(u.current.add(e), a && (c.current.has(a) ? c.current.get(a).add(e) : c.current.set(a, new Set([
+                    e
+                ]))), v(3, ()=>{
+                    J(), z(), n.current.value || W(), E.emit();
+                }), ()=>{
+                    d.current.delete(e), u.current.delete(e), n.current.filtered.items.delete(e);
+                    let s = M();
+                    v(4, ()=>{
+                        J(), (s == null ? void 0 : s.getAttribute("id")) === e && W(), E.emit();
+                    });
+                }),
+            group: (e)=>(c.current.has(e) || c.current.set(e, new Set), ()=>{
+                    d.current.delete(e), c.current.delete(e);
+                }),
+            filter: ()=>p.current.shouldFilter,
+            label: b || r["aria-label"],
+            getDisablePointerSelection: ()=>p.current.disablePointerSelection,
+            listId: $,
+            inputId: _,
+            labelId: q,
+            listInnerRef: I
+        }), []);
+    function te(e, a) {
+        var i, l;
+        let s = (l = (i = p.current) == null ? void 0 : i.filter) != null ? l : Re;
+        return e ? s(e, n.current.search, a) : 0;
+    }
+    function z() {
+        if (!n.current.search || p.current.shouldFilter === !1) return;
+        let e = n.current.filtered.items, a = [];
+        n.current.filtered.groups.forEach((i)=>{
+            let l = c.current.get(i), g = 0;
+            l.forEach((y)=>{
+                let h = e.get(y);
+                g = Math.max(h, g);
+            }), a.push([
+                i,
+                g
+            ]);
+        });
+        let s = I.current;
+        V().sort((i, l)=>{
+            var h, F;
+            let g = i.getAttribute("id"), y = l.getAttribute("id");
+            return ((h = e.get(y)) != null ? h : 0) - ((F = e.get(g)) != null ? F : 0);
+        }).forEach((i)=>{
+            let l = i.closest(Y);
+            l ? l.appendChild(i.parentElement === l ? i : i.closest(`${Y} > *`)) : s.appendChild(i.parentElement === s ? i : i.closest(`${Y} > *`));
+        }), a.sort((i, l)=>l[1] - i[1]).forEach((i)=>{
+            var g;
+            let l = (g = I.current) == null ? void 0 : g.querySelector(`${N}[${T}="${encodeURIComponent(i[0])}"]`);
+            l == null || l.parentElement.appendChild(l);
+        });
+    }
+    function W() {
+        let e = V().find((s)=>s.getAttribute("aria-disabled") !== "true"), a = e == null ? void 0 : e.getAttribute(T);
+        E.setState("value", a || void 0);
+    }
+    function J() {
+        var a, s, i, l;
+        if (!n.current.search || p.current.shouldFilter === !1) {
+            n.current.filtered.count = u.current.size;
+            return;
+        }
+        n.current.filtered.groups = new Set;
+        let e = 0;
+        for (let g of u.current){
+            let y = (s = (a = d.current.get(g)) == null ? void 0 : a.value) != null ? s : "", h = (l = (i = d.current.get(g)) == null ? void 0 : i.keywords) != null ? l : [], F = te(y, h);
+            n.current.filtered.items.set(g, F), F > 0 && e++;
+        }
+        for (let [g, y] of c.current)for (let h of y)if (n.current.filtered.items.get(h) > 0) {
+            n.current.filtered.groups.add(g);
+            break;
+        }
+        n.current.filtered.count = e;
+    }
+    function ne() {
+        var a, s, i;
+        let e = M();
+        e && (((a = e.parentElement) == null ? void 0 : a.firstChild) === e && ((i = (s = e.closest(N)) == null ? void 0 : s.querySelector(be)) == null || i.scrollIntoView({
+            block: "nearest"
+        })), e.scrollIntoView({
+            block: "nearest"
+        }));
+    }
+    function M() {
+        var e;
+        return (e = I.current) == null ? void 0 : e.querySelector(`${le}[aria-selected="true"]`);
+    }
+    function V() {
+        var e;
+        return Array.from(((e = I.current) == null ? void 0 : e.querySelectorAll(ce)) || []);
+    }
+    function X(e) {
+        let s = V()[e];
+        s && E.setState("value", s.getAttribute(T));
+    }
+    function Q(e) {
+        var g;
+        let a = M(), s = V(), i = s.findIndex((y)=>y === a), l = s[i + e];
+        (g = p.current) != null && g.loop && (l = i + e < 0 ? s[s.length - 1] : i + e === s.length ? s[0] : s[i + e]), l && E.setState("value", l.getAttribute(T));
+    }
+    function re(e) {
+        let a = M(), s = a == null ? void 0 : a.closest(N), i;
+        for(; s && !i;)s = e > 0 ? we(s, N) : De(s, N), i = s == null ? void 0 : s.querySelector(ce);
+        i ? E.setState("value", i.getAttribute(T)) : Q(e);
+    }
+    let oe = ()=>X(V().length - 1), ie = (e)=>{
+        e.preventDefault(), e.metaKey ? oe() : e.altKey ? re(1) : Q(1);
+    }, se = (e)=>{
+        e.preventDefault(), e.metaKey ? X(0) : e.altKey ? re(-1) : Q(-1);
+    };
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: o,
+        tabIndex: -1,
+        ...O,
+        "cmdk-root": "",
+        onKeyDown: (e)=>{
+            var s;
+            (s = O.onKeyDown) == null || s.call(O, e);
+            let a = e.nativeEvent.isComposing || e.keyCode === 229;
+            if (!(e.defaultPrevented || a)) switch(e.key){
+                case "n":
+                case "j":
+                    {
+                        j && e.ctrlKey && ie(e);
+                        break;
+                    }
+                case "ArrowDown":
+                    {
+                        ie(e);
+                        break;
+                    }
+                case "p":
+                case "k":
+                    {
+                        j && e.ctrlKey && se(e);
+                        break;
+                    }
+                case "ArrowUp":
+                    {
+                        se(e);
+                        break;
+                    }
+                case "Home":
+                    {
+                        e.preventDefault(), X(0);
+                        break;
+                    }
+                case "End":
+                    {
+                        e.preventDefault(), oe();
+                        break;
+                    }
+                case "Enter":
+                    {
+                        e.preventDefault();
+                        let i = M();
+                        if (i) {
+                            let l = new Event(Z);
+                            i.dispatchEvent(l);
+                        }
+                    }
+            }
+        }
+    }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("label", {
+        "cmdk-label": "",
+        htmlFor: U.inputId,
+        id: U.labelId,
+        style: Te
+    }, b), B(r, (e)=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](de.Provider, {
+            value: E
+        }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](ue.Provider, {
+            value: U
+        }, e))));
+}), he = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    var _, I;
+    let n = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), u = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), c = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"](fe), d = K(), f = pe(r), p = (I = (_ = f.current) == null ? void 0 : _.forceMount) != null ? I : c == null ? void 0 : c.forceMount;
+    k(()=>{
+        if (!p) return d.item(n, c == null ? void 0 : c.id);
+    }, [
+        p
+    ]);
+    let b = ve(n, u, [
+        r.value,
+        r.children,
+        u
+    ], r.keywords), m = ee(), R = P((v)=>v.value && v.value === b.current), x = P((v)=>p || d.filter() === !1 ? !0 : v.search ? v.filtered.items.get(n) > 0 : !0);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](()=>{
+        let v = u.current;
+        if (!(!v || r.disabled)) return v.addEventListener(Z, C), ()=>v.removeEventListener(Z, C);
+    }, [
+        x,
+        r.onSelect,
+        r.disabled
+    ]);
+    function C() {
+        var v, E;
+        S(), (E = (v = f.current).onSelect) == null || E.call(v, b.current);
+    }
+    function S() {
+        m.setState("value", b.current, !0);
+    }
+    if (!x) return null;
+    let { disabled: A, value: ge, onSelect: j, forceMount: O, keywords: $, ...q } = r;
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["composeRefs"])(u, o),
+        ...q,
+        id: n,
+        "cmdk-item": "",
+        role: "option",
+        "aria-disabled": !!A,
+        "aria-selected": !!R,
+        "data-disabled": !!A,
+        "data-selected": !!R,
+        onPointerMove: A || d.getDisablePointerSelection() ? void 0 : S,
+        onClick: A ? void 0 : C
+    }, r.children);
+}), Ee = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { heading: n, children: u, forceMount: c, ...d } = r, f = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), p = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), b = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), m = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$id$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useId"])(), R = K(), x = P((S)=>c || R.filter() === !1 ? !0 : S.search ? S.filtered.groups.has(f) : !0);
+    k(()=>R.group(f), []), ve(f, p, [
+        r.value,
+        r.heading,
+        b
+    ]);
+    let C = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"](()=>({
+            id: f,
+            forceMount: c
+        }), [
+        c
+    ]);
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["composeRefs"])(p, o),
+        ...d,
+        "cmdk-group": "",
+        role: "presentation",
+        hidden: x ? void 0 : !0
+    }, n && __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", {
+        ref: b,
+        "cmdk-group-heading": "",
+        "aria-hidden": !0,
+        id: m
+    }, n), B(r, (S)=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", {
+            "cmdk-group-items": "",
+            role: "group",
+            "aria-labelledby": n ? m : void 0
+        }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](fe.Provider, {
+            value: C
+        }, S))));
+}), ye = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { alwaysRender: n, ...u } = r, c = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), d = P((f)=>!f.search);
+    return !n && !d ? null : __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["composeRefs"])(c, o),
+        ...u,
+        "cmdk-separator": "",
+        role: "separator"
+    });
+}), Se = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { onValueChange: n, ...u } = r, c = r.value != null, d = ee(), f = P((m)=>m.search), p = P((m)=>m.selectedItemId), b = K();
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](()=>{
+        r.value != null && d.setState("search", r.value);
+    }, [
+        r.value
+    ]), __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].input, {
+        ref: o,
+        ...u,
+        "cmdk-input": "",
+        autoComplete: "off",
+        autoCorrect: "off",
+        spellCheck: !1,
+        "aria-autocomplete": "list",
+        role: "combobox",
+        "aria-expanded": !0,
+        "aria-controls": b.listId,
+        "aria-labelledby": b.labelId,
+        "aria-activedescendant": p,
+        id: b.inputId,
+        type: "text",
+        value: c ? r.value : f,
+        onChange: (m)=>{
+            c || d.setState("search", m.target.value), n == null || n(m.target.value);
+        }
+    });
+}), Ce = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { children: n, label: u = "Suggestions", ...c } = r, d = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), f = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](null), p = P((m)=>m.selectedItemId), b = K();
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"](()=>{
+        if (f.current && d.current) {
+            let m = f.current, R = d.current, x, C = new ResizeObserver(()=>{
+                x = requestAnimationFrame(()=>{
+                    let S = m.offsetHeight;
+                    R.style.setProperty("--cmdk-list-height", S.toFixed(1) + "px");
+                });
+            });
+            return C.observe(m), ()=>{
+                cancelAnimationFrame(x), C.unobserve(m);
+            };
+        }
+    }, []), __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["composeRefs"])(d, o),
+        ...c,
+        "cmdk-list": "",
+        role: "listbox",
+        tabIndex: -1,
+        "aria-activedescendant": p,
+        "aria-label": u,
+        id: b.listId
+    }, B(r, (m)=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", {
+            ref: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$compose$2d$refs$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["composeRefs"])(f, b.listInnerRef),
+            "cmdk-list-sizer": ""
+        }, m)));
+}), xe = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { open: n, onOpenChange: u, overlayClassName: c, contentClassName: d, container: f, ...p } = r;
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Root"], {
+        open: n,
+        onOpenChange: u
+    }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Portal"], {
+        container: f
+    }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Overlay"], {
+        "cmdk-overlay": "",
+        className: c
+    }), __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Content"], {
+        "aria-label": r.label,
+        "cmdk-dialog": "",
+        className: d
+    }, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](me, {
+        ref: o,
+        ...p
+    }))));
+}), Ie = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>P((u)=>u.filtered.count === 0) ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: o,
+        ...r,
+        "cmdk-empty": "",
+        role: "presentation"
+    }) : null), Pe = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"]((r, o)=>{
+    let { progress: n, children: u, label: c = "Loading...", ...d } = r;
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"](__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$radix$2d$ui$2f$react$2d$primitive$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Primitive"].div, {
+        ref: o,
+        ...d,
+        "cmdk-loading": "",
+        role: "progressbar",
+        "aria-valuenow": n,
+        "aria-valuemin": 0,
+        "aria-valuemax": 100,
+        "aria-label": c
+    }, B(r, (f)=>__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", {
+            "aria-hidden": !0
+        }, f)));
+}), _e = Object.assign(me, {
+    List: Ce,
+    Item: he,
+    Input: Se,
+    Group: Ee,
+    Separator: ye,
+    Dialog: xe,
+    Empty: Ie,
+    Loading: Pe
+});
+function we(r, o) {
+    let n = r.nextElementSibling;
+    for(; n;){
+        if (n.matches(o)) return n;
+        n = n.nextElementSibling;
+    }
+}
+function De(r, o) {
+    let n = r.previousElementSibling;
+    for(; n;){
+        if (n.matches(o)) return n;
+        n = n.previousElementSibling;
+    }
+}
+function pe(r) {
+    let o = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](r);
+    return k(()=>{
+        o.current = r;
+    }), o;
+}
+var k = ("TURBOPACK compile-time truthy", 1) ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"] : "TURBOPACK unreachable";
+function L(r) {
+    let o = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"]();
+    return o.current === void 0 && (o.current = r()), o;
+}
+function P(r) {
+    let o = ee(), n = ()=>r(o.snapshot());
+    return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useSyncExternalStore"](o.subscribe, n, n);
+}
+function ve(r, o, n, u = []) {
+    let c = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"](), d = K();
+    return k(()=>{
+        var b;
+        let f = (()=>{
+            var m;
+            for (let R of n){
+                if (typeof R == "string") return R.trim();
+                if (typeof R == "object" && "current" in R) return R.current ? (m = R.current.textContent) == null ? void 0 : m.trim() : c.current;
+            }
+        })(), p = u.map((m)=>m.trim());
+        d.value(r, f, p), (b = o.current) == null || b.setAttribute(T, f), c.current = f;
+    }), c;
+}
+var ke = ()=>{
+    let [r, o] = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"](), n = L(()=>new Map);
+    return k(()=>{
+        n.current.forEach((u)=>u()), n.current = new Map;
+    }, [
+        r
+    ]), (u, c)=>{
+        n.current.set(u, c), o({});
+    };
+};
+function Me(r) {
+    let o = r.type;
+    return typeof o == "function" ? o(r.props) : "render" in o ? o.render(r.props) : r;
+}
+function B({ asChild: r, children: o }, n) {
+    return r && __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["isValidElement"](o) ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["cloneElement"](Me(o), {
+        ref: o.ref
+    }, n(o.props.children)) : n(o);
+}
+var Te = {
+    position: "absolute",
+    width: "1px",
+    height: "1px",
+    padding: "0",
+    margin: "-1px",
+    overflow: "hidden",
+    clip: "rect(0, 0, 0, 0)",
+    whiteSpace: "nowrap",
+    borderWidth: "0"
+};
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/uint.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "bigEndian",
+    ()=>bigEndian,
+    "littleEndian",
+    ()=>littleEndian
+]);
+class BigEndian {
+    uint8(data, offset) {
+        if (data.byteLength < offset + 1) {
+            throw new TypeError("Insufficient bytes");
+        }
+        return data[offset];
+    }
+    uint16(data, offset) {
+        if (data.byteLength < offset + 2) {
+            throw new TypeError("Insufficient bytes");
+        }
+        return data[offset] << 8 | data[offset + 1];
+    }
+    uint32(data, offset) {
+        if (data.byteLength < offset + 4) {
+            throw new TypeError("Insufficient bytes");
+        }
+        let result = 0;
+        for(let i = 0; i < 4; i++){
+            result |= data[offset + i] << 24 - i * 8;
+        }
+        return result;
+    }
+    uint64(data, offset) {
+        if (data.byteLength < offset + 8) {
+            throw new TypeError("Insufficient bytes");
+        }
+        let result = 0n;
+        for(let i = 0; i < 8; i++){
+            result |= BigInt(data[offset + i]) << BigInt(56 - i * 8);
+        }
+        return result;
+    }
+    putUint8(target, value, offset) {
+        if (target.length < offset + 1) {
+            throw new TypeError("Not enough space");
+        }
+        if (value < 0 || value > 255) {
+            throw new TypeError("Invalid uint8 value");
+        }
+        target[offset] = value;
+    }
+    putUint16(target, value, offset) {
+        if (target.length < offset + 2) {
+            throw new TypeError("Not enough space");
+        }
+        if (value < 0 || value > 65535) {
+            throw new TypeError("Invalid uint16 value");
+        }
+        target[offset] = value >> 8;
+        target[offset + 1] = value & 0xff;
+    }
+    putUint32(target, value, offset) {
+        if (target.length < offset + 4) {
+            throw new TypeError("Not enough space");
+        }
+        if (value < 0 || value > 4294967295) {
+            throw new TypeError("Invalid uint32 value");
+        }
+        for(let i = 0; i < 4; i++){
+            target[offset + i] = value >> (3 - i) * 8 & 0xff;
+        }
+    }
+    putUint64(target, value, offset) {
+        if (target.length < offset + 8) {
+            throw new TypeError("Not enough space");
+        }
+        if (value < 0 || value > 18446744073709551615n) {
+            throw new TypeError("Invalid uint64 value");
+        }
+        for(let i = 0; i < 8; i++){
+            target[offset + i] = Number(value >> BigInt((7 - i) * 8) & 0xffn);
+        }
+    }
+}
+class LittleEndian {
+    uint8(data, offset) {
+        if (data.byteLength < offset + 1) {
+            throw new TypeError("Insufficient bytes");
+        }
+        return data[offset];
+    }
+    uint16(data, offset) {
+        if (data.byteLength < offset + 2) {
+            throw new TypeError("Insufficient bytes");
+        }
+        return data[offset] | data[offset + 1] << 8;
+    }
+    uint32(data, offset) {
+        if (data.byteLength < offset + 4) {
+            throw new TypeError("Insufficient bytes");
+        }
+        let result = 0;
+        for(let i = 0; i < 4; i++){
+            result |= data[offset + i] << i * 8;
+        }
+        return result;
+    }
+    uint64(data, offset) {
+        if (data.byteLength < offset + 8) {
+            throw new TypeError("Insufficient bytes");
+        }
+        let result = 0n;
+        for(let i = 0; i < 8; i++){
+            result |= BigInt(data[offset + i]) << BigInt(i * 8);
+        }
+        return result;
+    }
+    putUint8(target, value, offset) {
+        if (target.length < 1 + offset) {
+            throw new TypeError("Insufficient space");
+        }
+        if (value < 0 || value > 255) {
+            throw new TypeError("Invalid uint8 value");
+        }
+        target[offset] = value;
+    }
+    putUint16(target, value, offset) {
+        if (target.length < 2 + offset) {
+            throw new TypeError("Insufficient space");
+        }
+        if (value < 0 || value > 65535) {
+            throw new TypeError("Invalid uint16 value");
+        }
+        target[offset + 1] = value >> 8;
+        target[offset] = value & 0xff;
+    }
+    putUint32(target, value, offset) {
+        if (target.length < 4 + offset) {
+            throw new TypeError("Insufficient space");
+        }
+        if (value < 0 || value > 4294967295) {
+            throw new TypeError("Invalid uint32 value");
+        }
+        for(let i = 0; i < 4; i++){
+            target[offset + i] = value >> i * 8 & 0xff;
+        }
+    }
+    putUint64(target, value, offset) {
+        if (target.length < 8 + offset) {
+            throw new TypeError("Insufficient space");
+        }
+        if (value < 0 || value > 18446744073709551615n) {
+            throw new TypeError("Invalid uint64 value");
+        }
+        for(let i = 0; i < 8; i++){
+            target[offset + i] = Number(value >> BigInt(i * 8) & 0xffn);
+        }
+    }
+}
+const bigEndian = new BigEndian();
+const littleEndian = new LittleEndian();
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/bytes.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "DynamicBuffer",
+    ()=>DynamicBuffer,
+    "compareBytes",
+    ()=>compareBytes,
+    "concatenateBytes",
+    ()=>concatenateBytes
+]);
+function compareBytes(a, b) {
+    if (a.byteLength !== b.byteLength) {
+        return false;
+    }
+    for(let i = 0; i < b.byteLength; i++){
+        if (a[i] !== b[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+function concatenateBytes(a, b) {
+    const result = new Uint8Array(a.byteLength + b.byteLength);
+    result.set(a);
+    result.set(b, a.byteLength);
+    return result;
+}
+class DynamicBuffer {
+    value;
+    capacity;
+    length = 0;
+    constructor(capacity){
+        this.value = new Uint8Array(capacity);
+        this.capacity = capacity = capacity;
+    }
+    write(bytes) {
+        if (this.length + bytes.byteLength <= this.capacity) {
+            this.value.set(bytes, this.length);
+            this.length += bytes.byteLength;
+            return;
+        }
+        while(this.length + bytes.byteLength > this.capacity){
+            if (this.capacity === 0) {
+                this.capacity = 1;
+            } else {
+                this.capacity = this.capacity * 2;
+            }
+        }
+        const newValue = new Uint8Array(this.capacity);
+        newValue.set(this.value.subarray(0, this.length));
+        newValue.set(bytes, this.length);
+        this.value = newValue;
+        this.length += bytes.byteLength;
+    }
+    writeByte(byte) {
+        if (this.length + 1 <= this.capacity) {
+            this.value[this.length] = byte;
+            this.length += 1;
+            return;
+        }
+        if (this.capacity === 0) {
+            this.capacity = 1;
+        } else {
+            this.capacity = this.capacity * 2;
+        }
+        const newValue = new Uint8Array(this.capacity);
+        newValue.set(this.value.subarray(0, this.length));
+        newValue[this.length] = byte;
+        this.value = newValue;
+        this.length += 1;
+    }
+    readInto(target) {
+        if (target.byteLength < this.length) {
+            throw new TypeError("Not enough space");
+        }
+        target.set(this.value.subarray(0, this.length));
+    }
+    bytes() {
+        return this.value.slice(0, this.length);
+    }
+    clear() {
+        this.length = 0;
+    }
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/bits.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "rotl32",
+    ()=>rotl32,
+    "rotl64",
+    ()=>rotl64,
+    "rotr32",
+    ()=>rotr32,
+    "rotr64",
+    ()=>rotr64
+]);
+function rotl32(x, n) {
+    return (x << n | x >>> 32 - n) >>> 0;
+}
+function rotr32(x, n) {
+    return (x << 32 - n | x >>> n) >>> 0;
+}
+function rotr64(x, n) {
+    return (x << BigInt(64 - n) | x >> BigInt(n)) & 0xffffffffffffffffn;
+}
+function rotl64(x, n) {
+    return (x << BigInt(n) | x >> BigInt(64 - n)) & 0xffffffffffffffffn;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/big.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "bigIntBytes",
+    ()=>bigIntBytes,
+    "bigIntFromBytes",
+    ()=>bigIntFromBytes
+]);
+function bigIntBytes(value) {
+    if (value < 0n) {
+        value = value * -1n;
+    }
+    let byteLength = 1;
+    while(value > 2n ** BigInt(byteLength * 8) - 1n){
+        byteLength++;
+    }
+    const encoded = new Uint8Array(byteLength);
+    for(let i = 0; i < encoded.byteLength; i++){
+        encoded[i] = Number(value >> BigInt((encoded.byteLength - i - 1) * 8) & 0xffn);
+    }
+    return encoded;
+}
+function bigIntFromBytes(bytes) {
+    if (bytes.byteLength < 1) {
+        throw new TypeError("Empty Uint8Array");
+    }
+    let decoded = 0n;
+    for(let i = 0; i < bytes.byteLength; i++){
+        decoded += BigInt(bytes[i]) << BigInt((bytes.byteLength - 1 - i) * 8);
+    }
+    return decoded;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/index.js [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/uint.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bytes$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/bytes.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bits$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/bits.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$big$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/big.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/hmac/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "HMAC",
+    ()=>HMAC,
+    "hmac",
+    ()=>hmac
+]);
+class HMAC {
+    k0;
+    inner;
+    outer;
+    constructor(Algorithm, key){
+        const keyHash = new Algorithm();
+        if (key.byteLength === keyHash.blockSize) {
+            this.k0 = key;
+        } else if (key.byteLength > keyHash.blockSize) {
+            this.k0 = new Uint8Array(keyHash.blockSize);
+            keyHash.update(key);
+            this.k0.set(keyHash.digest());
+        } else {
+            this.k0 = new Uint8Array(keyHash.blockSize);
+            this.k0.set(key);
+        }
+        this.inner = new Algorithm();
+        const ipad = new Uint8Array(this.k0.byteLength).fill(0x36);
+        for(let i = 0; i < ipad.byteLength; i++){
+            ipad[i] ^= this.k0[i];
+        }
+        this.inner.update(ipad);
+        this.outer = new Algorithm();
+        const opad = new Uint8Array(this.k0.byteLength).fill(0x5c);
+        for(let i = 0; i < opad.byteLength; i++){
+            opad[i] ^= this.k0[i];
+        }
+        this.outer.update(opad);
+    }
+    update(message) {
+        this.inner.update(message);
+    }
+    digest() {
+        this.outer.update(this.inner.digest());
+        return this.outer.digest();
+    }
+}
+function hmac(Algorithm, key, message) {
+    const mac = new HMAC(Algorithm, key);
+    mac.update(message);
+    return mac.digest();
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/sha1/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "SHA1",
+    ()=>SHA1,
+    "sha1",
+    ()=>sha1
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/uint.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bits$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/bits.js [app-ssr] (ecmascript)");
+;
+;
+function sha1(data) {
+    const hash = new SHA1();
+    hash.update(data);
+    return hash.digest();
+}
+class SHA1 {
+    blockSize = 64;
+    size = 20;
+    blocks = new Uint8Array(64);
+    currentBlockSize = 0;
+    H = new Uint32Array([
+        0x67452301,
+        0xefcdab89,
+        0x98badcfe,
+        0x10325476,
+        0xc3d2e1f0
+    ]);
+    l = 0;
+    w = new Uint32Array(80);
+    update(data) {
+        this.l += data.byteLength * 8;
+        if (this.currentBlockSize + data.byteLength < 64) {
+            this.blocks.set(data, this.currentBlockSize);
+            this.currentBlockSize += data.byteLength;
+            return;
+        }
+        let processed = 0;
+        if (this.currentBlockSize > 0) {
+            const next = data.slice(0, 64 - this.currentBlockSize);
+            this.blocks.set(next, this.currentBlockSize);
+            this.process();
+            processed += next.byteLength;
+            this.currentBlockSize = 0;
+        }
+        while(processed + 64 <= data.byteLength){
+            const next = data.slice(processed, processed + 64);
+            this.blocks.set(next);
+            this.process();
+            processed += 64;
+        }
+        if (data.byteLength - processed > 0) {
+            const remaining = data.slice(processed);
+            this.blocks.set(remaining);
+            this.currentBlockSize = remaining.byteLength;
+        }
+    }
+    digest() {
+        this.blocks[this.currentBlockSize] = 0x80;
+        this.currentBlockSize += 1;
+        if (64 - this.currentBlockSize < 8) {
+            this.blocks.fill(0, this.currentBlockSize);
+            this.process();
+            this.currentBlockSize = 0;
+        }
+        this.blocks.fill(0, this.currentBlockSize);
+        __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["bigEndian"].putUint64(this.blocks, BigInt(this.l), this.blockSize - 8);
+        this.process();
+        const result = new Uint8Array(20);
+        for(let i = 0; i < 5; i++){
+            __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["bigEndian"].putUint32(result, this.H[i], i * 4);
+        }
+        return result;
+    }
+    process() {
+        for(let t = 0; t < 16; t++){
+            this.w[t] = (this.blocks[t * 4] << 24 | this.blocks[t * 4 + 1] << 16 | this.blocks[t * 4 + 2] << 8 | this.blocks[t * 4 + 3]) >>> 0;
+        }
+        for(let t = 16; t < 80; t++){
+            this.w[t] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bits$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["rotl32"])((this.w[t - 3] ^ this.w[t - 8] ^ this.w[t - 14] ^ this.w[t - 16]) >>> 0, 1);
+        }
+        let a = this.H[0];
+        let b = this.H[1];
+        let c = this.H[2];
+        let d = this.H[3];
+        let e = this.H[4];
+        for(let t = 0; t < 80; t++){
+            let F, K;
+            if (t < 20) {
+                F = (b & c ^ ~b & d) >>> 0;
+                K = 0x5a827999;
+            } else if (t < 40) {
+                F = (b ^ c ^ d) >>> 0;
+                K = 0x6ed9eba1;
+            } else if (t < 60) {
+                F = (b & c ^ b & d ^ c & d) >>> 0;
+                K = 0x8f1bbcdc;
+            } else {
+                F = (b ^ c ^ d) >>> 0;
+                K = 0xca62c1d6;
+            }
+            const T = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bits$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["rotl32"])(a, 5) + e + F + this.w[t] + K | 0;
+            e = d;
+            d = c;
+            c = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$bits$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["rotl32"])(b, 30);
+            b = a;
+            a = T;
+        }
+        this.H[0] = this.H[0] + a | 0;
+        this.H[1] = this.H[1] + b | 0;
+        this.H[2] = this.H[2] + c | 0;
+        this.H[3] = this.H[3] + d | 0;
+        this.H[4] = this.H[4] + e | 0;
+    }
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/subtle/index.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "constantTimeEqual",
+    ()=>constantTimeEqual
+]);
+function constantTimeEqual(a, b) {
+    if (a.length !== b.length) {
+        return false;
+    }
+    let c = 0;
+    for(let i = 0; i < a.length; i++){
+        c |= a[i] ^ b[i];
+    }
+    return c === 0;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/hex.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "decodeHex",
+    ()=>decodeHex,
+    "encodeHexLowerCase",
+    ()=>encodeHexLowerCase,
+    "encodeHexUpperCase",
+    ()=>encodeHexUpperCase
+]);
+function encodeHexUpperCase(data) {
+    let result = "";
+    for(let i = 0; i < data.length; i++){
+        result += alphabetUpperCase[data[i] >> 4];
+        result += alphabetUpperCase[data[i] & 0x0f];
+    }
+    return result;
+}
+function encodeHexLowerCase(data) {
+    let result = "";
+    for(let i = 0; i < data.length; i++){
+        result += alphabetLowerCase[data[i] >> 4];
+        result += alphabetLowerCase[data[i] & 0x0f];
+    }
+    return result;
+}
+function decodeHex(data) {
+    if (data.length % 2 !== 0) {
+        throw new Error("Invalid hex string");
+    }
+    const result = new Uint8Array(data.length / 2);
+    for(let i = 0; i < data.length; i += 2){
+        if (!(data[i] in decodeMap)) {
+            throw new Error("Invalid character");
+        }
+        if (!(data[i + 1] in decodeMap)) {
+            throw new Error("Invalid character");
+        }
+        result[i / 2] |= decodeMap[data[i]] << 4;
+        result[i / 2] |= decodeMap[data[i + 1]];
+    }
+    return result;
+}
+const alphabetUpperCase = "0123456789ABCDEF";
+const alphabetLowerCase = "0123456789abcdef";
+const decodeMap = {
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    a: 10,
+    A: 10,
+    b: 11,
+    B: 11,
+    c: 12,
+    C: 12,
+    d: 13,
+    D: 13,
+    e: 14,
+    E: 14,
+    f: 15,
+    F: 15
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base32.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "decodeBase32",
+    ()=>decodeBase32,
+    "decodeBase32IgnorePadding",
+    ()=>decodeBase32IgnorePadding,
+    "encodeBase32",
+    ()=>encodeBase32,
+    "encodeBase32NoPadding",
+    ()=>encodeBase32NoPadding
+]);
+function encodeBase32(bytes) {
+    return encodeBase32_internal(bytes, base32Alphabet, EncodingPadding.Include);
+}
+function encodeBase32NoPadding(bytes) {
+    return encodeBase32_internal(bytes, base32Alphabet, EncodingPadding.None);
+}
+function encodeBase32_internal(bytes, alphabet, padding) {
+    let result = "";
+    for(let i = 0; i < bytes.byteLength; i += 5){
+        let buffer = 0n;
+        let bufferBitSize = 0;
+        for(let j = 0; j < 5 && i + j < bytes.byteLength; j++){
+            buffer = buffer << 8n | BigInt(bytes[i + j]);
+            bufferBitSize += 8;
+        }
+        if (bufferBitSize % 5 !== 0) {
+            buffer = buffer << BigInt(5 - bufferBitSize % 5);
+            bufferBitSize += 5 - bufferBitSize % 5;
+        }
+        for(let j = 0; j < 8; j++){
+            if (bufferBitSize >= 5) {
+                result += alphabet[Number(buffer >> BigInt(bufferBitSize - 5) & 0x1fn)];
+                bufferBitSize -= 5;
+            } else if (bufferBitSize > 0) {
+                result += alphabet[Number(buffer << BigInt(6 - bufferBitSize) & 0x3fn)];
+                bufferBitSize = 0;
+            } else if (padding === EncodingPadding.Include) {
+                result += "=";
+            }
+        }
+    }
+    return result;
+}
+function decodeBase32(encoded) {
+    return decodeBase32_internal(encoded, base32DecodeMap, DecodingPadding.Required);
+}
+function decodeBase32IgnorePadding(encoded) {
+    return decodeBase32_internal(encoded, base32DecodeMap, DecodingPadding.Ignore);
+}
+function decodeBase32_internal(encoded, decodeMap, padding) {
+    const result = new Uint8Array(Math.ceil(encoded.length / 8) * 5);
+    let totalBytes = 0;
+    for(let i = 0; i < encoded.length; i += 8){
+        let chunk = 0n;
+        let bitsRead = 0;
+        for(let j = 0; j < 8; j++){
+            if (padding === DecodingPadding.Required) {
+                if (encoded[i + j] === "=") {
+                    continue;
+                }
+                if (i + j >= encoded.length) {
+                    throw new Error("Invalid padding");
+                }
+            }
+            if (padding === DecodingPadding.Ignore) {
+                if (i + j >= encoded.length || encoded[i + j] === "=") {
+                    continue;
+                }
+            }
+            if (j > 0 && encoded[i + j - 1] === "=") {
+                throw new Error("Invalid padding");
+            }
+            if (!(encoded[i + j] in decodeMap)) {
+                throw new Error("Invalid character");
+            }
+            chunk |= BigInt(decodeMap[encoded[i + j]]) << BigInt((7 - j) * 5);
+            bitsRead += 5;
+        }
+        if (bitsRead < 40) {
+            let unused;
+            if (bitsRead === 10) {
+                unused = chunk & 0xffffffffn;
+            } else if (bitsRead === 20) {
+                unused = chunk & 0xffffffn;
+            } else if (bitsRead === 25) {
+                unused = chunk & 0xffffn;
+            } else if (bitsRead === 35) {
+                unused = chunk & 0xffn;
+            } else {
+                throw new Error("Invalid padding");
+            }
+            if (unused !== 0n) {
+                throw new Error("Invalid padding");
+            }
+        }
+        const byteLength = Math.floor(bitsRead / 8);
+        for(let i = 0; i < byteLength; i++){
+            result[totalBytes] = Number(chunk >> BigInt(32 - i * 8) & 0xffn);
+            totalBytes++;
+        }
+    }
+    return result.slice(0, totalBytes);
+}
+const base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const base32DecodeMap = {
+    A: 0,
+    B: 1,
+    C: 2,
+    D: 3,
+    E: 4,
+    F: 5,
+    G: 6,
+    H: 7,
+    I: 8,
+    J: 9,
+    K: 10,
+    L: 11,
+    M: 12,
+    N: 13,
+    O: 14,
+    P: 15,
+    Q: 16,
+    R: 17,
+    S: 18,
+    T: 19,
+    U: 20,
+    V: 21,
+    W: 22,
+    X: 23,
+    Y: 24,
+    Z: 25,
+    a: 0,
+    b: 1,
+    c: 2,
+    d: 3,
+    e: 4,
+    f: 5,
+    g: 6,
+    h: 7,
+    i: 8,
+    j: 9,
+    k: 10,
+    l: 11,
+    m: 12,
+    n: 13,
+    o: 14,
+    p: 15,
+    q: 16,
+    r: 17,
+    s: 18,
+    t: 19,
+    u: 20,
+    v: 21,
+    w: 22,
+    x: 23,
+    y: 24,
+    z: 25,
+    "2": 26,
+    "3": 27,
+    "4": 28,
+    "5": 29,
+    "6": 30,
+    "7": 31
+};
+var EncodingPadding;
+(function(EncodingPadding) {
+    EncodingPadding[EncodingPadding["Include"] = 0] = "Include";
+    EncodingPadding[EncodingPadding["None"] = 1] = "None";
+})(EncodingPadding || (EncodingPadding = {}));
+var DecodingPadding;
+(function(DecodingPadding) {
+    DecodingPadding[DecodingPadding["Required"] = 0] = "Required";
+    DecodingPadding[DecodingPadding["Ignore"] = 1] = "Ignore";
+})(DecodingPadding || (DecodingPadding = {}));
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base64.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "decodeBase64",
+    ()=>decodeBase64,
+    "decodeBase64IgnorePadding",
+    ()=>decodeBase64IgnorePadding,
+    "decodeBase64url",
+    ()=>decodeBase64url,
+    "decodeBase64urlIgnorePadding",
+    ()=>decodeBase64urlIgnorePadding,
+    "encodeBase64",
+    ()=>encodeBase64,
+    "encodeBase64NoPadding",
+    ()=>encodeBase64NoPadding,
+    "encodeBase64url",
+    ()=>encodeBase64url,
+    "encodeBase64urlNoPadding",
+    ()=>encodeBase64urlNoPadding
+]);
+function encodeBase64(bytes) {
+    return encodeBase64_internal(bytes, base64Alphabet, EncodingPadding.Include);
+}
+function encodeBase64NoPadding(bytes) {
+    return encodeBase64_internal(bytes, base64Alphabet, EncodingPadding.None);
+}
+function encodeBase64url(bytes) {
+    return encodeBase64_internal(bytes, base64urlAlphabet, EncodingPadding.Include);
+}
+function encodeBase64urlNoPadding(bytes) {
+    return encodeBase64_internal(bytes, base64urlAlphabet, EncodingPadding.None);
+}
+function encodeBase64_internal(bytes, alphabet, padding) {
+    let result = "";
+    for(let i = 0; i < bytes.byteLength; i += 3){
+        let buffer = 0;
+        let bufferBitSize = 0;
+        for(let j = 0; j < 3 && i + j < bytes.byteLength; j++){
+            buffer = buffer << 8 | bytes[i + j];
+            bufferBitSize += 8;
+        }
+        for(let j = 0; j < 4; j++){
+            if (bufferBitSize >= 6) {
+                result += alphabet[buffer >> bufferBitSize - 6 & 0x3f];
+                bufferBitSize -= 6;
+            } else if (bufferBitSize > 0) {
+                result += alphabet[buffer << 6 - bufferBitSize & 0x3f];
+                bufferBitSize = 0;
+            } else if (padding === EncodingPadding.Include) {
+                result += "=";
+            }
+        }
+    }
+    return result;
+}
+const base64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const base64urlAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+function decodeBase64(encoded) {
+    return decodeBase64_internal(encoded, base64DecodeMap, DecodingPadding.Required);
+}
+function decodeBase64IgnorePadding(encoded) {
+    return decodeBase64_internal(encoded, base64DecodeMap, DecodingPadding.Ignore);
+}
+function decodeBase64url(encoded) {
+    return decodeBase64_internal(encoded, base64urlDecodeMap, DecodingPadding.Required);
+}
+function decodeBase64urlIgnorePadding(encoded) {
+    return decodeBase64_internal(encoded, base64urlDecodeMap, DecodingPadding.Ignore);
+}
+function decodeBase64_internal(encoded, decodeMap, padding) {
+    const result = new Uint8Array(Math.ceil(encoded.length / 4) * 3);
+    let totalBytes = 0;
+    for(let i = 0; i < encoded.length; i += 4){
+        let chunk = 0;
+        let bitsRead = 0;
+        for(let j = 0; j < 4; j++){
+            if (padding === DecodingPadding.Required && encoded[i + j] === "=") {
+                continue;
+            }
+            if (padding === DecodingPadding.Ignore && (i + j >= encoded.length || encoded[i + j] === "=")) {
+                continue;
+            }
+            if (j > 0 && encoded[i + j - 1] === "=") {
+                throw new Error("Invalid padding");
+            }
+            if (!(encoded[i + j] in decodeMap)) {
+                throw new Error("Invalid character");
+            }
+            chunk |= decodeMap[encoded[i + j]] << (3 - j) * 6;
+            bitsRead += 6;
+        }
+        if (bitsRead < 24) {
+            let unused;
+            if (bitsRead === 12) {
+                unused = chunk & 0xffff;
+            } else if (bitsRead === 18) {
+                unused = chunk & 0xff;
+            } else {
+                throw new Error("Invalid padding");
+            }
+            if (unused !== 0) {
+                throw new Error("Invalid padding");
+            }
+        }
+        const byteLength = Math.floor(bitsRead / 8);
+        for(let i = 0; i < byteLength; i++){
+            result[totalBytes] = chunk >> 16 - i * 8 & 0xff;
+            totalBytes++;
+        }
+    }
+    return result.slice(0, totalBytes);
+}
+var EncodingPadding;
+(function(EncodingPadding) {
+    EncodingPadding[EncodingPadding["Include"] = 0] = "Include";
+    EncodingPadding[EncodingPadding["None"] = 1] = "None";
+})(EncodingPadding || (EncodingPadding = {}));
+var DecodingPadding;
+(function(DecodingPadding) {
+    DecodingPadding[DecodingPadding["Required"] = 0] = "Required";
+    DecodingPadding[DecodingPadding["Ignore"] = 1] = "Ignore";
+})(DecodingPadding || (DecodingPadding = {}));
+const base64DecodeMap = {
+    "0": 52,
+    "1": 53,
+    "2": 54,
+    "3": 55,
+    "4": 56,
+    "5": 57,
+    "6": 58,
+    "7": 59,
+    "8": 60,
+    "9": 61,
+    A: 0,
+    B: 1,
+    C: 2,
+    D: 3,
+    E: 4,
+    F: 5,
+    G: 6,
+    H: 7,
+    I: 8,
+    J: 9,
+    K: 10,
+    L: 11,
+    M: 12,
+    N: 13,
+    O: 14,
+    P: 15,
+    Q: 16,
+    R: 17,
+    S: 18,
+    T: 19,
+    U: 20,
+    V: 21,
+    W: 22,
+    X: 23,
+    Y: 24,
+    Z: 25,
+    a: 26,
+    b: 27,
+    c: 28,
+    d: 29,
+    e: 30,
+    f: 31,
+    g: 32,
+    h: 33,
+    i: 34,
+    j: 35,
+    k: 36,
+    l: 37,
+    m: 38,
+    n: 39,
+    o: 40,
+    p: 41,
+    q: 42,
+    r: 43,
+    s: 44,
+    t: 45,
+    u: 46,
+    v: 47,
+    w: 48,
+    x: 49,
+    y: 50,
+    z: 51,
+    "+": 62,
+    "/": 63
+};
+const base64urlDecodeMap = {
+    "0": 52,
+    "1": 53,
+    "2": 54,
+    "3": 55,
+    "4": 56,
+    "5": 57,
+    "6": 58,
+    "7": 59,
+    "8": 60,
+    "9": 61,
+    A: 0,
+    B: 1,
+    C: 2,
+    D: 3,
+    E: 4,
+    F: 5,
+    G: 6,
+    H: 7,
+    I: 8,
+    J: 9,
+    K: 10,
+    L: 11,
+    M: 12,
+    N: 13,
+    O: 14,
+    P: 15,
+    Q: 16,
+    R: 17,
+    S: 18,
+    T: 19,
+    U: 20,
+    V: 21,
+    W: 22,
+    X: 23,
+    Y: 24,
+    Z: 25,
+    a: 26,
+    b: 27,
+    c: 28,
+    d: 29,
+    e: 30,
+    f: 31,
+    g: 32,
+    h: 33,
+    i: 34,
+    j: 35,
+    k: 36,
+    l: 37,
+    m: 38,
+    n: 39,
+    o: 40,
+    p: 41,
+    q: 42,
+    r: 43,
+    s: 44,
+    t: 45,
+    u: 46,
+    v: 47,
+    w: 48,
+    x: 49,
+    y: 50,
+    z: 51,
+    "-": 62,
+    _: 63
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/index.js [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$hex$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/hex.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base32$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base32.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base64$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base64.js [app-ssr] (ecmascript)");
+;
+;
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/hotp.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "createHOTPKeyURI",
+    ()=>createHOTPKeyURI,
+    "generateHOTP",
+    ()=>generateHOTP,
+    "verifyHOTP",
+    ()=>verifyHOTP
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/binary/dist/uint.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$hmac$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/hmac/index.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$sha1$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/sha1/index.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$subtle$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/crypto/dist/subtle/index.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base32$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base32.js [app-ssr] (ecmascript)");
+;
+;
+;
+;
+;
+function generateHOTP(key, counter, digits) {
+    if (digits < 6 || digits > 8) {
+        throw new TypeError("Digits must be between 6 and 8");
+    }
+    const counterBytes = new Uint8Array(8);
+    __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["bigEndian"].putUint64(counterBytes, counter, 0);
+    const HS = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$hmac$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["hmac"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$sha1$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["SHA1"], key, counterBytes);
+    const offset = HS[HS.byteLength - 1] & 0x0f;
+    const truncated = HS.slice(offset, offset + 4);
+    truncated[0] &= 0x7f;
+    const SNum = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$binary$2f$dist$2f$uint$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["bigEndian"].uint32(truncated, 0);
+    const D = SNum % 10 ** digits;
+    return D.toString().padStart(digits, "0");
+}
+function verifyHOTP(key, counter, digits, otp) {
+    if (digits < 6 || digits > 8) {
+        throw new TypeError("Digits must be between 6 and 8");
+    }
+    if (otp.length !== digits) {
+        return false;
+    }
+    const bytes = new TextEncoder().encode(otp);
+    const expected = generateHOTP(key, counter, digits);
+    const expectedBytes = new TextEncoder().encode(expected);
+    const valid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$crypto$2f$dist$2f$subtle$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["constantTimeEqual"])(bytes, expectedBytes);
+    return valid;
+}
+function createHOTPKeyURI(issuer, accountName, key, counter, digits) {
+    const encodedIssuer = encodeURIComponent(issuer);
+    const encodedAccountName = encodeURIComponent(accountName);
+    const base = `otpauth://hotp/${encodedIssuer}:${encodedAccountName}`;
+    const params = new URLSearchParams();
+    params.set("issuer", issuer);
+    params.set("algorithm", "SHA1");
+    params.set("secret", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base32$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["encodeBase32NoPadding"])(key));
+    params.set("counter", counter.toString());
+    params.set("digits", digits.toString());
+    return base + "?" + params.toString();
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/totp.js [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "createTOTPKeyURI",
+    ()=>createTOTPKeyURI,
+    "generateTOTP",
+    ()=>generateTOTP,
+    "verifyTOTP",
+    ()=>verifyTOTP,
+    "verifyTOTPWithGracePeriod",
+    ()=>verifyTOTPWithGracePeriod
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/index.js [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base32$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/encoding/dist/base32.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$hotp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/hotp.js [app-ssr] (ecmascript)");
+;
+;
+function generateTOTP(key, intervalInSeconds, digits) {
+    if (digits < 6 || digits > 8) {
+        throw new TypeError("Digits must be between 6 and 8");
+    }
+    const counter = BigInt(Math.floor(Date.now() / (intervalInSeconds * 1000)));
+    const hotp = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$hotp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generateHOTP"])(key, counter, digits);
+    return hotp;
+}
+function verifyTOTP(key, intervalInSeconds, digits, otp) {
+    const counter = BigInt(Math.floor(Date.now() / (intervalInSeconds * 1000)));
+    const valid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$hotp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["verifyHOTP"])(key, counter, digits, otp);
+    return valid;
+}
+function verifyTOTPWithGracePeriod(key, intervalInSeconds, digits, otp, gracePeriodInSeconds) {
+    if (gracePeriodInSeconds < 0) {
+        throw new TypeError("Grace period must be a positive number");
+    }
+    const nowUnixMilliseconds = Date.now();
+    let counter = BigInt(Math.floor((nowUnixMilliseconds - gracePeriodInSeconds * 1000) / (intervalInSeconds * 1000)));
+    const maxCounterInclusive = BigInt(Math.floor((nowUnixMilliseconds + gracePeriodInSeconds * 1000) / (intervalInSeconds * 1000)));
+    while(counter <= maxCounterInclusive){
+        const valid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$hotp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["verifyHOTP"])(key, counter, digits, otp);
+        if (valid) {
+            return true;
+        }
+        counter++;
+    }
+    return false;
+}
+function createTOTPKeyURI(issuer, accountName, key, periodInSeconds, digits) {
+    const encodedIssuer = encodeURIComponent(issuer);
+    const encodedAccountName = encodeURIComponent(accountName);
+    const base = `otpauth://totp/${encodedIssuer}:${encodedAccountName}`;
+    const params = new URLSearchParams();
+    params.set("issuer", issuer);
+    params.set("algorithm", "SHA1");
+    params.set("secret", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$encoding$2f$dist$2f$base32$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["encodeBase32NoPadding"])(key));
+    params.set("period", periodInSeconds.toString());
+    params.set("digits", digits.toString());
+    return base + "?" + params.toString();
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/index.js [app-ssr] (ecmascript) <locals>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$hotp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/hotp.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f40$oslojs$2f$otp$2f$dist$2f$totp$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/@oslojs/otp/dist/totp.js [app-ssr] (ecmascript)");
+;
+;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/can-promise.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+// can-promise has a crash in some versions of react native that dont have
+// standard global objects
+// https://github.com/soldair/node-qrcode/issues/157
+module.exports = function() {
+    return typeof Promise === 'function' && Promise.prototype && Promise.prototype.then;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+let toSJISFunction;
+const CODEWORDS_COUNT = [
+    0,
+    26,
+    44,
+    70,
+    100,
+    134,
+    172,
+    196,
+    242,
+    292,
+    346,
+    404,
+    466,
+    532,
+    581,
+    655,
+    733,
+    815,
+    901,
+    991,
+    1085,
+    1156,
+    1258,
+    1364,
+    1474,
+    1588,
+    1706,
+    1828,
+    1921,
+    2051,
+    2185,
+    2323,
+    2465,
+    2611,
+    2761,
+    2876,
+    3034,
+    3196,
+    3362,
+    3532,
+    3706
+];
+/**
+ * Returns the QR Code size for the specified version
+ *
+ * @param  {Number} version QR Code version
+ * @return {Number}         size of QR code
+ */ exports.getSymbolSize = function getSymbolSize(version) {
+    if (!version) throw new Error('"version" cannot be null or undefined');
+    if (version < 1 || version > 40) throw new Error('"version" should be in range from 1 to 40');
+    return version * 4 + 17;
+};
+/**
+ * Returns the total number of codewords used to store data and EC information.
+ *
+ * @param  {Number} version QR Code version
+ * @return {Number}         Data length in bits
+ */ exports.getSymbolTotalCodewords = function getSymbolTotalCodewords(version) {
+    return CODEWORDS_COUNT[version];
+};
+/**
+ * Encode data with Bose-Chaudhuri-Hocquenghem
+ *
+ * @param  {Number} data Value to encode
+ * @return {Number}      Encoded value
+ */ exports.getBCHDigit = function(data) {
+    let digit = 0;
+    while(data !== 0){
+        digit++;
+        data >>>= 1;
+    }
+    return digit;
+};
+exports.setToSJISFunction = function setToSJISFunction(f) {
+    if (typeof f !== 'function') {
+        throw new Error('"toSJISFunc" is not a valid function.');
+    }
+    toSJISFunction = f;
+};
+exports.isKanjiModeEnabled = function() {
+    return typeof toSJISFunction !== 'undefined';
+};
+exports.toSJIS = function toSJIS(kanji) {
+    return toSJISFunction(kanji);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-level.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+exports.L = {
+    bit: 1
+};
+exports.M = {
+    bit: 0
+};
+exports.Q = {
+    bit: 3
+};
+exports.H = {
+    bit: 2
+};
+function fromString(string) {
+    if (typeof string !== 'string') {
+        throw new Error('Param is not a string');
+    }
+    const lcStr = string.toLowerCase();
+    switch(lcStr){
+        case 'l':
+        case 'low':
+            return exports.L;
+        case 'm':
+        case 'medium':
+            return exports.M;
+        case 'q':
+        case 'quartile':
+            return exports.Q;
+        case 'h':
+        case 'high':
+            return exports.H;
+        default:
+            throw new Error('Unknown EC Level: ' + string);
+    }
+}
+exports.isValid = function isValid(level) {
+    return level && typeof level.bit !== 'undefined' && level.bit >= 0 && level.bit < 4;
+};
+exports.from = function from(value, defaultValue) {
+    if (exports.isValid(value)) {
+        return value;
+    }
+    try {
+        return fromString(value);
+    } catch (e) {
+        return defaultValue;
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/bit-buffer.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+function BitBuffer() {
+    this.buffer = [];
+    this.length = 0;
+}
+BitBuffer.prototype = {
+    get: function(index) {
+        const bufIndex = Math.floor(index / 8);
+        return (this.buffer[bufIndex] >>> 7 - index % 8 & 1) === 1;
+    },
+    put: function(num, length) {
+        for(let i = 0; i < length; i++){
+            this.putBit((num >>> length - i - 1 & 1) === 1);
+        }
+    },
+    getLengthInBits: function() {
+        return this.length;
+    },
+    putBit: function(bit) {
+        const bufIndex = Math.floor(this.length / 8);
+        if (this.buffer.length <= bufIndex) {
+            this.buffer.push(0);
+        }
+        if (bit) {
+            this.buffer[bufIndex] |= 0x80 >>> this.length % 8;
+        }
+        this.length++;
+    }
+};
+module.exports = BitBuffer;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/bit-matrix.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/**
+ * Helper class to handle QR Code symbol modules
+ *
+ * @param {Number} size Symbol size
+ */ function BitMatrix(size) {
+    if (!size || size < 1) {
+        throw new Error('BitMatrix size must be defined and greater than 0');
+    }
+    this.size = size;
+    this.data = new Uint8Array(size * size);
+    this.reservedBit = new Uint8Array(size * size);
+}
+/**
+ * Set bit value at specified location
+ * If reserved flag is set, this bit will be ignored during masking process
+ *
+ * @param {Number}  row
+ * @param {Number}  col
+ * @param {Boolean} value
+ * @param {Boolean} reserved
+ */ BitMatrix.prototype.set = function(row, col, value, reserved) {
+    const index = row * this.size + col;
+    this.data[index] = value;
+    if (reserved) this.reservedBit[index] = true;
+};
+/**
+ * Returns bit value at specified location
+ *
+ * @param  {Number}  row
+ * @param  {Number}  col
+ * @return {Boolean}
+ */ BitMatrix.prototype.get = function(row, col) {
+    return this.data[row * this.size + col];
+};
+/**
+ * Applies xor operator at specified location
+ * (used during masking process)
+ *
+ * @param {Number}  row
+ * @param {Number}  col
+ * @param {Boolean} value
+ */ BitMatrix.prototype.xor = function(row, col, value) {
+    this.data[row * this.size + col] ^= value;
+};
+/**
+ * Check if bit at specified location is reserved
+ *
+ * @param {Number}   row
+ * @param {Number}   col
+ * @return {Boolean}
+ */ BitMatrix.prototype.isReserved = function(row, col) {
+    return this.reservedBit[row * this.size + col];
+};
+module.exports = BitMatrix;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/alignment-pattern.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/**
+ * Alignment pattern are fixed reference pattern in defined positions
+ * in a matrix symbology, which enables the decode software to re-synchronise
+ * the coordinate mapping of the image modules in the event of moderate amounts
+ * of distortion of the image.
+ *
+ * Alignment patterns are present only in QR Code symbols of version 2 or larger
+ * and their number depends on the symbol version.
+ */ const getSymbolSize = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)").getSymbolSize;
+/**
+ * Calculate the row/column coordinates of the center module of each alignment pattern
+ * for the specified QR Code version.
+ *
+ * The alignment patterns are positioned symmetrically on either side of the diagonal
+ * running from the top left corner of the symbol to the bottom right corner.
+ *
+ * Since positions are simmetrical only half of the coordinates are returned.
+ * Each item of the array will represent in turn the x and y coordinate.
+ * @see {@link getPositions}
+ *
+ * @param  {Number} version QR Code version
+ * @return {Array}          Array of coordinate
+ */ exports.getRowColCoords = function getRowColCoords(version) {
+    if (version === 1) return [];
+    const posCount = Math.floor(version / 7) + 2;
+    const size = getSymbolSize(version);
+    const intervals = size === 145 ? 26 : Math.ceil((size - 13) / (2 * posCount - 2)) * 2;
+    const positions = [
+        size - 7
+    ] // Last coord is always (size - 7)
+    ;
+    for(let i = 1; i < posCount - 1; i++){
+        positions[i] = positions[i - 1] - intervals;
+    }
+    positions.push(6); // First coord is always 6
+    return positions.reverse();
+};
+/**
+ * Returns an array containing the positions of each alignment pattern.
+ * Each array's element represent the center point of the pattern as (x, y) coordinates
+ *
+ * Coordinates are calculated expanding the row/column coordinates returned by {@link getRowColCoords}
+ * and filtering out the items that overlaps with finder pattern
+ *
+ * @example
+ * For a Version 7 symbol {@link getRowColCoords} returns values 6, 22 and 38.
+ * The alignment patterns, therefore, are to be centered on (row, column)
+ * positions (6,22), (22,6), (22,22), (22,38), (38,22), (38,38).
+ * Note that the coordinates (6,6), (6,38), (38,6) are occupied by finder patterns
+ * and are not therefore used for alignment patterns.
+ *
+ * let pos = getPositions(7)
+ * // [[6,22], [22,6], [22,22], [22,38], [38,22], [38,38]]
+ *
+ * @param  {Number} version QR Code version
+ * @return {Array}          Array of coordinates
+ */ exports.getPositions = function getPositions(version) {
+    const coords = [];
+    const pos = exports.getRowColCoords(version);
+    const posLength = pos.length;
+    for(let i = 0; i < posLength; i++){
+        for(let j = 0; j < posLength; j++){
+            // Skip if position is occupied by finder patterns
+            if (i === 0 && j === 0 || i === 0 && j === posLength - 1 || i === posLength - 1 && j === 0) {
+                continue;
+            }
+            coords.push([
+                pos[i],
+                pos[j]
+            ]);
+        }
+    }
+    return coords;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/finder-pattern.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const getSymbolSize = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)").getSymbolSize;
+const FINDER_PATTERN_SIZE = 7;
+/**
+ * Returns an array containing the positions of each finder pattern.
+ * Each array's element represent the top-left point of the pattern as (x, y) coordinates
+ *
+ * @param  {Number} version QR Code version
+ * @return {Array}          Array of coordinates
+ */ exports.getPositions = function getPositions(version) {
+    const size = getSymbolSize(version);
+    return [
+        // top-left
+        [
+            0,
+            0
+        ],
+        // top-right
+        [
+            size - FINDER_PATTERN_SIZE,
+            0
+        ],
+        // bottom-left
+        [
+            0,
+            size - FINDER_PATTERN_SIZE
+        ]
+    ];
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mask-pattern.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/**
+ * Data mask pattern reference
+ * @type {Object}
+ */ exports.Patterns = {
+    PATTERN000: 0,
+    PATTERN001: 1,
+    PATTERN010: 2,
+    PATTERN011: 3,
+    PATTERN100: 4,
+    PATTERN101: 5,
+    PATTERN110: 6,
+    PATTERN111: 7
+};
+/**
+ * Weighted penalty scores for the undesirable features
+ * @type {Object}
+ */ const PenaltyScores = {
+    N1: 3,
+    N2: 3,
+    N3: 40,
+    N4: 10
+};
+/**
+ * Check if mask pattern value is valid
+ *
+ * @param  {Number}  mask    Mask pattern
+ * @return {Boolean}         true if valid, false otherwise
+ */ exports.isValid = function isValid(mask) {
+    return mask != null && mask !== '' && !isNaN(mask) && mask >= 0 && mask <= 7;
+};
+/**
+ * Returns mask pattern from a value.
+ * If value is not valid, returns undefined
+ *
+ * @param  {Number|String} value        Mask pattern value
+ * @return {Number}                     Valid mask pattern or undefined
+ */ exports.from = function from(value) {
+    return exports.isValid(value) ? parseInt(value, 10) : undefined;
+};
+/**
+* Find adjacent modules in row/column with the same color
+* and assign a penalty value.
+*
+* Points: N1 + i
+* i is the amount by which the number of adjacent modules of the same color exceeds 5
+*/ exports.getPenaltyN1 = function getPenaltyN1(data) {
+    const size = data.size;
+    let points = 0;
+    let sameCountCol = 0;
+    let sameCountRow = 0;
+    let lastCol = null;
+    let lastRow = null;
+    for(let row = 0; row < size; row++){
+        sameCountCol = sameCountRow = 0;
+        lastCol = lastRow = null;
+        for(let col = 0; col < size; col++){
+            let module = data.get(row, col);
+            if (module === lastCol) {
+                sameCountCol++;
+            } else {
+                if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
+                lastCol = module;
+                sameCountCol = 1;
+            }
+            module = data.get(col, row);
+            if (module === lastRow) {
+                sameCountRow++;
+            } else {
+                if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
+                lastRow = module;
+                sameCountRow = 1;
+            }
+        }
+        if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
+        if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
+    }
+    return points;
+};
+/**
+ * Find 2x2 blocks with the same color and assign a penalty value
+ *
+ * Points: N2 * (m - 1) * (n - 1)
+ */ exports.getPenaltyN2 = function getPenaltyN2(data) {
+    const size = data.size;
+    let points = 0;
+    for(let row = 0; row < size - 1; row++){
+        for(let col = 0; col < size - 1; col++){
+            const last = data.get(row, col) + data.get(row, col + 1) + data.get(row + 1, col) + data.get(row + 1, col + 1);
+            if (last === 4 || last === 0) points++;
+        }
+    }
+    return points * PenaltyScores.N2;
+};
+/**
+ * Find 1:1:3:1:1 ratio (dark:light:dark:light:dark) pattern in row/column,
+ * preceded or followed by light area 4 modules wide
+ *
+ * Points: N3 * number of pattern found
+ */ exports.getPenaltyN3 = function getPenaltyN3(data) {
+    const size = data.size;
+    let points = 0;
+    let bitsCol = 0;
+    let bitsRow = 0;
+    for(let row = 0; row < size; row++){
+        bitsCol = bitsRow = 0;
+        for(let col = 0; col < size; col++){
+            bitsCol = bitsCol << 1 & 0x7FF | data.get(row, col);
+            if (col >= 10 && (bitsCol === 0x5D0 || bitsCol === 0x05D)) points++;
+            bitsRow = bitsRow << 1 & 0x7FF | data.get(col, row);
+            if (col >= 10 && (bitsRow === 0x5D0 || bitsRow === 0x05D)) points++;
+        }
+    }
+    return points * PenaltyScores.N3;
+};
+/**
+ * Calculate proportion of dark modules in entire symbol
+ *
+ * Points: N4 * k
+ *
+ * k is the rating of the deviation of the proportion of dark modules
+ * in the symbol from 50% in steps of 5%
+ */ exports.getPenaltyN4 = function getPenaltyN4(data) {
+    let darkCount = 0;
+    const modulesCount = data.data.length;
+    for(let i = 0; i < modulesCount; i++)darkCount += data.data[i];
+    const k = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
+    return k * PenaltyScores.N4;
+};
+/**
+ * Return mask value at given position
+ *
+ * @param  {Number} maskPattern Pattern reference value
+ * @param  {Number} i           Row
+ * @param  {Number} j           Column
+ * @return {Boolean}            Mask value
+ */ function getMaskAt(maskPattern, i, j) {
+    switch(maskPattern){
+        case exports.Patterns.PATTERN000:
+            return (i + j) % 2 === 0;
+        case exports.Patterns.PATTERN001:
+            return i % 2 === 0;
+        case exports.Patterns.PATTERN010:
+            return j % 3 === 0;
+        case exports.Patterns.PATTERN011:
+            return (i + j) % 3 === 0;
+        case exports.Patterns.PATTERN100:
+            return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
+        case exports.Patterns.PATTERN101:
+            return i * j % 2 + i * j % 3 === 0;
+        case exports.Patterns.PATTERN110:
+            return (i * j % 2 + i * j % 3) % 2 === 0;
+        case exports.Patterns.PATTERN111:
+            return (i * j % 3 + (i + j) % 2) % 2 === 0;
+        default:
+            throw new Error('bad maskPattern:' + maskPattern);
+    }
+}
+/**
+ * Apply a mask pattern to a BitMatrix
+ *
+ * @param  {Number}    pattern Pattern reference number
+ * @param  {BitMatrix} data    BitMatrix data
+ */ exports.applyMask = function applyMask(pattern, data) {
+    const size = data.size;
+    for(let col = 0; col < size; col++){
+        for(let row = 0; row < size; row++){
+            if (data.isReserved(row, col)) continue;
+            data.xor(row, col, getMaskAt(pattern, row, col));
+        }
+    }
+};
+/**
+ * Returns the best mask pattern for data
+ *
+ * @param  {BitMatrix} data
+ * @return {Number} Mask pattern reference number
+ */ exports.getBestMask = function getBestMask(data, setupFormatFunc) {
+    const numPatterns = Object.keys(exports.Patterns).length;
+    let bestPattern = 0;
+    let lowerPenalty = Infinity;
+    for(let p = 0; p < numPatterns; p++){
+        setupFormatFunc(p);
+        exports.applyMask(p, data);
+        // Calculate penalty
+        const penalty = exports.getPenaltyN1(data) + exports.getPenaltyN2(data) + exports.getPenaltyN3(data) + exports.getPenaltyN4(data);
+        // Undo previously applied mask
+        exports.applyMask(p, data);
+        if (penalty < lowerPenalty) {
+            lowerPenalty = penalty;
+            bestPattern = p;
+        }
+    }
+    return bestPattern;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-code.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const ECLevel = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-level.js [app-ssr] (ecmascript)");
+const EC_BLOCKS_TABLE = [
+    // L  M  Q  H
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    1,
+    2,
+    2,
+    4,
+    1,
+    2,
+    4,
+    4,
+    2,
+    4,
+    4,
+    4,
+    2,
+    4,
+    6,
+    5,
+    2,
+    4,
+    6,
+    6,
+    2,
+    5,
+    8,
+    8,
+    4,
+    5,
+    8,
+    8,
+    4,
+    5,
+    8,
+    11,
+    4,
+    8,
+    10,
+    11,
+    4,
+    9,
+    12,
+    16,
+    4,
+    9,
+    16,
+    16,
+    6,
+    10,
+    12,
+    18,
+    6,
+    10,
+    17,
+    16,
+    6,
+    11,
+    16,
+    19,
+    6,
+    13,
+    18,
+    21,
+    7,
+    14,
+    21,
+    25,
+    8,
+    16,
+    20,
+    25,
+    8,
+    17,
+    23,
+    25,
+    9,
+    17,
+    23,
+    34,
+    9,
+    18,
+    25,
+    30,
+    10,
+    20,
+    27,
+    32,
+    12,
+    21,
+    29,
+    35,
+    12,
+    23,
+    34,
+    37,
+    12,
+    25,
+    34,
+    40,
+    13,
+    26,
+    35,
+    42,
+    14,
+    28,
+    38,
+    45,
+    15,
+    29,
+    40,
+    48,
+    16,
+    31,
+    43,
+    51,
+    17,
+    33,
+    45,
+    54,
+    18,
+    35,
+    48,
+    57,
+    19,
+    37,
+    51,
+    60,
+    19,
+    38,
+    53,
+    63,
+    20,
+    40,
+    56,
+    66,
+    21,
+    43,
+    59,
+    70,
+    22,
+    45,
+    62,
+    74,
+    24,
+    47,
+    65,
+    77,
+    25,
+    49,
+    68,
+    81
+];
+const EC_CODEWORDS_TABLE = [
+    // L  M  Q  H
+    7,
+    10,
+    13,
+    17,
+    10,
+    16,
+    22,
+    28,
+    15,
+    26,
+    36,
+    44,
+    20,
+    36,
+    52,
+    64,
+    26,
+    48,
+    72,
+    88,
+    36,
+    64,
+    96,
+    112,
+    40,
+    72,
+    108,
+    130,
+    48,
+    88,
+    132,
+    156,
+    60,
+    110,
+    160,
+    192,
+    72,
+    130,
+    192,
+    224,
+    80,
+    150,
+    224,
+    264,
+    96,
+    176,
+    260,
+    308,
+    104,
+    198,
+    288,
+    352,
+    120,
+    216,
+    320,
+    384,
+    132,
+    240,
+    360,
+    432,
+    144,
+    280,
+    408,
+    480,
+    168,
+    308,
+    448,
+    532,
+    180,
+    338,
+    504,
+    588,
+    196,
+    364,
+    546,
+    650,
+    224,
+    416,
+    600,
+    700,
+    224,
+    442,
+    644,
+    750,
+    252,
+    476,
+    690,
+    816,
+    270,
+    504,
+    750,
+    900,
+    300,
+    560,
+    810,
+    960,
+    312,
+    588,
+    870,
+    1050,
+    336,
+    644,
+    952,
+    1110,
+    360,
+    700,
+    1020,
+    1200,
+    390,
+    728,
+    1050,
+    1260,
+    420,
+    784,
+    1140,
+    1350,
+    450,
+    812,
+    1200,
+    1440,
+    480,
+    868,
+    1290,
+    1530,
+    510,
+    924,
+    1350,
+    1620,
+    540,
+    980,
+    1440,
+    1710,
+    570,
+    1036,
+    1530,
+    1800,
+    570,
+    1064,
+    1590,
+    1890,
+    600,
+    1120,
+    1680,
+    1980,
+    630,
+    1204,
+    1770,
+    2100,
+    660,
+    1260,
+    1860,
+    2220,
+    720,
+    1316,
+    1950,
+    2310,
+    750,
+    1372,
+    2040,
+    2430
+];
+/**
+ * Returns the number of error correction block that the QR Code should contain
+ * for the specified version and error correction level.
+ *
+ * @param  {Number} version              QR Code version
+ * @param  {Number} errorCorrectionLevel Error correction level
+ * @return {Number}                      Number of error correction blocks
+ */ exports.getBlocksCount = function getBlocksCount(version, errorCorrectionLevel) {
+    switch(errorCorrectionLevel){
+        case ECLevel.L:
+            return EC_BLOCKS_TABLE[(version - 1) * 4 + 0];
+        case ECLevel.M:
+            return EC_BLOCKS_TABLE[(version - 1) * 4 + 1];
+        case ECLevel.Q:
+            return EC_BLOCKS_TABLE[(version - 1) * 4 + 2];
+        case ECLevel.H:
+            return EC_BLOCKS_TABLE[(version - 1) * 4 + 3];
+        default:
+            return undefined;
+    }
+};
+/**
+ * Returns the number of error correction codewords to use for the specified
+ * version and error correction level.
+ *
+ * @param  {Number} version              QR Code version
+ * @param  {Number} errorCorrectionLevel Error correction level
+ * @return {Number}                      Number of error correction codewords
+ */ exports.getTotalCodewordsCount = function getTotalCodewordsCount(version, errorCorrectionLevel) {
+    switch(errorCorrectionLevel){
+        case ECLevel.L:
+            return EC_CODEWORDS_TABLE[(version - 1) * 4 + 0];
+        case ECLevel.M:
+            return EC_CODEWORDS_TABLE[(version - 1) * 4 + 1];
+        case ECLevel.Q:
+            return EC_CODEWORDS_TABLE[(version - 1) * 4 + 2];
+        case ECLevel.H:
+            return EC_CODEWORDS_TABLE[(version - 1) * 4 + 3];
+        default:
+            return undefined;
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/galois-field.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const EXP_TABLE = new Uint8Array(512);
+const LOG_TABLE = new Uint8Array(256);
+(function initTables() {
+    let x = 1;
+    for(let i = 0; i < 255; i++){
+        EXP_TABLE[i] = x;
+        LOG_TABLE[x] = i;
+        x <<= 1; // multiply by 2
+        // The QR code specification says to use byte-wise modulo 100011101 arithmetic.
+        // This means that when a number is 256 or larger, it should be XORed with 0x11D.
+        if (x & 0x100) {
+            x ^= 0x11D;
+        }
+    }
+    // Optimization: double the size of the anti-log table so that we don't need to mod 255 to
+    // stay inside the bounds (because we will mainly use this table for the multiplication of
+    // two GF numbers, no more).
+    // @see {@link mul}
+    for(let i = 255; i < 512; i++){
+        EXP_TABLE[i] = EXP_TABLE[i - 255];
+    }
+})();
+/**
+ * Returns log value of n inside Galois Field
+ *
+ * @param  {Number} n
+ * @return {Number}
+ */ exports.log = function log(n) {
+    if (n < 1) throw new Error('log(' + n + ')');
+    return LOG_TABLE[n];
+};
+/**
+ * Returns anti-log value of n inside Galois Field
+ *
+ * @param  {Number} n
+ * @return {Number}
+ */ exports.exp = function exp(n) {
+    return EXP_TABLE[n];
+};
+/**
+ * Multiplies two number inside Galois Field
+ *
+ * @param  {Number} x
+ * @param  {Number} y
+ * @return {Number}
+ */ exports.mul = function mul(x, y) {
+    if (x === 0 || y === 0) return 0;
+    // should be EXP_TABLE[(LOG_TABLE[x] + LOG_TABLE[y]) % 255] if EXP_TABLE wasn't oversized
+    // @see {@link initTables}
+    return EXP_TABLE[LOG_TABLE[x] + LOG_TABLE[y]];
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/polynomial.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const GF = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/galois-field.js [app-ssr] (ecmascript)");
+/**
+ * Multiplies two polynomials inside Galois Field
+ *
+ * @param  {Uint8Array} p1 Polynomial
+ * @param  {Uint8Array} p2 Polynomial
+ * @return {Uint8Array}    Product of p1 and p2
+ */ exports.mul = function mul(p1, p2) {
+    const coeff = new Uint8Array(p1.length + p2.length - 1);
+    for(let i = 0; i < p1.length; i++){
+        for(let j = 0; j < p2.length; j++){
+            coeff[i + j] ^= GF.mul(p1[i], p2[j]);
+        }
+    }
+    return coeff;
+};
+/**
+ * Calculate the remainder of polynomials division
+ *
+ * @param  {Uint8Array} divident Polynomial
+ * @param  {Uint8Array} divisor  Polynomial
+ * @return {Uint8Array}          Remainder
+ */ exports.mod = function mod(divident, divisor) {
+    let result = new Uint8Array(divident);
+    while(result.length - divisor.length >= 0){
+        const coeff = result[0];
+        for(let i = 0; i < divisor.length; i++){
+            result[i] ^= GF.mul(divisor[i], coeff);
+        }
+        // remove all zeros from buffer head
+        let offset = 0;
+        while(offset < result.length && result[offset] === 0)offset++;
+        result = result.slice(offset);
+    }
+    return result;
+};
+/**
+ * Generate an irreducible generator polynomial of specified degree
+ * (used by Reed-Solomon encoder)
+ *
+ * @param  {Number} degree Degree of the generator polynomial
+ * @return {Uint8Array}    Buffer containing polynomial coefficients
+ */ exports.generateECPolynomial = function generateECPolynomial(degree) {
+    let poly = new Uint8Array([
+        1
+    ]);
+    for(let i = 0; i < degree; i++){
+        poly = exports.mul(poly, new Uint8Array([
+            1,
+            GF.exp(i)
+        ]));
+    }
+    return poly;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/reed-solomon-encoder.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Polynomial = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/polynomial.js [app-ssr] (ecmascript)");
+function ReedSolomonEncoder(degree) {
+    this.genPoly = undefined;
+    this.degree = degree;
+    if (this.degree) this.initialize(this.degree);
+}
+/**
+ * Initialize the encoder.
+ * The input param should correspond to the number of error correction codewords.
+ *
+ * @param  {Number} degree
+ */ ReedSolomonEncoder.prototype.initialize = function initialize(degree) {
+    // create an irreducible generator polynomial
+    this.degree = degree;
+    this.genPoly = Polynomial.generateECPolynomial(this.degree);
+};
+/**
+ * Encodes a chunk of data
+ *
+ * @param  {Uint8Array} data Buffer containing input data
+ * @return {Uint8Array}      Buffer containing encoded data
+ */ ReedSolomonEncoder.prototype.encode = function encode(data) {
+    if (!this.genPoly) {
+        throw new Error('Encoder not initialized');
+    }
+    // Calculate EC for this data block
+    // extends data size to data+genPoly size
+    const paddedData = new Uint8Array(data.length + this.degree);
+    paddedData.set(data);
+    // The error correction codewords are the remainder after dividing the data codewords
+    // by a generator polynomial
+    const remainder = Polynomial.mod(paddedData, this.genPoly);
+    // return EC data blocks (last n byte, where n is the degree of genPoly)
+    // If coefficients number in remainder are less than genPoly degree,
+    // pad with 0s to the left to reach the needed number of coefficients
+    const start = this.degree - remainder.length;
+    if (start > 0) {
+        const buff = new Uint8Array(this.degree);
+        buff.set(remainder, start);
+        return buff;
+    }
+    return remainder;
+};
+module.exports = ReedSolomonEncoder;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/version-check.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/**
+ * Check if QR Code version is valid
+ *
+ * @param  {Number}  version QR Code version
+ * @return {Boolean}         true if valid version, false otherwise
+ */ exports.isValid = function isValid(version) {
+    return !isNaN(version) && version >= 1 && version <= 40;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/regex.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const numeric = '[0-9]+';
+const alphanumeric = '[A-Z $%*+\\-./:]+';
+let kanji = '(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|' + '[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|' + '[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|' + '[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+';
+kanji = kanji.replace(/u/g, '\\u');
+const byte = '(?:(?![A-Z0-9 $%*+\\-./:]|' + kanji + ')(?:.|[\r\n]))+';
+exports.KANJI = new RegExp(kanji, 'g');
+exports.BYTE_KANJI = new RegExp('[^A-Z0-9 $%*+\\-./:]+', 'g');
+exports.BYTE = new RegExp(byte, 'g');
+exports.NUMERIC = new RegExp(numeric, 'g');
+exports.ALPHANUMERIC = new RegExp(alphanumeric, 'g');
+const TEST_KANJI = new RegExp('^' + kanji + '$');
+const TEST_NUMERIC = new RegExp('^' + numeric + '$');
+const TEST_ALPHANUMERIC = new RegExp('^[A-Z0-9 $%*+\\-./:]+$');
+exports.testKanji = function testKanji(str) {
+    return TEST_KANJI.test(str);
+};
+exports.testNumeric = function testNumeric(str) {
+    return TEST_NUMERIC.test(str);
+};
+exports.testAlphanumeric = function testAlphanumeric(str) {
+    return TEST_ALPHANUMERIC.test(str);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const VersionCheck = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/version-check.js [app-ssr] (ecmascript)");
+const Regex = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/regex.js [app-ssr] (ecmascript)");
+/**
+ * Numeric mode encodes data from the decimal digit set (0 - 9)
+ * (byte values 30HEX to 39HEX).
+ * Normally, 3 data characters are represented by 10 bits.
+ *
+ * @type {Object}
+ */ exports.NUMERIC = {
+    id: 'Numeric',
+    bit: 1 << 0,
+    ccBits: [
+        10,
+        12,
+        14
+    ]
+};
+/**
+ * Alphanumeric mode encodes data from a set of 45 characters,
+ * i.e. 10 numeric digits (0 - 9),
+ *      26 alphabetic characters (A - Z),
+ *   and 9 symbols (SP, $, %, *, +, -, ., /, :).
+ * Normally, two input characters are represented by 11 bits.
+ *
+ * @type {Object}
+ */ exports.ALPHANUMERIC = {
+    id: 'Alphanumeric',
+    bit: 1 << 1,
+    ccBits: [
+        9,
+        11,
+        13
+    ]
+};
+/**
+ * In byte mode, data is encoded at 8 bits per character.
+ *
+ * @type {Object}
+ */ exports.BYTE = {
+    id: 'Byte',
+    bit: 1 << 2,
+    ccBits: [
+        8,
+        16,
+        16
+    ]
+};
+/**
+ * The Kanji mode efficiently encodes Kanji characters in accordance with
+ * the Shift JIS system based on JIS X 0208.
+ * The Shift JIS values are shifted from the JIS X 0208 values.
+ * JIS X 0208 gives details of the shift coded representation.
+ * Each two-byte character value is compacted to a 13-bit binary codeword.
+ *
+ * @type {Object}
+ */ exports.KANJI = {
+    id: 'Kanji',
+    bit: 1 << 3,
+    ccBits: [
+        8,
+        10,
+        12
+    ]
+};
+/**
+ * Mixed mode will contain a sequences of data in a combination of any of
+ * the modes described above
+ *
+ * @type {Object}
+ */ exports.MIXED = {
+    bit: -1
+};
+/**
+ * Returns the number of bits needed to store the data length
+ * according to QR Code specifications.
+ *
+ * @param  {Mode}   mode    Data mode
+ * @param  {Number} version QR Code version
+ * @return {Number}         Number of bits
+ */ exports.getCharCountIndicator = function getCharCountIndicator(mode, version) {
+    if (!mode.ccBits) throw new Error('Invalid mode: ' + mode);
+    if (!VersionCheck.isValid(version)) {
+        throw new Error('Invalid version: ' + version);
+    }
+    if (version >= 1 && version < 10) return mode.ccBits[0];
+    else if (version < 27) return mode.ccBits[1];
+    return mode.ccBits[2];
+};
+/**
+ * Returns the most efficient mode to store the specified data
+ *
+ * @param  {String} dataStr Input data string
+ * @return {Mode}           Best mode
+ */ exports.getBestModeForData = function getBestModeForData(dataStr) {
+    if (Regex.testNumeric(dataStr)) return exports.NUMERIC;
+    else if (Regex.testAlphanumeric(dataStr)) return exports.ALPHANUMERIC;
+    else if (Regex.testKanji(dataStr)) return exports.KANJI;
+    else return exports.BYTE;
+};
+/**
+ * Return mode name as string
+ *
+ * @param {Mode} mode Mode object
+ * @returns {String}  Mode name
+ */ exports.toString = function toString(mode) {
+    if (mode && mode.id) return mode.id;
+    throw new Error('Invalid mode');
+};
+/**
+ * Check if input param is a valid mode object
+ *
+ * @param   {Mode}    mode Mode object
+ * @returns {Boolean} True if valid mode, false otherwise
+ */ exports.isValid = function isValid(mode) {
+    return mode && mode.bit && mode.ccBits;
+};
+/**
+ * Get mode object from its name
+ *
+ * @param   {String} string Mode name
+ * @returns {Mode}          Mode object
+ */ function fromString(string) {
+    if (typeof string !== 'string') {
+        throw new Error('Param is not a string');
+    }
+    const lcStr = string.toLowerCase();
+    switch(lcStr){
+        case 'numeric':
+            return exports.NUMERIC;
+        case 'alphanumeric':
+            return exports.ALPHANUMERIC;
+        case 'kanji':
+            return exports.KANJI;
+        case 'byte':
+            return exports.BYTE;
+        default:
+            throw new Error('Unknown mode: ' + string);
+    }
+}
+/**
+ * Returns mode from a value.
+ * If value is not a valid mode, returns defaultValue
+ *
+ * @param  {Mode|String} value        Encoding mode
+ * @param  {Mode}        defaultValue Fallback value
+ * @return {Mode}                     Encoding mode
+ */ exports.from = function from(value, defaultValue) {
+    if (exports.isValid(value)) {
+        return value;
+    }
+    try {
+        return fromString(value);
+    } catch (e) {
+        return defaultValue;
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/version.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)");
+const ECCode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-code.js [app-ssr] (ecmascript)");
+const ECLevel = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-level.js [app-ssr] (ecmascript)");
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+const VersionCheck = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/version-check.js [app-ssr] (ecmascript)");
+// Generator polynomial used to encode version information
+const G18 = 1 << 12 | 1 << 11 | 1 << 10 | 1 << 9 | 1 << 8 | 1 << 5 | 1 << 2 | 1 << 0;
+const G18_BCH = Utils.getBCHDigit(G18);
+function getBestVersionForDataLength(mode, length, errorCorrectionLevel) {
+    for(let currentVersion = 1; currentVersion <= 40; currentVersion++){
+        if (length <= exports.getCapacity(currentVersion, errorCorrectionLevel, mode)) {
+            return currentVersion;
+        }
+    }
+    return undefined;
+}
+function getReservedBitsCount(mode, version) {
+    // Character count indicator + mode indicator bits
+    return Mode.getCharCountIndicator(mode, version) + 4;
+}
+function getTotalBitsFromDataArray(segments, version) {
+    let totalBits = 0;
+    segments.forEach(function(data) {
+        const reservedBits = getReservedBitsCount(data.mode, version);
+        totalBits += reservedBits + data.getBitsLength();
+    });
+    return totalBits;
+}
+function getBestVersionForMixedData(segments, errorCorrectionLevel) {
+    for(let currentVersion = 1; currentVersion <= 40; currentVersion++){
+        const length = getTotalBitsFromDataArray(segments, currentVersion);
+        if (length <= exports.getCapacity(currentVersion, errorCorrectionLevel, Mode.MIXED)) {
+            return currentVersion;
+        }
+    }
+    return undefined;
+}
+/**
+ * Returns version number from a value.
+ * If value is not a valid version, returns defaultValue
+ *
+ * @param  {Number|String} value        QR Code version
+ * @param  {Number}        defaultValue Fallback value
+ * @return {Number}                     QR Code version number
+ */ exports.from = function from(value, defaultValue) {
+    if (VersionCheck.isValid(value)) {
+        return parseInt(value, 10);
+    }
+    return defaultValue;
+};
+/**
+ * Returns how much data can be stored with the specified QR code version
+ * and error correction level
+ *
+ * @param  {Number} version              QR Code version (1-40)
+ * @param  {Number} errorCorrectionLevel Error correction level
+ * @param  {Mode}   mode                 Data mode
+ * @return {Number}                      Quantity of storable data
+ */ exports.getCapacity = function getCapacity(version, errorCorrectionLevel, mode) {
+    if (!VersionCheck.isValid(version)) {
+        throw new Error('Invalid QR Code version');
+    }
+    // Use Byte mode as default
+    if (typeof mode === 'undefined') mode = Mode.BYTE;
+    // Total codewords for this QR code version (Data + Error correction)
+    const totalCodewords = Utils.getSymbolTotalCodewords(version);
+    // Total number of error correction codewords
+    const ecTotalCodewords = ECCode.getTotalCodewordsCount(version, errorCorrectionLevel);
+    // Total number of data codewords
+    const dataTotalCodewordsBits = (totalCodewords - ecTotalCodewords) * 8;
+    if (mode === Mode.MIXED) return dataTotalCodewordsBits;
+    const usableBits = dataTotalCodewordsBits - getReservedBitsCount(mode, version);
+    // Return max number of storable codewords
+    switch(mode){
+        case Mode.NUMERIC:
+            return Math.floor(usableBits / 10 * 3);
+        case Mode.ALPHANUMERIC:
+            return Math.floor(usableBits / 11 * 2);
+        case Mode.KANJI:
+            return Math.floor(usableBits / 13);
+        case Mode.BYTE:
+        default:
+            return Math.floor(usableBits / 8);
+    }
+};
+/**
+ * Returns the minimum version needed to contain the amount of data
+ *
+ * @param  {Segment} data                    Segment of data
+ * @param  {Number} [errorCorrectionLevel=H] Error correction level
+ * @param  {Mode} mode                       Data mode
+ * @return {Number}                          QR Code version
+ */ exports.getBestVersionForData = function getBestVersionForData(data, errorCorrectionLevel) {
+    let seg;
+    const ecl = ECLevel.from(errorCorrectionLevel, ECLevel.M);
+    if (Array.isArray(data)) {
+        if (data.length > 1) {
+            return getBestVersionForMixedData(data, ecl);
+        }
+        if (data.length === 0) {
+            return 1;
+        }
+        seg = data[0];
+    } else {
+        seg = data;
+    }
+    return getBestVersionForDataLength(seg.mode, seg.getLength(), ecl);
+};
+/**
+ * Returns version information with relative error correction bits
+ *
+ * The version information is included in QR Code symbols of version 7 or larger.
+ * It consists of an 18-bit sequence containing 6 data bits,
+ * with 12 error correction bits calculated using the (18, 6) Golay code.
+ *
+ * @param  {Number} version QR Code version
+ * @return {Number}         Encoded version info bits
+ */ exports.getEncodedBits = function getEncodedBits(version) {
+    if (!VersionCheck.isValid(version) || version < 7) {
+        throw new Error('Invalid QR Code version');
+    }
+    let d = version << 12;
+    while(Utils.getBCHDigit(d) - G18_BCH >= 0){
+        d ^= G18 << Utils.getBCHDigit(d) - G18_BCH;
+    }
+    return version << 12 | d;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/format-info.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)");
+const G15 = 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0;
+const G15_MASK = 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1;
+const G15_BCH = Utils.getBCHDigit(G15);
+/**
+ * Returns format information with relative error correction bits
+ *
+ * The format information is a 15-bit sequence containing 5 data bits,
+ * with 10 error correction bits calculated using the (15, 5) BCH code.
+ *
+ * @param  {Number} errorCorrectionLevel Error correction level
+ * @param  {Number} mask                 Mask pattern
+ * @return {Number}                      Encoded format information bits
+ */ exports.getEncodedBits = function getEncodedBits(errorCorrectionLevel, mask) {
+    const data = errorCorrectionLevel.bit << 3 | mask;
+    let d = data << 10;
+    while(Utils.getBCHDigit(d) - G15_BCH >= 0){
+        d ^= G15 << Utils.getBCHDigit(d) - G15_BCH;
+    }
+    // xor final data with mask pattern in order to ensure that
+    // no combination of Error Correction Level and data mask pattern
+    // will result in an all-zero data string
+    return (data << 10 | d) ^ G15_MASK;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/numeric-data.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+function NumericData(data) {
+    this.mode = Mode.NUMERIC;
+    this.data = data.toString();
+}
+NumericData.getBitsLength = function getBitsLength(length) {
+    return 10 * Math.floor(length / 3) + (length % 3 ? length % 3 * 3 + 1 : 0);
+};
+NumericData.prototype.getLength = function getLength() {
+    return this.data.length;
+};
+NumericData.prototype.getBitsLength = function getBitsLength() {
+    return NumericData.getBitsLength(this.data.length);
+};
+NumericData.prototype.write = function write(bitBuffer) {
+    let i, group, value;
+    // The input data string is divided into groups of three digits,
+    // and each group is converted to its 10-bit binary equivalent.
+    for(i = 0; i + 3 <= this.data.length; i += 3){
+        group = this.data.substr(i, 3);
+        value = parseInt(group, 10);
+        bitBuffer.put(value, 10);
+    }
+    // If the number of input digits is not an exact multiple of three,
+    // the final one or two digits are converted to 4 or 7 bits respectively.
+    const remainingNum = this.data.length - i;
+    if (remainingNum > 0) {
+        group = this.data.substr(i);
+        value = parseInt(group, 10);
+        bitBuffer.put(value, remainingNum * 3 + 1);
+    }
+};
+module.exports = NumericData;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/alphanumeric-data.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+/**
+ * Array of characters available in alphanumeric mode
+ *
+ * As per QR Code specification, to each character
+ * is assigned a value from 0 to 44 which in this case coincides
+ * with the array index
+ *
+ * @type {Array}
+ */ const ALPHA_NUM_CHARS = [
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+    ' ',
+    '$',
+    '%',
+    '*',
+    '+',
+    '-',
+    '.',
+    '/',
+    ':'
+];
+function AlphanumericData(data) {
+    this.mode = Mode.ALPHANUMERIC;
+    this.data = data;
+}
+AlphanumericData.getBitsLength = function getBitsLength(length) {
+    return 11 * Math.floor(length / 2) + 6 * (length % 2);
+};
+AlphanumericData.prototype.getLength = function getLength() {
+    return this.data.length;
+};
+AlphanumericData.prototype.getBitsLength = function getBitsLength() {
+    return AlphanumericData.getBitsLength(this.data.length);
+};
+AlphanumericData.prototype.write = function write(bitBuffer) {
+    let i;
+    // Input data characters are divided into groups of two characters
+    // and encoded as 11-bit binary codes.
+    for(i = 0; i + 2 <= this.data.length; i += 2){
+        // The character value of the first character is multiplied by 45
+        let value = ALPHA_NUM_CHARS.indexOf(this.data[i]) * 45;
+        // The character value of the second digit is added to the product
+        value += ALPHA_NUM_CHARS.indexOf(this.data[i + 1]);
+        // The sum is then stored as 11-bit binary number
+        bitBuffer.put(value, 11);
+    }
+    // If the number of input data characters is not a multiple of two,
+    // the character value of the final character is encoded as a 6-bit binary number.
+    if (this.data.length % 2) {
+        bitBuffer.put(ALPHA_NUM_CHARS.indexOf(this.data[i]), 6);
+    }
+};
+module.exports = AlphanumericData;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/byte-data.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+function ByteData(data) {
+    this.mode = Mode.BYTE;
+    if (typeof data === 'string') {
+        this.data = new TextEncoder().encode(data);
+    } else {
+        this.data = new Uint8Array(data);
+    }
+}
+ByteData.getBitsLength = function getBitsLength(length) {
+    return length * 8;
+};
+ByteData.prototype.getLength = function getLength() {
+    return this.data.length;
+};
+ByteData.prototype.getBitsLength = function getBitsLength() {
+    return ByteData.getBitsLength(this.data.length);
+};
+ByteData.prototype.write = function(bitBuffer) {
+    for(let i = 0, l = this.data.length; i < l; i++){
+        bitBuffer.put(this.data[i], 8);
+    }
+};
+module.exports = ByteData;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/kanji-data.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)");
+function KanjiData(data) {
+    this.mode = Mode.KANJI;
+    this.data = data;
+}
+KanjiData.getBitsLength = function getBitsLength(length) {
+    return length * 13;
+};
+KanjiData.prototype.getLength = function getLength() {
+    return this.data.length;
+};
+KanjiData.prototype.getBitsLength = function getBitsLength() {
+    return KanjiData.getBitsLength(this.data.length);
+};
+KanjiData.prototype.write = function(bitBuffer) {
+    let i;
+    // In the Shift JIS system, Kanji characters are represented by a two byte combination.
+    // These byte values are shifted from the JIS X 0208 values.
+    // JIS X 0208 gives details of the shift coded representation.
+    for(i = 0; i < this.data.length; i++){
+        let value = Utils.toSJIS(this.data[i]);
+        // For characters with Shift JIS values from 0x8140 to 0x9FFC:
+        if (value >= 0x8140 && value <= 0x9FFC) {
+            // Subtract 0x8140 from Shift JIS value
+            value -= 0x8140;
+        // For characters with Shift JIS values from 0xE040 to 0xEBBF
+        } else if (value >= 0xE040 && value <= 0xEBBF) {
+            // Subtract 0xC140 from Shift JIS value
+            value -= 0xC140;
+        } else {
+            throw new Error('Invalid SJIS character: ' + this.data[i] + '\n' + 'Make sure your charset is UTF-8');
+        }
+        // Multiply most significant byte of result by 0xC0
+        // and add least significant byte to product
+        value = (value >>> 8 & 0xff) * 0xC0 + (value & 0xff);
+        // Convert result to a 13-bit binary string
+        bitBuffer.put(value, 13);
+    }
+};
+module.exports = KanjiData;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/segments.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+const NumericData = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/numeric-data.js [app-ssr] (ecmascript)");
+const AlphanumericData = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/alphanumeric-data.js [app-ssr] (ecmascript)");
+const ByteData = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/byte-data.js [app-ssr] (ecmascript)");
+const KanjiData = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/kanji-data.js [app-ssr] (ecmascript)");
+const Regex = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/regex.js [app-ssr] (ecmascript)");
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)");
+const dijkstra = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/dijkstrajs/dijkstra.js [app-ssr] (ecmascript)");
+/**
+ * Returns UTF8 byte length
+ *
+ * @param  {String} str Input string
+ * @return {Number}     Number of byte
+ */ function getStringByteLength(str) {
+    return unescape(encodeURIComponent(str)).length;
+}
+/**
+ * Get a list of segments of the specified mode
+ * from a string
+ *
+ * @param  {Mode}   mode Segment mode
+ * @param  {String} str  String to process
+ * @return {Array}       Array of object with segments data
+ */ function getSegments(regex, mode, str) {
+    const segments = [];
+    let result;
+    while((result = regex.exec(str)) !== null){
+        segments.push({
+            data: result[0],
+            index: result.index,
+            mode: mode,
+            length: result[0].length
+        });
+    }
+    return segments;
+}
+/**
+ * Extracts a series of segments with the appropriate
+ * modes from a string
+ *
+ * @param  {String} dataStr Input string
+ * @return {Array}          Array of object with segments data
+ */ function getSegmentsFromString(dataStr) {
+    const numSegs = getSegments(Regex.NUMERIC, Mode.NUMERIC, dataStr);
+    const alphaNumSegs = getSegments(Regex.ALPHANUMERIC, Mode.ALPHANUMERIC, dataStr);
+    let byteSegs;
+    let kanjiSegs;
+    if (Utils.isKanjiModeEnabled()) {
+        byteSegs = getSegments(Regex.BYTE, Mode.BYTE, dataStr);
+        kanjiSegs = getSegments(Regex.KANJI, Mode.KANJI, dataStr);
+    } else {
+        byteSegs = getSegments(Regex.BYTE_KANJI, Mode.BYTE, dataStr);
+        kanjiSegs = [];
+    }
+    const segs = numSegs.concat(alphaNumSegs, byteSegs, kanjiSegs);
+    return segs.sort(function(s1, s2) {
+        return s1.index - s2.index;
+    }).map(function(obj) {
+        return {
+            data: obj.data,
+            mode: obj.mode,
+            length: obj.length
+        };
+    });
+}
+/**
+ * Returns how many bits are needed to encode a string of
+ * specified length with the specified mode
+ *
+ * @param  {Number} length String length
+ * @param  {Mode} mode     Segment mode
+ * @return {Number}        Bit length
+ */ function getSegmentBitsLength(length, mode) {
+    switch(mode){
+        case Mode.NUMERIC:
+            return NumericData.getBitsLength(length);
+        case Mode.ALPHANUMERIC:
+            return AlphanumericData.getBitsLength(length);
+        case Mode.KANJI:
+            return KanjiData.getBitsLength(length);
+        case Mode.BYTE:
+            return ByteData.getBitsLength(length);
+    }
+}
+/**
+ * Merges adjacent segments which have the same mode
+ *
+ * @param  {Array} segs Array of object with segments data
+ * @return {Array}      Array of object with segments data
+ */ function mergeSegments(segs) {
+    return segs.reduce(function(acc, curr) {
+        const prevSeg = acc.length - 1 >= 0 ? acc[acc.length - 1] : null;
+        if (prevSeg && prevSeg.mode === curr.mode) {
+            acc[acc.length - 1].data += curr.data;
+            return acc;
+        }
+        acc.push(curr);
+        return acc;
+    }, []);
+}
+/**
+ * Generates a list of all possible nodes combination which
+ * will be used to build a segments graph.
+ *
+ * Nodes are divided by groups. Each group will contain a list of all the modes
+ * in which is possible to encode the given text.
+ *
+ * For example the text '12345' can be encoded as Numeric, Alphanumeric or Byte.
+ * The group for '12345' will contain then 3 objects, one for each
+ * possible encoding mode.
+ *
+ * Each node represents a possible segment.
+ *
+ * @param  {Array} segs Array of object with segments data
+ * @return {Array}      Array of object with segments data
+ */ function buildNodes(segs) {
+    const nodes = [];
+    for(let i = 0; i < segs.length; i++){
+        const seg = segs[i];
+        switch(seg.mode){
+            case Mode.NUMERIC:
+                nodes.push([
+                    seg,
+                    {
+                        data: seg.data,
+                        mode: Mode.ALPHANUMERIC,
+                        length: seg.length
+                    },
+                    {
+                        data: seg.data,
+                        mode: Mode.BYTE,
+                        length: seg.length
+                    }
+                ]);
+                break;
+            case Mode.ALPHANUMERIC:
+                nodes.push([
+                    seg,
+                    {
+                        data: seg.data,
+                        mode: Mode.BYTE,
+                        length: seg.length
+                    }
+                ]);
+                break;
+            case Mode.KANJI:
+                nodes.push([
+                    seg,
+                    {
+                        data: seg.data,
+                        mode: Mode.BYTE,
+                        length: getStringByteLength(seg.data)
+                    }
+                ]);
+                break;
+            case Mode.BYTE:
+                nodes.push([
+                    {
+                        data: seg.data,
+                        mode: Mode.BYTE,
+                        length: getStringByteLength(seg.data)
+                    }
+                ]);
+        }
+    }
+    return nodes;
+}
+/**
+ * Builds a graph from a list of nodes.
+ * All segments in each node group will be connected with all the segments of
+ * the next group and so on.
+ *
+ * At each connection will be assigned a weight depending on the
+ * segment's byte length.
+ *
+ * @param  {Array} nodes    Array of object with segments data
+ * @param  {Number} version QR Code version
+ * @return {Object}         Graph of all possible segments
+ */ function buildGraph(nodes, version) {
+    const table = {};
+    const graph = {
+        start: {}
+    };
+    let prevNodeIds = [
+        'start'
+    ];
+    for(let i = 0; i < nodes.length; i++){
+        const nodeGroup = nodes[i];
+        const currentNodeIds = [];
+        for(let j = 0; j < nodeGroup.length; j++){
+            const node = nodeGroup[j];
+            const key = '' + i + j;
+            currentNodeIds.push(key);
+            table[key] = {
+                node: node,
+                lastCount: 0
+            };
+            graph[key] = {};
+            for(let n = 0; n < prevNodeIds.length; n++){
+                const prevNodeId = prevNodeIds[n];
+                if (table[prevNodeId] && table[prevNodeId].node.mode === node.mode) {
+                    graph[prevNodeId][key] = getSegmentBitsLength(table[prevNodeId].lastCount + node.length, node.mode) - getSegmentBitsLength(table[prevNodeId].lastCount, node.mode);
+                    table[prevNodeId].lastCount += node.length;
+                } else {
+                    if (table[prevNodeId]) table[prevNodeId].lastCount = node.length;
+                    graph[prevNodeId][key] = getSegmentBitsLength(node.length, node.mode) + 4 + Mode.getCharCountIndicator(node.mode, version); // switch cost
+                }
+            }
+        }
+        prevNodeIds = currentNodeIds;
+    }
+    for(let n = 0; n < prevNodeIds.length; n++){
+        graph[prevNodeIds[n]].end = 0;
+    }
+    return {
+        map: graph,
+        table: table
+    };
+}
+/**
+ * Builds a segment from a specified data and mode.
+ * If a mode is not specified, the more suitable will be used.
+ *
+ * @param  {String} data             Input data
+ * @param  {Mode | String} modesHint Data mode
+ * @return {Segment}                 Segment
+ */ function buildSingleSegment(data, modesHint) {
+    let mode;
+    const bestMode = Mode.getBestModeForData(data);
+    mode = Mode.from(modesHint, bestMode);
+    // Make sure data can be encoded
+    if (mode !== Mode.BYTE && mode.bit < bestMode.bit) {
+        throw new Error('"' + data + '"' + ' cannot be encoded with mode ' + Mode.toString(mode) + '.\n Suggested mode is: ' + Mode.toString(bestMode));
+    }
+    // Use Mode.BYTE if Kanji support is disabled
+    if (mode === Mode.KANJI && !Utils.isKanjiModeEnabled()) {
+        mode = Mode.BYTE;
+    }
+    switch(mode){
+        case Mode.NUMERIC:
+            return new NumericData(data);
+        case Mode.ALPHANUMERIC:
+            return new AlphanumericData(data);
+        case Mode.KANJI:
+            return new KanjiData(data);
+        case Mode.BYTE:
+            return new ByteData(data);
+    }
+}
+/**
+ * Builds a list of segments from an array.
+ * Array can contain Strings or Objects with segment's info.
+ *
+ * For each item which is a string, will be generated a segment with the given
+ * string and the more appropriate encoding mode.
+ *
+ * For each item which is an object, will be generated a segment with the given
+ * data and mode.
+ * Objects must contain at least the property "data".
+ * If property "mode" is not present, the more suitable mode will be used.
+ *
+ * @param  {Array} array Array of objects with segments data
+ * @return {Array}       Array of Segments
+ */ exports.fromArray = function fromArray(array) {
+    return array.reduce(function(acc, seg) {
+        if (typeof seg === 'string') {
+            acc.push(buildSingleSegment(seg, null));
+        } else if (seg.data) {
+            acc.push(buildSingleSegment(seg.data, seg.mode));
+        }
+        return acc;
+    }, []);
+};
+/**
+ * Builds an optimized sequence of segments from a string,
+ * which will produce the shortest possible bitstream.
+ *
+ * @param  {String} data    Input string
+ * @param  {Number} version QR Code version
+ * @return {Array}          Array of segments
+ */ exports.fromString = function fromString(data, version) {
+    const segs = getSegmentsFromString(data, Utils.isKanjiModeEnabled());
+    const nodes = buildNodes(segs);
+    const graph = buildGraph(nodes, version);
+    const path = dijkstra.find_path(graph.map, 'start', 'end');
+    const optimizedSegs = [];
+    for(let i = 1; i < path.length - 1; i++){
+        optimizedSegs.push(graph.table[path[i]].node);
+    }
+    return exports.fromArray(mergeSegments(optimizedSegs));
+};
+/**
+ * Splits a string in various segments with the modes which
+ * best represent their content.
+ * The produced segments are far from being optimized.
+ * The output of this function is only used to estimate a QR Code version
+ * which may contain the data.
+ *
+ * @param  {string} data Input string
+ * @return {Array}       Array of segments
+ */ exports.rawSplit = function rawSplit(data) {
+    return exports.fromArray(getSegmentsFromString(data, Utils.isKanjiModeEnabled()));
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/qrcode.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/utils.js [app-ssr] (ecmascript)");
+const ECLevel = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-level.js [app-ssr] (ecmascript)");
+const BitBuffer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/bit-buffer.js [app-ssr] (ecmascript)");
+const BitMatrix = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/bit-matrix.js [app-ssr] (ecmascript)");
+const AlignmentPattern = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/alignment-pattern.js [app-ssr] (ecmascript)");
+const FinderPattern = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/finder-pattern.js [app-ssr] (ecmascript)");
+const MaskPattern = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mask-pattern.js [app-ssr] (ecmascript)");
+const ECCode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/error-correction-code.js [app-ssr] (ecmascript)");
+const ReedSolomonEncoder = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/reed-solomon-encoder.js [app-ssr] (ecmascript)");
+const Version = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/version.js [app-ssr] (ecmascript)");
+const FormatInfo = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/format-info.js [app-ssr] (ecmascript)");
+const Mode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/mode.js [app-ssr] (ecmascript)");
+const Segments = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/segments.js [app-ssr] (ecmascript)");
+/**
+ * QRCode for JavaScript
+ *
+ * modified by Ryan Day for nodejs support
+ * Copyright (c) 2011 Ryan Day
+ *
+ * Licensed under the MIT license:
+ *   http://www.opensource.org/licenses/mit-license.php
+ *
+//---------------------------------------------------------------------
+// QRCode for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//   http://www.opensource.org/licenses/mit-license.php
+//
+// The word "QR Code" is registered trademark of
+// DENSO WAVE INCORPORATED
+//   http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+*/ /**
+ * Add finder patterns bits to matrix
+ *
+ * @param  {BitMatrix} matrix  Modules matrix
+ * @param  {Number}    version QR Code version
+ */ function setupFinderPattern(matrix, version) {
+    const size = matrix.size;
+    const pos = FinderPattern.getPositions(version);
+    for(let i = 0; i < pos.length; i++){
+        const row = pos[i][0];
+        const col = pos[i][1];
+        for(let r = -1; r <= 7; r++){
+            if (row + r <= -1 || size <= row + r) continue;
+            for(let c = -1; c <= 7; c++){
+                if (col + c <= -1 || size <= col + c) continue;
+                if (r >= 0 && r <= 6 && (c === 0 || c === 6) || c >= 0 && c <= 6 && (r === 0 || r === 6) || r >= 2 && r <= 4 && c >= 2 && c <= 4) {
+                    matrix.set(row + r, col + c, true, true);
+                } else {
+                    matrix.set(row + r, col + c, false, true);
+                }
+            }
+        }
+    }
+}
+/**
+ * Add timing pattern bits to matrix
+ *
+ * Note: this function must be called before {@link setupAlignmentPattern}
+ *
+ * @param  {BitMatrix} matrix Modules matrix
+ */ function setupTimingPattern(matrix) {
+    const size = matrix.size;
+    for(let r = 8; r < size - 8; r++){
+        const value = r % 2 === 0;
+        matrix.set(r, 6, value, true);
+        matrix.set(6, r, value, true);
+    }
+}
+/**
+ * Add alignment patterns bits to matrix
+ *
+ * Note: this function must be called after {@link setupTimingPattern}
+ *
+ * @param  {BitMatrix} matrix  Modules matrix
+ * @param  {Number}    version QR Code version
+ */ function setupAlignmentPattern(matrix, version) {
+    const pos = AlignmentPattern.getPositions(version);
+    for(let i = 0; i < pos.length; i++){
+        const row = pos[i][0];
+        const col = pos[i][1];
+        for(let r = -2; r <= 2; r++){
+            for(let c = -2; c <= 2; c++){
+                if (r === -2 || r === 2 || c === -2 || c === 2 || r === 0 && c === 0) {
+                    matrix.set(row + r, col + c, true, true);
+                } else {
+                    matrix.set(row + r, col + c, false, true);
+                }
+            }
+        }
+    }
+}
+/**
+ * Add version info bits to matrix
+ *
+ * @param  {BitMatrix} matrix  Modules matrix
+ * @param  {Number}    version QR Code version
+ */ function setupVersionInfo(matrix, version) {
+    const size = matrix.size;
+    const bits = Version.getEncodedBits(version);
+    let row, col, mod;
+    for(let i = 0; i < 18; i++){
+        row = Math.floor(i / 3);
+        col = i % 3 + size - 8 - 3;
+        mod = (bits >> i & 1) === 1;
+        matrix.set(row, col, mod, true);
+        matrix.set(col, row, mod, true);
+    }
+}
+/**
+ * Add format info bits to matrix
+ *
+ * @param  {BitMatrix} matrix               Modules matrix
+ * @param  {ErrorCorrectionLevel}    errorCorrectionLevel Error correction level
+ * @param  {Number}    maskPattern          Mask pattern reference value
+ */ function setupFormatInfo(matrix, errorCorrectionLevel, maskPattern) {
+    const size = matrix.size;
+    const bits = FormatInfo.getEncodedBits(errorCorrectionLevel, maskPattern);
+    let i, mod;
+    for(i = 0; i < 15; i++){
+        mod = (bits >> i & 1) === 1;
+        // vertical
+        if (i < 6) {
+            matrix.set(i, 8, mod, true);
+        } else if (i < 8) {
+            matrix.set(i + 1, 8, mod, true);
+        } else {
+            matrix.set(size - 15 + i, 8, mod, true);
+        }
+        // horizontal
+        if (i < 8) {
+            matrix.set(8, size - i - 1, mod, true);
+        } else if (i < 9) {
+            matrix.set(8, 15 - i - 1 + 1, mod, true);
+        } else {
+            matrix.set(8, 15 - i - 1, mod, true);
+        }
+    }
+    // fixed module
+    matrix.set(size - 8, 8, 1, true);
+}
+/**
+ * Add encoded data bits to matrix
+ *
+ * @param  {BitMatrix}  matrix Modules matrix
+ * @param  {Uint8Array} data   Data codewords
+ */ function setupData(matrix, data) {
+    const size = matrix.size;
+    let inc = -1;
+    let row = size - 1;
+    let bitIndex = 7;
+    let byteIndex = 0;
+    for(let col = size - 1; col > 0; col -= 2){
+        if (col === 6) col--;
+        while(true){
+            for(let c = 0; c < 2; c++){
+                if (!matrix.isReserved(row, col - c)) {
+                    let dark = false;
+                    if (byteIndex < data.length) {
+                        dark = (data[byteIndex] >>> bitIndex & 1) === 1;
+                    }
+                    matrix.set(row, col - c, dark);
+                    bitIndex--;
+                    if (bitIndex === -1) {
+                        byteIndex++;
+                        bitIndex = 7;
+                    }
+                }
+            }
+            row += inc;
+            if (row < 0 || size <= row) {
+                row -= inc;
+                inc = -inc;
+                break;
+            }
+        }
+    }
+}
+/**
+ * Create encoded codewords from data input
+ *
+ * @param  {Number}   version              QR Code version
+ * @param  {ErrorCorrectionLevel}   errorCorrectionLevel Error correction level
+ * @param  {ByteData} data                 Data input
+ * @return {Uint8Array}                    Buffer containing encoded codewords
+ */ function createData(version, errorCorrectionLevel, segments) {
+    // Prepare data buffer
+    const buffer = new BitBuffer();
+    segments.forEach(function(data) {
+        // prefix data with mode indicator (4 bits)
+        buffer.put(data.mode.bit, 4);
+        // Prefix data with character count indicator.
+        // The character count indicator is a string of bits that represents the
+        // number of characters that are being encoded.
+        // The character count indicator must be placed after the mode indicator
+        // and must be a certain number of bits long, depending on the QR version
+        // and data mode
+        // @see {@link Mode.getCharCountIndicator}.
+        buffer.put(data.getLength(), Mode.getCharCountIndicator(data.mode, version));
+        // add binary data sequence to buffer
+        data.write(buffer);
+    });
+    // Calculate required number of bits
+    const totalCodewords = Utils.getSymbolTotalCodewords(version);
+    const ecTotalCodewords = ECCode.getTotalCodewordsCount(version, errorCorrectionLevel);
+    const dataTotalCodewordsBits = (totalCodewords - ecTotalCodewords) * 8;
+    // Add a terminator.
+    // If the bit string is shorter than the total number of required bits,
+    // a terminator of up to four 0s must be added to the right side of the string.
+    // If the bit string is more than four bits shorter than the required number of bits,
+    // add four 0s to the end.
+    if (buffer.getLengthInBits() + 4 <= dataTotalCodewordsBits) {
+        buffer.put(0, 4);
+    }
+    // If the bit string is fewer than four bits shorter, add only the number of 0s that
+    // are needed to reach the required number of bits.
+    // After adding the terminator, if the number of bits in the string is not a multiple of 8,
+    // pad the string on the right with 0s to make the string's length a multiple of 8.
+    while(buffer.getLengthInBits() % 8 !== 0){
+        buffer.putBit(0);
+    }
+    // Add pad bytes if the string is still shorter than the total number of required bits.
+    // Extend the buffer to fill the data capacity of the symbol corresponding to
+    // the Version and Error Correction Level by adding the Pad Codewords 11101100 (0xEC)
+    // and 00010001 (0x11) alternately.
+    const remainingByte = (dataTotalCodewordsBits - buffer.getLengthInBits()) / 8;
+    for(let i = 0; i < remainingByte; i++){
+        buffer.put(i % 2 ? 0x11 : 0xEC, 8);
+    }
+    return createCodewords(buffer, version, errorCorrectionLevel);
+}
+/**
+ * Encode input data with Reed-Solomon and return codewords with
+ * relative error correction bits
+ *
+ * @param  {BitBuffer} bitBuffer            Data to encode
+ * @param  {Number}    version              QR Code version
+ * @param  {ErrorCorrectionLevel} errorCorrectionLevel Error correction level
+ * @return {Uint8Array}                     Buffer containing encoded codewords
+ */ function createCodewords(bitBuffer, version, errorCorrectionLevel) {
+    // Total codewords for this QR code version (Data + Error correction)
+    const totalCodewords = Utils.getSymbolTotalCodewords(version);
+    // Total number of error correction codewords
+    const ecTotalCodewords = ECCode.getTotalCodewordsCount(version, errorCorrectionLevel);
+    // Total number of data codewords
+    const dataTotalCodewords = totalCodewords - ecTotalCodewords;
+    // Total number of blocks
+    const ecTotalBlocks = ECCode.getBlocksCount(version, errorCorrectionLevel);
+    // Calculate how many blocks each group should contain
+    const blocksInGroup2 = totalCodewords % ecTotalBlocks;
+    const blocksInGroup1 = ecTotalBlocks - blocksInGroup2;
+    const totalCodewordsInGroup1 = Math.floor(totalCodewords / ecTotalBlocks);
+    const dataCodewordsInGroup1 = Math.floor(dataTotalCodewords / ecTotalBlocks);
+    const dataCodewordsInGroup2 = dataCodewordsInGroup1 + 1;
+    // Number of EC codewords is the same for both groups
+    const ecCount = totalCodewordsInGroup1 - dataCodewordsInGroup1;
+    // Initialize a Reed-Solomon encoder with a generator polynomial of degree ecCount
+    const rs = new ReedSolomonEncoder(ecCount);
+    let offset = 0;
+    const dcData = new Array(ecTotalBlocks);
+    const ecData = new Array(ecTotalBlocks);
+    let maxDataSize = 0;
+    const buffer = new Uint8Array(bitBuffer.buffer);
+    // Divide the buffer into the required number of blocks
+    for(let b = 0; b < ecTotalBlocks; b++){
+        const dataSize = b < blocksInGroup1 ? dataCodewordsInGroup1 : dataCodewordsInGroup2;
+        // extract a block of data from buffer
+        dcData[b] = buffer.slice(offset, offset + dataSize);
+        // Calculate EC codewords for this data block
+        ecData[b] = rs.encode(dcData[b]);
+        offset += dataSize;
+        maxDataSize = Math.max(maxDataSize, dataSize);
+    }
+    // Create final data
+    // Interleave the data and error correction codewords from each block
+    const data = new Uint8Array(totalCodewords);
+    let index = 0;
+    let i, r;
+    // Add data codewords
+    for(i = 0; i < maxDataSize; i++){
+        for(r = 0; r < ecTotalBlocks; r++){
+            if (i < dcData[r].length) {
+                data[index++] = dcData[r][i];
+            }
+        }
+    }
+    // Apped EC codewords
+    for(i = 0; i < ecCount; i++){
+        for(r = 0; r < ecTotalBlocks; r++){
+            data[index++] = ecData[r][i];
+        }
+    }
+    return data;
+}
+/**
+ * Build QR Code symbol
+ *
+ * @param  {String} data                 Input string
+ * @param  {Number} version              QR Code version
+ * @param  {ErrorCorretionLevel} errorCorrectionLevel Error level
+ * @param  {MaskPattern} maskPattern     Mask pattern
+ * @return {Object}                      Object containing symbol data
+ */ function createSymbol(data, version, errorCorrectionLevel, maskPattern) {
+    let segments;
+    if (Array.isArray(data)) {
+        segments = Segments.fromArray(data);
+    } else if (typeof data === 'string') {
+        let estimatedVersion = version;
+        if (!estimatedVersion) {
+            const rawSegments = Segments.rawSplit(data);
+            // Estimate best version that can contain raw splitted segments
+            estimatedVersion = Version.getBestVersionForData(rawSegments, errorCorrectionLevel);
+        }
+        // Build optimized segments
+        // If estimated version is undefined, try with the highest version
+        segments = Segments.fromString(data, estimatedVersion || 40);
+    } else {
+        throw new Error('Invalid data');
+    }
+    // Get the min version that can contain data
+    const bestVersion = Version.getBestVersionForData(segments, errorCorrectionLevel);
+    // If no version is found, data cannot be stored
+    if (!bestVersion) {
+        throw new Error('The amount of data is too big to be stored in a QR Code');
+    }
+    // If not specified, use min version as default
+    if (!version) {
+        version = bestVersion;
+    // Check if the specified version can contain the data
+    } else if (version < bestVersion) {
+        throw new Error('\n' + 'The chosen QR Code version cannot contain this amount of data.\n' + 'Minimum version required to store current data is: ' + bestVersion + '.\n');
+    }
+    const dataBits = createData(version, errorCorrectionLevel, segments);
+    // Allocate matrix buffer
+    const moduleCount = Utils.getSymbolSize(version);
+    const modules = new BitMatrix(moduleCount);
+    // Add function modules
+    setupFinderPattern(modules, version);
+    setupTimingPattern(modules);
+    setupAlignmentPattern(modules, version);
+    // Add temporary dummy bits for format info just to set them as reserved.
+    // This is needed to prevent these bits from being masked by {@link MaskPattern.applyMask}
+    // since the masking operation must be performed only on the encoding region.
+    // These blocks will be replaced with correct values later in code.
+    setupFormatInfo(modules, errorCorrectionLevel, 0);
+    if (version >= 7) {
+        setupVersionInfo(modules, version);
+    }
+    // Add data codewords
+    setupData(modules, dataBits);
+    if (isNaN(maskPattern)) {
+        // Find best mask pattern
+        maskPattern = MaskPattern.getBestMask(modules, setupFormatInfo.bind(null, modules, errorCorrectionLevel));
+    }
+    // Apply mask pattern
+    MaskPattern.applyMask(maskPattern, modules);
+    // Replace format info bits with correct values
+    setupFormatInfo(modules, errorCorrectionLevel, maskPattern);
+    return {
+        modules: modules,
+        version: version,
+        errorCorrectionLevel: errorCorrectionLevel,
+        maskPattern: maskPattern,
+        segments: segments
+    };
+}
+/**
+ * QR Code
+ *
+ * @param {String | Array} data                 Input data
+ * @param {Object} options                      Optional configurations
+ * @param {Number} options.version              QR Code version
+ * @param {String} options.errorCorrectionLevel Error correction level
+ * @param {Function} options.toSJISFunc         Helper func to convert utf8 to sjis
+ */ exports.create = function create(data, options) {
+    if (typeof data === 'undefined' || data === '') {
+        throw new Error('No input text');
+    }
+    let errorCorrectionLevel = ECLevel.M;
+    let version;
+    let mask;
+    if (typeof options !== 'undefined') {
+        // Use higher error correction level as default
+        errorCorrectionLevel = ECLevel.from(options.errorCorrectionLevel, ECLevel.M);
+        version = Version.from(options.version);
+        mask = MaskPattern.from(options.maskPattern);
+        if (options.toSJISFunc) {
+            Utils.setToSJISFunction(options.toSJISFunc);
+        }
+    }
+    return createSymbol(data, version, errorCorrectionLevel, mask);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utils.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+function hex2rgba(hex) {
+    if (typeof hex === 'number') {
+        hex = hex.toString();
+    }
+    if (typeof hex !== 'string') {
+        throw new Error('Color should be defined as hex string');
+    }
+    let hexCode = hex.slice().replace('#', '').split('');
+    if (hexCode.length < 3 || hexCode.length === 5 || hexCode.length > 8) {
+        throw new Error('Invalid hex color: ' + hex);
+    }
+    // Convert from short to long form (fff -> ffffff)
+    if (hexCode.length === 3 || hexCode.length === 4) {
+        hexCode = Array.prototype.concat.apply([], hexCode.map(function(c) {
+            return [
+                c,
+                c
+            ];
+        }));
+    }
+    // Add default alpha value
+    if (hexCode.length === 6) hexCode.push('F', 'F');
+    const hexValue = parseInt(hexCode.join(''), 16);
+    return {
+        r: hexValue >> 24 & 255,
+        g: hexValue >> 16 & 255,
+        b: hexValue >> 8 & 255,
+        a: hexValue & 255,
+        hex: '#' + hexCode.slice(0, 6).join('')
+    };
+}
+exports.getOptions = function getOptions(options) {
+    if (!options) options = {};
+    if (!options.color) options.color = {};
+    const margin = typeof options.margin === 'undefined' || options.margin === null || options.margin < 0 ? 4 : options.margin;
+    const width = options.width && options.width >= 21 ? options.width : undefined;
+    const scale = options.scale || 4;
+    return {
+        width: width,
+        scale: width ? 4 : scale,
+        margin: margin,
+        color: {
+            dark: hex2rgba(options.color.dark || '#000000ff'),
+            light: hex2rgba(options.color.light || '#ffffffff')
+        },
+        type: options.type,
+        rendererOpts: options.rendererOpts || {}
+    };
+};
+exports.getScale = function getScale(qrSize, opts) {
+    return opts.width && opts.width >= qrSize + opts.margin * 2 ? opts.width / (qrSize + opts.margin * 2) : opts.scale;
+};
+exports.getImageWidth = function getImageWidth(qrSize, opts) {
+    const scale = exports.getScale(qrSize, opts);
+    return Math.floor((qrSize + opts.margin * 2) * scale);
+};
+exports.qrToImageData = function qrToImageData(imgData, qr, opts) {
+    const size = qr.modules.size;
+    const data = qr.modules.data;
+    const scale = exports.getScale(size, opts);
+    const symbolSize = Math.floor((size + opts.margin * 2) * scale);
+    const scaledMargin = opts.margin * scale;
+    const palette = [
+        opts.color.light,
+        opts.color.dark
+    ];
+    for(let i = 0; i < symbolSize; i++){
+        for(let j = 0; j < symbolSize; j++){
+            let posDst = (i * symbolSize + j) * 4;
+            let pxColor = opts.color.light;
+            if (i >= scaledMargin && j >= scaledMargin && i < symbolSize - scaledMargin && j < symbolSize - scaledMargin) {
+                const iSrc = Math.floor((i - scaledMargin) / scale);
+                const jSrc = Math.floor((j - scaledMargin) / scale);
+                pxColor = palette[data[iSrc * size + jSrc] ? 1 : 0];
+            }
+            imgData[posDst++] = pxColor.r;
+            imgData[posDst++] = pxColor.g;
+            imgData[posDst++] = pxColor.b;
+            imgData[posDst] = pxColor.a;
+        }
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/canvas.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utils.js [app-ssr] (ecmascript)");
+function clearCanvas(ctx, canvas, size) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!canvas.style) canvas.style = {};
+    canvas.height = size;
+    canvas.width = size;
+    canvas.style.height = size + 'px';
+    canvas.style.width = size + 'px';
+}
+function getCanvasElement() {
+    try {
+        return document.createElement('canvas');
+    } catch (e) {
+        throw new Error('You need to specify a canvas element');
+    }
+}
+exports.render = function render(qrData, canvas, options) {
+    let opts = options;
+    let canvasEl = canvas;
+    if (typeof opts === 'undefined' && (!canvas || !canvas.getContext)) {
+        opts = canvas;
+        canvas = undefined;
+    }
+    if (!canvas) {
+        canvasEl = getCanvasElement();
+    }
+    opts = Utils.getOptions(opts);
+    const size = Utils.getImageWidth(qrData.modules.size, opts);
+    const ctx = canvasEl.getContext('2d');
+    const image = ctx.createImageData(size, size);
+    Utils.qrToImageData(image.data, qrData, opts);
+    clearCanvas(ctx, canvasEl, size);
+    ctx.putImageData(image, 0, 0);
+    return canvasEl;
+};
+exports.renderToDataURL = function renderToDataURL(qrData, canvas, options) {
+    let opts = options;
+    if (typeof opts === 'undefined' && (!canvas || !canvas.getContext)) {
+        opts = canvas;
+        canvas = undefined;
+    }
+    if (!opts) opts = {};
+    const canvasEl = exports.render(qrData, canvas, opts);
+    const type = opts.type || 'image/png';
+    const rendererOpts = opts.rendererOpts || {};
+    return canvasEl.toDataURL(type, rendererOpts.quality);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/svg-tag.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utils.js [app-ssr] (ecmascript)");
+function getColorAttrib(color, attrib) {
+    const alpha = color.a / 255;
+    const str = attrib + '="' + color.hex + '"';
+    return alpha < 1 ? str + ' ' + attrib + '-opacity="' + alpha.toFixed(2).slice(1) + '"' : str;
+}
+function svgCmd(cmd, x, y) {
+    let str = cmd + x;
+    if (typeof y !== 'undefined') str += ' ' + y;
+    return str;
+}
+function qrToPath(data, size, margin) {
+    let path = '';
+    let moveBy = 0;
+    let newRow = false;
+    let lineLength = 0;
+    for(let i = 0; i < data.length; i++){
+        const col = Math.floor(i % size);
+        const row = Math.floor(i / size);
+        if (!col && !newRow) newRow = true;
+        if (data[i]) {
+            lineLength++;
+            if (!(i > 0 && col > 0 && data[i - 1])) {
+                path += newRow ? svgCmd('M', col + margin, 0.5 + row + margin) : svgCmd('m', moveBy, 0);
+                moveBy = 0;
+                newRow = false;
+            }
+            if (!(col + 1 < size && data[i + 1])) {
+                path += svgCmd('h', lineLength);
+                lineLength = 0;
+            }
+        } else {
+            moveBy++;
+        }
+    }
+    return path;
+}
+exports.render = function render(qrData, options, cb) {
+    const opts = Utils.getOptions(options);
+    const size = qrData.modules.size;
+    const data = qrData.modules.data;
+    const qrcodesize = size + opts.margin * 2;
+    const bg = !opts.color.light.a ? '' : '<path ' + getColorAttrib(opts.color.light, 'fill') + ' d="M0 0h' + qrcodesize + 'v' + qrcodesize + 'H0z"/>';
+    const path = '<path ' + getColorAttrib(opts.color.dark, 'stroke') + ' d="' + qrToPath(data, size, opts.margin) + '"/>';
+    const viewBox = 'viewBox="' + '0 0 ' + qrcodesize + ' ' + qrcodesize + '"';
+    const width = !opts.width ? '' : 'width="' + opts.width + '" height="' + opts.width + '" ';
+    const svgTag = '<svg xmlns="http://www.w3.org/2000/svg" ' + width + viewBox + ' shape-rendering="crispEdges">' + bg + path + '</svg>\n';
+    if (typeof cb === 'function') {
+        cb(null, svgTag);
+    }
+    return svgTag;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/browser.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const canPromise = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/can-promise.js [app-ssr] (ecmascript)");
+const QRCode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/qrcode.js [app-ssr] (ecmascript)");
+const CanvasRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/canvas.js [app-ssr] (ecmascript)");
+const SvgRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/svg-tag.js [app-ssr] (ecmascript)");
+function renderCanvas(renderFunc, canvas, text, opts, cb) {
+    const args = [].slice.call(arguments, 1);
+    const argsNum = args.length;
+    const isLastArgCb = typeof args[argsNum - 1] === 'function';
+    if (!isLastArgCb && !canPromise()) {
+        throw new Error('Callback required as last argument');
+    }
+    if (isLastArgCb) {
+        if (argsNum < 2) {
+            throw new Error('Too few arguments provided');
+        }
+        if (argsNum === 2) {
+            cb = text;
+            text = canvas;
+            canvas = opts = undefined;
+        } else if (argsNum === 3) {
+            if (canvas.getContext && typeof cb === 'undefined') {
+                cb = opts;
+                opts = undefined;
+            } else {
+                cb = opts;
+                opts = text;
+                text = canvas;
+                canvas = undefined;
+            }
+        }
+    } else {
+        if (argsNum < 1) {
+            throw new Error('Too few arguments provided');
+        }
+        if (argsNum === 1) {
+            text = canvas;
+            canvas = opts = undefined;
+        } else if (argsNum === 2 && !canvas.getContext) {
+            opts = text;
+            text = canvas;
+            canvas = undefined;
+        }
+        return new Promise(function(resolve, reject) {
+            try {
+                const data = QRCode.create(text, opts);
+                resolve(renderFunc(data, canvas, opts));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    try {
+        const data = QRCode.create(text, opts);
+        cb(null, renderFunc(data, canvas, opts));
+    } catch (e) {
+        cb(e);
+    }
+}
+exports.create = QRCode.create;
+exports.toCanvas = renderCanvas.bind(null, CanvasRenderer.render);
+exports.toDataURL = renderCanvas.bind(null, CanvasRenderer.renderToDataURL);
+// only svg for now.
+exports.toString = renderCanvas.bind(null, function(data, _, opts) {
+    return SvgRenderer.render(data, opts);
+});
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/png.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const fs = __turbopack_context__.r("[externals]/fs [external] (fs, cjs)");
+const PNG = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/png.js [app-ssr] (ecmascript)").PNG;
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utils.js [app-ssr] (ecmascript)");
+exports.render = function render(qrData, options) {
+    const opts = Utils.getOptions(options);
+    const pngOpts = opts.rendererOpts;
+    const size = Utils.getImageWidth(qrData.modules.size, opts);
+    pngOpts.width = size;
+    pngOpts.height = size;
+    const pngImage = new PNG(pngOpts);
+    Utils.qrToImageData(pngImage.data, qrData, opts);
+    return pngImage;
+};
+exports.renderToDataURL = function renderToDataURL(qrData, options, cb) {
+    if (typeof cb === 'undefined') {
+        cb = options;
+        options = undefined;
+    }
+    exports.renderToBuffer(qrData, options, function(err, output) {
+        if (err) cb(err);
+        let url = 'data:image/png;base64,';
+        url += output.toString('base64');
+        cb(null, url);
+    });
+};
+exports.renderToBuffer = function renderToBuffer(qrData, options, cb) {
+    if (typeof cb === 'undefined') {
+        cb = options;
+        options = undefined;
+    }
+    const png = exports.render(qrData, options);
+    const buffer = [];
+    png.on('error', cb);
+    png.on('data', function(data) {
+        buffer.push(data);
+    });
+    png.on('end', function() {
+        cb(null, Buffer.concat(buffer));
+    });
+    png.pack();
+};
+exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+    if (typeof cb === 'undefined') {
+        cb = options;
+        options = undefined;
+    }
+    let called = false;
+    const done = (...args)=>{
+        if (called) return;
+        called = true;
+        cb.apply(null, args);
+    };
+    const stream = fs.createWriteStream(path);
+    stream.on('error', done);
+    stream.on('close', done);
+    exports.renderToFileStream(stream, qrData, options);
+};
+exports.renderToFileStream = function renderToFileStream(stream, qrData, options) {
+    const png = exports.render(qrData, options);
+    png.pack().pipe(stream);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utf8.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const Utils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utils.js [app-ssr] (ecmascript)");
+const BLOCK_CHAR = {
+    WW: ' ',
+    WB: '▄',
+    BB: '█',
+    BW: '▀'
+};
+const INVERTED_BLOCK_CHAR = {
+    BB: ' ',
+    BW: '▄',
+    WW: '█',
+    WB: '▀'
+};
+function getBlockChar(top, bottom, blocks) {
+    if (top && bottom) return blocks.BB;
+    if (top && !bottom) return blocks.BW;
+    if (!top && bottom) return blocks.WB;
+    return blocks.WW;
+}
+exports.render = function(qrData, options, cb) {
+    const opts = Utils.getOptions(options);
+    let blocks = BLOCK_CHAR;
+    if (opts.color.dark.hex === '#ffffff' || opts.color.light.hex === '#000000') {
+        blocks = INVERTED_BLOCK_CHAR;
+    }
+    const size = qrData.modules.size;
+    const data = qrData.modules.data;
+    let output = '';
+    let hMargin = Array(size + opts.margin * 2 + 1).join(blocks.WW);
+    hMargin = Array(opts.margin / 2 + 1).join(hMargin + '\n');
+    const vMargin = Array(opts.margin + 1).join(blocks.WW);
+    output += hMargin;
+    for(let i = 0; i < size; i += 2){
+        output += vMargin;
+        for(let j = 0; j < size; j++){
+            const topModule = data[i * size + j];
+            const bottomModule = data[(i + 1) * size + j];
+            output += getBlockChar(topModule, bottomModule, blocks);
+        }
+        output += vMargin + '\n';
+    }
+    output += hMargin.slice(0, -1);
+    if (typeof cb === 'function') {
+        cb(null, output);
+    }
+    return output;
+};
+exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+    if (typeof cb === 'undefined') {
+        cb = options;
+        options = undefined;
+    }
+    const fs = __turbopack_context__.r("[externals]/fs [external] (fs, cjs)");
+    const utf8 = exports.render(qrData, options);
+    fs.writeFile(path, utf8, cb);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal/terminal.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+// let Utils = require('./utils')
+exports.render = function(qrData, options, cb) {
+    const size = qrData.modules.size;
+    const data = qrData.modules.data;
+    // let opts = Utils.getOptions(options)
+    // use same scheme as https://github.com/gtanner/qrcode-terminal because it actually works! =)
+    const black = '\x1b[40m  \x1b[0m';
+    const white = '\x1b[47m  \x1b[0m';
+    let output = '';
+    const hMargin = Array(size + 3).join(white);
+    const vMargin = Array(2).join(white);
+    output += hMargin + '\n';
+    for(let i = 0; i < size; ++i){
+        output += white;
+        for(let j = 0; j < size; j++){
+            // let topModule = data[i * size + j]
+            // let bottomModule = data[(i + 1) * size + j]
+            output += data[i * size + j] ? black : white; // getBlockChar(topModule, bottomModule)
+        }
+        // output += white+'\n'
+        output += vMargin + '\n';
+    }
+    output += hMargin + '\n';
+    if (typeof cb === 'function') {
+        cb(null, output);
+    }
+    return output;
+}; /*
+exports.renderToFile = function renderToFile (path, qrData, options, cb) {
+  if (typeof cb === 'undefined') {
+    cb = options
+    options = undefined
+  }
+
+  let fs = require('fs')
+  let utf8 = exports.render(qrData, options)
+  fs.writeFile(path, utf8, cb)
+}
+*/ 
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal/terminal-small.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const backgroundWhite = '\x1b[47m';
+const backgroundBlack = '\x1b[40m';
+const foregroundWhite = '\x1b[37m';
+const foregroundBlack = '\x1b[30m';
+const reset = '\x1b[0m';
+const lineSetupNormal = backgroundWhite + foregroundBlack // setup colors
+;
+const lineSetupInverse = backgroundBlack + foregroundWhite // setup colors
+;
+const createPalette = function(lineSetup, foregroundWhite, foregroundBlack) {
+    return {
+        // 1 ... white, 2 ... black, 0 ... transparent (default)
+        '00': reset + ' ' + lineSetup,
+        '01': reset + foregroundWhite + '▄' + lineSetup,
+        '02': reset + foregroundBlack + '▄' + lineSetup,
+        10: reset + foregroundWhite + '▀' + lineSetup,
+        11: ' ',
+        12: '▄',
+        20: reset + foregroundBlack + '▀' + lineSetup,
+        21: '▀',
+        22: '█'
+    };
+};
+/**
+ * Returns code for QR pixel
+ * @param {boolean[][]} modules
+ * @param {number} size
+ * @param {number} x
+ * @param {number} y
+ * @return {'0' | '1' | '2'}
+ */ const mkCodePixel = function(modules, size, x, y) {
+    const sizePlus = size + 1;
+    if (x >= sizePlus || y >= sizePlus || y < -1 || x < -1) return '0';
+    if (x >= size || y >= size || y < 0 || x < 0) return '1';
+    const idx = y * size + x;
+    return modules[idx] ? '2' : '1';
+};
+/**
+ * Returns code for four QR pixels. Suitable as key in palette.
+ * @param {boolean[][]} modules
+ * @param {number} size
+ * @param {number} x
+ * @param {number} y
+ * @return {keyof palette}
+ */ const mkCode = function(modules, size, x, y) {
+    return mkCodePixel(modules, size, x, y) + mkCodePixel(modules, size, x, y + 1);
+};
+exports.render = function(qrData, options, cb) {
+    const size = qrData.modules.size;
+    const data = qrData.modules.data;
+    const inverse = !!(options && options.inverse);
+    const lineSetup = options && options.inverse ? lineSetupInverse : lineSetupNormal;
+    const white = inverse ? foregroundBlack : foregroundWhite;
+    const black = inverse ? foregroundWhite : foregroundBlack;
+    const palette = createPalette(lineSetup, white, black);
+    const newLine = reset + '\n' + lineSetup;
+    let output = lineSetup // setup colors
+    ;
+    for(let y = -1; y < size + 1; y += 2){
+        for(let x = -1; x < size; x++){
+            output += palette[mkCode(data, size, x, y)];
+        }
+        output += palette[mkCode(data, size, size, y)] + newLine;
+    }
+    output += reset;
+    if (typeof cb === 'function') {
+        cb(null, output);
+    }
+    return output;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const big = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal/terminal.js [app-ssr] (ecmascript)");
+const small = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal/terminal-small.js [app-ssr] (ecmascript)");
+exports.render = function(qrData, options, cb) {
+    if (options && options.small) {
+        return small.render(qrData, options, cb);
+    }
+    return big.render(qrData, options, cb);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/svg.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const svgTagRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/svg-tag.js [app-ssr] (ecmascript)");
+exports.render = svgTagRenderer.render;
+exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+    if (typeof cb === 'undefined') {
+        cb = options;
+        options = undefined;
+    }
+    const fs = __turbopack_context__.r("[externals]/fs [external] (fs, cjs)");
+    const svgTag = exports.render(qrData, options);
+    const xmlStr = '<?xml version="1.0" encoding="utf-8"?>' + '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' + svgTag;
+    fs.writeFile(path, xmlStr, cb);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/server.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+const canPromise = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/can-promise.js [app-ssr] (ecmascript)");
+const QRCode = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/core/qrcode.js [app-ssr] (ecmascript)");
+const PngRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/png.js [app-ssr] (ecmascript)");
+const Utf8Renderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/utf8.js [app-ssr] (ecmascript)");
+const TerminalRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/terminal.js [app-ssr] (ecmascript)");
+const SvgRenderer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/renderer/svg.js [app-ssr] (ecmascript)");
+function checkParams(text, opts, cb) {
+    if (typeof text === 'undefined') {
+        throw new Error('String required as first argument');
+    }
+    if (typeof cb === 'undefined') {
+        cb = opts;
+        opts = {};
+    }
+    if (typeof cb !== 'function') {
+        if (!canPromise()) {
+            throw new Error('Callback required as last argument');
+        } else {
+            opts = cb || {};
+            cb = null;
+        }
+    }
+    return {
+        opts: opts,
+        cb: cb
+    };
+}
+function getTypeFromFilename(path) {
+    return path.slice((path.lastIndexOf('.') - 1 >>> 0) + 2).toLowerCase();
+}
+function getRendererFromType(type) {
+    switch(type){
+        case 'svg':
+            return SvgRenderer;
+        case 'txt':
+        case 'utf8':
+            return Utf8Renderer;
+        case 'png':
+        case 'image/png':
+        default:
+            return PngRenderer;
+    }
+}
+function getStringRendererFromType(type) {
+    switch(type){
+        case 'svg':
+            return SvgRenderer;
+        case 'terminal':
+            return TerminalRenderer;
+        case 'utf8':
+        default:
+            return Utf8Renderer;
+    }
+}
+function render(renderFunc, text, params) {
+    if (!params.cb) {
+        return new Promise(function(resolve, reject) {
+            try {
+                const data = QRCode.create(text, params.opts);
+                return renderFunc(data, params.opts, function(err, data) {
+                    return err ? reject(err) : resolve(data);
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    try {
+        const data = QRCode.create(text, params.opts);
+        return renderFunc(data, params.opts, params.cb);
+    } catch (e) {
+        params.cb(e);
+    }
+}
+exports.create = QRCode.create;
+exports.toCanvas = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/browser.js [app-ssr] (ecmascript)").toCanvas;
+exports.toString = function toString(text, opts, cb) {
+    const params = checkParams(text, opts, cb);
+    const type = params.opts ? params.opts.type : undefined;
+    const renderer = getStringRendererFromType(type);
+    return render(renderer.render, text, params);
+};
+exports.toDataURL = function toDataURL(text, opts, cb) {
+    const params = checkParams(text, opts, cb);
+    const renderer = getRendererFromType(params.opts.type);
+    return render(renderer.renderToDataURL, text, params);
+};
+exports.toBuffer = function toBuffer(text, opts, cb) {
+    const params = checkParams(text, opts, cb);
+    const renderer = getRendererFromType(params.opts.type);
+    return render(renderer.renderToBuffer, text, params);
+};
+exports.toFile = function toFile(path, text, opts, cb) {
+    if (typeof path !== 'string' || !(typeof text === 'string' || typeof text === 'object')) {
+        throw new Error('Invalid argument');
+    }
+    if (arguments.length < 3 && !canPromise()) {
+        throw new Error('Too few arguments provided');
+    }
+    const params = checkParams(text, opts, cb);
+    const type = params.opts.type || getTypeFromFilename(path);
+    const renderer = getRendererFromType(type);
+    const renderToFile = renderer.renderToFile.bind(null, path);
+    return render(renderToFile, text, params);
+};
+exports.toFileStream = function toFileStream(stream, text, opts) {
+    if (arguments.length < 2) {
+        throw new Error('Too few arguments provided');
+    }
+    const params = checkParams(text, opts, stream.emit.bind(stream, 'error'));
+    const renderer = getRendererFromType('png') // Only png support for now
+    ;
+    const renderToFileStream = renderer.renderToFileStream.bind(null, stream);
+    render(renderToFileStream, text, params);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/index.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/*
+*copyright Ryan Day 2012
+*
+* Licensed under the MIT license:
+*   http://www.opensource.org/licenses/mit-license.php
+*
+* this is the main server side application file for node-qrcode.
+* these exports use serverside canvas api methods for file IO and buffers
+*
+*/ module.exports = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/qrcode/lib/server.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/dijkstrajs/dijkstra.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+/******************************************************************************
+ * Created 2008-08-19.
+ *
+ * Dijkstra path-finding functions. Adapted from the Dijkstar Python project.
+ *
+ * Copyright (C) 2008
+ *   Wyatt Baldwin <self@wyattbaldwin.com>
+ *   All rights reserved
+ *
+ * Licensed under the MIT license.
+ *
+ *   http://www.opensource.org/licenses/mit-license.php
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *****************************************************************************/ var dijkstra = {
+    single_source_shortest_paths: function(graph, s, d) {
+        // Predecessor map for each node that has been encountered.
+        // node ID => predecessor node ID
+        var predecessors = {};
+        // Costs of shortest paths from s to all nodes encountered.
+        // node ID => cost
+        var costs = {};
+        costs[s] = 0;
+        // Costs of shortest paths from s to all nodes encountered; differs from
+        // `costs` in that it provides easy access to the node that currently has
+        // the known shortest path from s.
+        // XXX: Do we actually need both `costs` and `open`?
+        var open = dijkstra.PriorityQueue.make();
+        open.push(s, 0);
+        var closest, u, v, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
+        while(!open.empty()){
+            // In the nodes remaining in graph that have a known cost from s,
+            // find the node, u, that currently has the shortest path from s.
+            closest = open.pop();
+            u = closest.value;
+            cost_of_s_to_u = closest.cost;
+            // Get nodes adjacent to u...
+            adjacent_nodes = graph[u] || {};
+            // ...and explore the edges that connect u to those nodes, updating
+            // the cost of the shortest paths to any or all of those nodes as
+            // necessary. v is the node across the current edge from u.
+            for(v in adjacent_nodes){
+                if (adjacent_nodes.hasOwnProperty(v)) {
+                    // Get the cost of the edge running from u to v.
+                    cost_of_e = adjacent_nodes[v];
+                    // Cost of s to u plus the cost of u to v across e--this is *a*
+                    // cost from s to v that may or may not be less than the current
+                    // known cost to v.
+                    cost_of_s_to_u_plus_cost_of_e = cost_of_s_to_u + cost_of_e;
+                    // If we haven't visited v yet OR if the current known cost from s to
+                    // v is greater than the new cost we just found (cost of s to u plus
+                    // cost of u to v across e), update v's cost in the cost list and
+                    // update v's predecessor in the predecessor list (it's now u).
+                    cost_of_s_to_v = costs[v];
+                    first_visit = typeof costs[v] === 'undefined';
+                    if (first_visit || cost_of_s_to_v > cost_of_s_to_u_plus_cost_of_e) {
+                        costs[v] = cost_of_s_to_u_plus_cost_of_e;
+                        open.push(v, cost_of_s_to_u_plus_cost_of_e);
+                        predecessors[v] = u;
+                    }
+                }
+            }
+        }
+        if (typeof d !== 'undefined' && typeof costs[d] === 'undefined') {
+            var msg = [
+                'Could not find a path from ',
+                s,
+                ' to ',
+                d,
+                '.'
+            ].join('');
+            throw new Error(msg);
+        }
+        return predecessors;
+    },
+    extract_shortest_path_from_predecessor_list: function(predecessors, d) {
+        var nodes = [];
+        var u = d;
+        var predecessor;
+        while(u){
+            nodes.push(u);
+            predecessor = predecessors[u];
+            u = predecessors[u];
+        }
+        nodes.reverse();
+        return nodes;
+    },
+    find_path: function(graph, s, d) {
+        var predecessors = dijkstra.single_source_shortest_paths(graph, s, d);
+        return dijkstra.extract_shortest_path_from_predecessor_list(predecessors, d);
+    },
+    /**
+   * A very naive priority queue implementation.
+   */ PriorityQueue: {
+        make: function(opts) {
+            var T = dijkstra.PriorityQueue, t = {}, key;
+            opts = opts || {};
+            for(key in T){
+                if (T.hasOwnProperty(key)) {
+                    t[key] = T[key];
+                }
+            }
+            t.queue = [];
+            t.sorter = opts.sorter || T.default_sorter;
+            return t;
+        },
+        default_sorter: function(a, b) {
+            return a.cost - b.cost;
+        },
+        /**
+     * Add a new item to the queue and ensure the highest priority element
+     * is at the front of the queue.
+     */ push: function(value, cost) {
+            var item = {
+                value: value,
+                cost: cost
+            };
+            this.queue.push(item);
+            this.queue.sort(this.sorter);
+        },
+        /**
+     * Return the highest priority element in the queue.
+     */ pop: function() {
+            return this.queue.shift();
+        },
+        empty: function() {
+            return this.queue.length === 0;
+        }
+    }
+};
+// node.js module exports
+if ("TURBOPACK compile-time truthy", 1) {
+    module.exports = dijkstra;
+}
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/chunkstream.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let Stream = __turbopack_context__.r("[externals]/stream [external] (stream, cjs)");
+let ChunkStream = module.exports = function() {
+    Stream.call(this);
+    this._buffers = [];
+    this._buffered = 0;
+    this._reads = [];
+    this._paused = false;
+    this._encoding = "utf8";
+    this.writable = true;
+};
+util.inherits(ChunkStream, Stream);
+ChunkStream.prototype.read = function(length, callback) {
+    this._reads.push({
+        length: Math.abs(length),
+        allowLess: length < 0,
+        func: callback
+    });
+    process.nextTick((function() {
+        this._process();
+        // its paused and there is not enought data then ask for more
+        if (this._paused && this._reads && this._reads.length > 0) {
+            this._paused = false;
+            this.emit("drain");
+        }
+    }).bind(this));
+};
+ChunkStream.prototype.write = function(data, encoding) {
+    if (!this.writable) {
+        this.emit("error", new Error("Stream not writable"));
+        return false;
+    }
+    let dataBuffer;
+    if (Buffer.isBuffer(data)) {
+        dataBuffer = data;
+    } else {
+        dataBuffer = Buffer.from(data, encoding || this._encoding);
+    }
+    this._buffers.push(dataBuffer);
+    this._buffered += dataBuffer.length;
+    this._process();
+    // ok if there are no more read requests
+    if (this._reads && this._reads.length === 0) {
+        this._paused = true;
+    }
+    return this.writable && !this._paused;
+};
+ChunkStream.prototype.end = function(data, encoding) {
+    if (data) {
+        this.write(data, encoding);
+    }
+    this.writable = false;
+    // already destroyed
+    if (!this._buffers) {
+        return;
+    }
+    // enqueue or handle end
+    if (this._buffers.length === 0) {
+        this._end();
+    } else {
+        this._buffers.push(null);
+        this._process();
+    }
+};
+ChunkStream.prototype.destroySoon = ChunkStream.prototype.end;
+ChunkStream.prototype._end = function() {
+    if (this._reads.length > 0) {
+        this.emit("error", new Error("Unexpected end of input"));
+    }
+    this.destroy();
+};
+ChunkStream.prototype.destroy = function() {
+    if (!this._buffers) {
+        return;
+    }
+    this.writable = false;
+    this._reads = null;
+    this._buffers = null;
+    this.emit("close");
+};
+ChunkStream.prototype._processReadAllowingLess = function(read) {
+    // ok there is any data so that we can satisfy this request
+    this._reads.shift(); // == read
+    // first we need to peek into first buffer
+    let smallerBuf = this._buffers[0];
+    // ok there is more data than we need
+    if (smallerBuf.length > read.length) {
+        this._buffered -= read.length;
+        this._buffers[0] = smallerBuf.slice(read.length);
+        read.func.call(this, smallerBuf.slice(0, read.length));
+    } else {
+        // ok this is less than maximum length so use it all
+        this._buffered -= smallerBuf.length;
+        this._buffers.shift(); // == smallerBuf
+        read.func.call(this, smallerBuf);
+    }
+};
+ChunkStream.prototype._processRead = function(read) {
+    this._reads.shift(); // == read
+    let pos = 0;
+    let count = 0;
+    let data = Buffer.alloc(read.length);
+    // create buffer for all data
+    while(pos < read.length){
+        let buf = this._buffers[count++];
+        let len = Math.min(buf.length, read.length - pos);
+        buf.copy(data, pos, 0, len);
+        pos += len;
+        // last buffer wasn't used all so just slice it and leave
+        if (len !== buf.length) {
+            this._buffers[--count] = buf.slice(len);
+        }
+    }
+    // remove all used buffers
+    if (count > 0) {
+        this._buffers.splice(0, count);
+    }
+    this._buffered -= read.length;
+    read.func.call(this, data);
+};
+ChunkStream.prototype._process = function() {
+    try {
+        // as long as there is any data and read requests
+        while(this._buffered > 0 && this._reads && this._reads.length > 0){
+            let read = this._reads[0];
+            // read any data (but no more than length)
+            if (read.allowLess) {
+                this._processReadAllowingLess(read);
+            } else if (this._buffered >= read.length) {
+                // ok we can meet some expectations
+                this._processRead(read);
+            } else {
+                break;
+            }
+        }
+        if (this._buffers && !this.writable) {
+            this._end();
+        }
+    } catch (ex) {
+        this.emit("error", ex);
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/interlace.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+// Adam 7
+//   0 1 2 3 4 5 6 7
+// 0 x 6 4 6 x 6 4 6
+// 1 7 7 7 7 7 7 7 7
+// 2 5 6 5 6 5 6 5 6
+// 3 7 7 7 7 7 7 7 7
+// 4 3 6 4 6 3 6 4 6
+// 5 7 7 7 7 7 7 7 7
+// 6 5 6 5 6 5 6 5 6
+// 7 7 7 7 7 7 7 7 7
+let imagePasses = [
+    {
+        // pass 1 - 1px
+        x: [
+            0
+        ],
+        y: [
+            0
+        ]
+    },
+    {
+        // pass 2 - 1px
+        x: [
+            4
+        ],
+        y: [
+            0
+        ]
+    },
+    {
+        // pass 3 - 2px
+        x: [
+            0,
+            4
+        ],
+        y: [
+            4
+        ]
+    },
+    {
+        // pass 4 - 4px
+        x: [
+            2,
+            6
+        ],
+        y: [
+            0,
+            4
+        ]
+    },
+    {
+        // pass 5 - 8px
+        x: [
+            0,
+            2,
+            4,
+            6
+        ],
+        y: [
+            2,
+            6
+        ]
+    },
+    {
+        // pass 6 - 16px
+        x: [
+            1,
+            3,
+            5,
+            7
+        ],
+        y: [
+            0,
+            2,
+            4,
+            6
+        ]
+    },
+    {
+        // pass 7 - 32px
+        x: [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        y: [
+            1,
+            3,
+            5,
+            7
+        ]
+    }
+];
+exports.getImagePasses = function(width, height) {
+    let images = [];
+    let xLeftOver = width % 8;
+    let yLeftOver = height % 8;
+    let xRepeats = (width - xLeftOver) / 8;
+    let yRepeats = (height - yLeftOver) / 8;
+    for(let i = 0; i < imagePasses.length; i++){
+        let pass = imagePasses[i];
+        let passWidth = xRepeats * pass.x.length;
+        let passHeight = yRepeats * pass.y.length;
+        for(let j = 0; j < pass.x.length; j++){
+            if (pass.x[j] < xLeftOver) {
+                passWidth++;
+            } else {
+                break;
+            }
+        }
+        for(let j = 0; j < pass.y.length; j++){
+            if (pass.y[j] < yLeftOver) {
+                passHeight++;
+            } else {
+                break;
+            }
+        }
+        if (passWidth > 0 && passHeight > 0) {
+            images.push({
+                width: passWidth,
+                height: passHeight,
+                index: i
+            });
+        }
+    }
+    return images;
+};
+exports.getInterlaceIterator = function(width) {
+    return function(x, y, pass) {
+        let outerXLeftOver = x % imagePasses[pass].x.length;
+        let outerX = (x - outerXLeftOver) / imagePasses[pass].x.length * 8 + imagePasses[pass].x[outerXLeftOver];
+        let outerYLeftOver = y % imagePasses[pass].y.length;
+        let outerY = (y - outerYLeftOver) / imagePasses[pass].y.length * 8 + imagePasses[pass].y[outerYLeftOver];
+        return outerX * 4 + outerY * width * 4;
+    };
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/paeth-predictor.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+module.exports = function paethPredictor(left, above, upLeft) {
+    let paeth = left + above - upLeft;
+    let pLeft = Math.abs(paeth - left);
+    let pAbove = Math.abs(paeth - above);
+    let pUpLeft = Math.abs(paeth - upLeft);
+    if (pLeft <= pAbove && pLeft <= pUpLeft) {
+        return left;
+    }
+    if (pAbove <= pUpLeft) {
+        return above;
+    }
+    return upLeft;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let interlaceUtils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/interlace.js [app-ssr] (ecmascript)");
+let paethPredictor = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/paeth-predictor.js [app-ssr] (ecmascript)");
+function getByteWidth(width, bpp, depth) {
+    let byteWidth = width * bpp;
+    if (depth !== 8) {
+        byteWidth = Math.ceil(byteWidth / (8 / depth));
+    }
+    return byteWidth;
+}
+let Filter = module.exports = function(bitmapInfo, dependencies) {
+    let width = bitmapInfo.width;
+    let height = bitmapInfo.height;
+    let interlace = bitmapInfo.interlace;
+    let bpp = bitmapInfo.bpp;
+    let depth = bitmapInfo.depth;
+    this.read = dependencies.read;
+    this.write = dependencies.write;
+    this.complete = dependencies.complete;
+    this._imageIndex = 0;
+    this._images = [];
+    if (interlace) {
+        let passes = interlaceUtils.getImagePasses(width, height);
+        for(let i = 0; i < passes.length; i++){
+            this._images.push({
+                byteWidth: getByteWidth(passes[i].width, bpp, depth),
+                height: passes[i].height,
+                lineIndex: 0
+            });
+        }
+    } else {
+        this._images.push({
+            byteWidth: getByteWidth(width, bpp, depth),
+            height: height,
+            lineIndex: 0
+        });
+    }
+    // when filtering the line we look at the pixel to the left
+    // the spec also says it is done on a byte level regardless of the number of pixels
+    // so if the depth is byte compatible (8 or 16) we subtract the bpp in order to compare back
+    // a pixel rather than just a different byte part. However if we are sub byte, we ignore.
+    if (depth === 8) {
+        this._xComparison = bpp;
+    } else if (depth === 16) {
+        this._xComparison = bpp * 2;
+    } else {
+        this._xComparison = 1;
+    }
+};
+Filter.prototype.start = function() {
+    this.read(this._images[this._imageIndex].byteWidth + 1, this._reverseFilterLine.bind(this));
+};
+Filter.prototype._unFilterType1 = function(rawData, unfilteredLine, byteWidth) {
+    let xComparison = this._xComparison;
+    let xBiggerThan = xComparison - 1;
+    for(let x = 0; x < byteWidth; x++){
+        let rawByte = rawData[1 + x];
+        let f1Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        unfilteredLine[x] = rawByte + f1Left;
+    }
+};
+Filter.prototype._unFilterType2 = function(rawData, unfilteredLine, byteWidth) {
+    let lastLine = this._lastLine;
+    for(let x = 0; x < byteWidth; x++){
+        let rawByte = rawData[1 + x];
+        let f2Up = lastLine ? lastLine[x] : 0;
+        unfilteredLine[x] = rawByte + f2Up;
+    }
+};
+Filter.prototype._unFilterType3 = function(rawData, unfilteredLine, byteWidth) {
+    let xComparison = this._xComparison;
+    let xBiggerThan = xComparison - 1;
+    let lastLine = this._lastLine;
+    for(let x = 0; x < byteWidth; x++){
+        let rawByte = rawData[1 + x];
+        let f3Up = lastLine ? lastLine[x] : 0;
+        let f3Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        let f3Add = Math.floor((f3Left + f3Up) / 2);
+        unfilteredLine[x] = rawByte + f3Add;
+    }
+};
+Filter.prototype._unFilterType4 = function(rawData, unfilteredLine, byteWidth) {
+    let xComparison = this._xComparison;
+    let xBiggerThan = xComparison - 1;
+    let lastLine = this._lastLine;
+    for(let x = 0; x < byteWidth; x++){
+        let rawByte = rawData[1 + x];
+        let f4Up = lastLine ? lastLine[x] : 0;
+        let f4Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        let f4UpLeft = x > xBiggerThan && lastLine ? lastLine[x - xComparison] : 0;
+        let f4Add = paethPredictor(f4Left, f4Up, f4UpLeft);
+        unfilteredLine[x] = rawByte + f4Add;
+    }
+};
+Filter.prototype._reverseFilterLine = function(rawData) {
+    let filter = rawData[0];
+    let unfilteredLine;
+    let currentImage = this._images[this._imageIndex];
+    let byteWidth = currentImage.byteWidth;
+    if (filter === 0) {
+        unfilteredLine = rawData.slice(1, byteWidth + 1);
+    } else {
+        unfilteredLine = Buffer.alloc(byteWidth);
+        switch(filter){
+            case 1:
+                this._unFilterType1(rawData, unfilteredLine, byteWidth);
+                break;
+            case 2:
+                this._unFilterType2(rawData, unfilteredLine, byteWidth);
+                break;
+            case 3:
+                this._unFilterType3(rawData, unfilteredLine, byteWidth);
+                break;
+            case 4:
+                this._unFilterType4(rawData, unfilteredLine, byteWidth);
+                break;
+            default:
+                throw new Error("Unrecognised filter type - " + filter);
+        }
+    }
+    this.write(unfilteredLine);
+    currentImage.lineIndex++;
+    if (currentImage.lineIndex >= currentImage.height) {
+        this._lastLine = null;
+        this._imageIndex++;
+        currentImage = this._images[this._imageIndex];
+    } else {
+        this._lastLine = unfilteredLine;
+    }
+    if (currentImage) {
+        // read, using the byte width that may be from the new current image
+        this.read(currentImage.byteWidth + 1, this._reverseFilterLine.bind(this));
+    } else {
+        this._lastLine = null;
+        this.complete();
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse-async.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let ChunkStream = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/chunkstream.js [app-ssr] (ecmascript)");
+let Filter = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse.js [app-ssr] (ecmascript)");
+let FilterAsync = module.exports = function(bitmapInfo) {
+    ChunkStream.call(this);
+    let buffers = [];
+    let that = this;
+    this._filter = new Filter(bitmapInfo, {
+        read: this.read.bind(this),
+        write: function(buffer) {
+            buffers.push(buffer);
+        },
+        complete: function() {
+            that.emit("complete", Buffer.concat(buffers));
+        }
+    });
+    this._filter.start();
+};
+util.inherits(FilterAsync, ChunkStream);
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+module.exports = {
+    PNG_SIGNATURE: [
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a
+    ],
+    TYPE_IHDR: 0x49484452,
+    TYPE_IEND: 0x49454e44,
+    TYPE_IDAT: 0x49444154,
+    TYPE_PLTE: 0x504c5445,
+    TYPE_tRNS: 0x74524e53,
+    TYPE_gAMA: 0x67414d41,
+    // color-type bits
+    COLORTYPE_GRAYSCALE: 0,
+    COLORTYPE_PALETTE: 1,
+    COLORTYPE_COLOR: 2,
+    COLORTYPE_ALPHA: 4,
+    // color-type combinations
+    COLORTYPE_PALETTE_COLOR: 3,
+    COLORTYPE_COLOR_ALPHA: 6,
+    COLORTYPE_TO_BPP_MAP: {
+        0: 1,
+        2: 3,
+        3: 1,
+        4: 2,
+        6: 4
+    },
+    GAMMA_DIVISION: 100000
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/crc.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let crcTable = [];
+(function() {
+    for(let i = 0; i < 256; i++){
+        let currentCrc = i;
+        for(let j = 0; j < 8; j++){
+            if (currentCrc & 1) {
+                currentCrc = 0xedb88320 ^ currentCrc >>> 1;
+            } else {
+                currentCrc = currentCrc >>> 1;
+            }
+        }
+        crcTable[i] = currentCrc;
+    }
+})();
+let CrcCalculator = module.exports = function() {
+    this._crc = -1;
+};
+CrcCalculator.prototype.write = function(data) {
+    for(let i = 0; i < data.length; i++){
+        this._crc = crcTable[(this._crc ^ data[i]) & 0xff] ^ this._crc >>> 8;
+    }
+    return true;
+};
+CrcCalculator.prototype.crc32 = function() {
+    return this._crc ^ -1;
+};
+CrcCalculator.crc32 = function(buf) {
+    let crc = -1;
+    for(let i = 0; i < buf.length; i++){
+        crc = crcTable[(crc ^ buf[i]) & 0xff] ^ crc >>> 8;
+    }
+    return crc ^ -1;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let constants = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)");
+let CrcCalculator = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/crc.js [app-ssr] (ecmascript)");
+let Parser = module.exports = function(options, dependencies) {
+    this._options = options;
+    options.checkCRC = options.checkCRC !== false;
+    this._hasIHDR = false;
+    this._hasIEND = false;
+    this._emittedHeadersFinished = false;
+    // input flags/metadata
+    this._palette = [];
+    this._colorType = 0;
+    this._chunks = {};
+    this._chunks[constants.TYPE_IHDR] = this._handleIHDR.bind(this);
+    this._chunks[constants.TYPE_IEND] = this._handleIEND.bind(this);
+    this._chunks[constants.TYPE_IDAT] = this._handleIDAT.bind(this);
+    this._chunks[constants.TYPE_PLTE] = this._handlePLTE.bind(this);
+    this._chunks[constants.TYPE_tRNS] = this._handleTRNS.bind(this);
+    this._chunks[constants.TYPE_gAMA] = this._handleGAMA.bind(this);
+    this.read = dependencies.read;
+    this.error = dependencies.error;
+    this.metadata = dependencies.metadata;
+    this.gamma = dependencies.gamma;
+    this.transColor = dependencies.transColor;
+    this.palette = dependencies.palette;
+    this.parsed = dependencies.parsed;
+    this.inflateData = dependencies.inflateData;
+    this.finished = dependencies.finished;
+    this.simpleTransparency = dependencies.simpleTransparency;
+    this.headersFinished = dependencies.headersFinished || function() {};
+};
+Parser.prototype.start = function() {
+    this.read(constants.PNG_SIGNATURE.length, this._parseSignature.bind(this));
+};
+Parser.prototype._parseSignature = function(data) {
+    let signature = constants.PNG_SIGNATURE;
+    for(let i = 0; i < signature.length; i++){
+        if (data[i] !== signature[i]) {
+            this.error(new Error("Invalid file signature"));
+            return;
+        }
+    }
+    this.read(8, this._parseChunkBegin.bind(this));
+};
+Parser.prototype._parseChunkBegin = function(data) {
+    // chunk content length
+    let length = data.readUInt32BE(0);
+    // chunk type
+    let type = data.readUInt32BE(4);
+    let name = "";
+    for(let i = 4; i < 8; i++){
+        name += String.fromCharCode(data[i]);
+    }
+    //console.log('chunk ', name, length);
+    // chunk flags
+    let ancillary = Boolean(data[4] & 0x20); // or critical
+    //    priv = Boolean(data[5] & 0x20), // or public
+    //    safeToCopy = Boolean(data[7] & 0x20); // or unsafe
+    if (!this._hasIHDR && type !== constants.TYPE_IHDR) {
+        this.error(new Error("Expected IHDR on beggining"));
+        return;
+    }
+    this._crc = new CrcCalculator();
+    this._crc.write(Buffer.from(name));
+    if (this._chunks[type]) {
+        return this._chunks[type](length);
+    }
+    if (!ancillary) {
+        this.error(new Error("Unsupported critical chunk type " + name));
+        return;
+    }
+    this.read(length + 4, this._skipChunk.bind(this));
+};
+Parser.prototype._skipChunk = function() {
+    this.read(8, this._parseChunkBegin.bind(this));
+};
+Parser.prototype._handleChunkEnd = function() {
+    this.read(4, this._parseChunkEnd.bind(this));
+};
+Parser.prototype._parseChunkEnd = function(data) {
+    let fileCrc = data.readInt32BE(0);
+    let calcCrc = this._crc.crc32();
+    // check CRC
+    if (this._options.checkCRC && calcCrc !== fileCrc) {
+        this.error(new Error("Crc error - " + fileCrc + " - " + calcCrc));
+        return;
+    }
+    if (!this._hasIEND) {
+        this.read(8, this._parseChunkBegin.bind(this));
+    }
+};
+Parser.prototype._handleIHDR = function(length) {
+    this.read(length, this._parseIHDR.bind(this));
+};
+Parser.prototype._parseIHDR = function(data) {
+    this._crc.write(data);
+    let width = data.readUInt32BE(0);
+    let height = data.readUInt32BE(4);
+    let depth = data[8];
+    let colorType = data[9]; // bits: 1 palette, 2 color, 4 alpha
+    let compr = data[10];
+    let filter = data[11];
+    let interlace = data[12];
+    // console.log('    width', width, 'height', height,
+    //     'depth', depth, 'colorType', colorType,
+    //     'compr', compr, 'filter', filter, 'interlace', interlace
+    // );
+    if (depth !== 8 && depth !== 4 && depth !== 2 && depth !== 1 && depth !== 16) {
+        this.error(new Error("Unsupported bit depth " + depth));
+        return;
+    }
+    if (!(colorType in constants.COLORTYPE_TO_BPP_MAP)) {
+        this.error(new Error("Unsupported color type"));
+        return;
+    }
+    if (compr !== 0) {
+        this.error(new Error("Unsupported compression method"));
+        return;
+    }
+    if (filter !== 0) {
+        this.error(new Error("Unsupported filter method"));
+        return;
+    }
+    if (interlace !== 0 && interlace !== 1) {
+        this.error(new Error("Unsupported interlace method"));
+        return;
+    }
+    this._colorType = colorType;
+    let bpp = constants.COLORTYPE_TO_BPP_MAP[this._colorType];
+    this._hasIHDR = true;
+    this.metadata({
+        width: width,
+        height: height,
+        depth: depth,
+        interlace: Boolean(interlace),
+        palette: Boolean(colorType & constants.COLORTYPE_PALETTE),
+        color: Boolean(colorType & constants.COLORTYPE_COLOR),
+        alpha: Boolean(colorType & constants.COLORTYPE_ALPHA),
+        bpp: bpp,
+        colorType: colorType
+    });
+    this._handleChunkEnd();
+};
+Parser.prototype._handlePLTE = function(length) {
+    this.read(length, this._parsePLTE.bind(this));
+};
+Parser.prototype._parsePLTE = function(data) {
+    this._crc.write(data);
+    let entries = Math.floor(data.length / 3);
+    // console.log('Palette:', entries);
+    for(let i = 0; i < entries; i++){
+        this._palette.push([
+            data[i * 3],
+            data[i * 3 + 1],
+            data[i * 3 + 2],
+            0xff
+        ]);
+    }
+    this.palette(this._palette);
+    this._handleChunkEnd();
+};
+Parser.prototype._handleTRNS = function(length) {
+    this.simpleTransparency();
+    this.read(length, this._parseTRNS.bind(this));
+};
+Parser.prototype._parseTRNS = function(data) {
+    this._crc.write(data);
+    // palette
+    if (this._colorType === constants.COLORTYPE_PALETTE_COLOR) {
+        if (this._palette.length === 0) {
+            this.error(new Error("Transparency chunk must be after palette"));
+            return;
+        }
+        if (data.length > this._palette.length) {
+            this.error(new Error("More transparent colors than palette size"));
+            return;
+        }
+        for(let i = 0; i < data.length; i++){
+            this._palette[i][3] = data[i];
+        }
+        this.palette(this._palette);
+    }
+    // for colorType 0 (grayscale) and 2 (rgb)
+    // there might be one gray/color defined as transparent
+    if (this._colorType === constants.COLORTYPE_GRAYSCALE) {
+        // grey, 2 bytes
+        this.transColor([
+            data.readUInt16BE(0)
+        ]);
+    }
+    if (this._colorType === constants.COLORTYPE_COLOR) {
+        this.transColor([
+            data.readUInt16BE(0),
+            data.readUInt16BE(2),
+            data.readUInt16BE(4)
+        ]);
+    }
+    this._handleChunkEnd();
+};
+Parser.prototype._handleGAMA = function(length) {
+    this.read(length, this._parseGAMA.bind(this));
+};
+Parser.prototype._parseGAMA = function(data) {
+    this._crc.write(data);
+    this.gamma(data.readUInt32BE(0) / constants.GAMMA_DIVISION);
+    this._handleChunkEnd();
+};
+Parser.prototype._handleIDAT = function(length) {
+    if (!this._emittedHeadersFinished) {
+        this._emittedHeadersFinished = true;
+        this.headersFinished();
+    }
+    this.read(-length, this._parseIDAT.bind(this, length));
+};
+Parser.prototype._parseIDAT = function(length, data) {
+    this._crc.write(data);
+    if (this._colorType === constants.COLORTYPE_PALETTE_COLOR && this._palette.length === 0) {
+        throw new Error("Expected palette not found");
+    }
+    this.inflateData(data);
+    let leftOverLength = length - data.length;
+    if (leftOverLength > 0) {
+        this._handleIDAT(leftOverLength);
+    } else {
+        this._handleChunkEnd();
+    }
+};
+Parser.prototype._handleIEND = function(length) {
+    this.read(length, this._parseIEND.bind(this));
+};
+Parser.prototype._parseIEND = function(data) {
+    this._crc.write(data);
+    this._hasIEND = true;
+    this._handleChunkEnd();
+    if (this.finished) {
+        this.finished();
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/bitmapper.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let interlaceUtils = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/interlace.js [app-ssr] (ecmascript)");
+let pixelBppMapper = [
+    // 0 - dummy entry
+    function() {},
+    // 1 - L
+    // 0: 0, 1: 0, 2: 0, 3: 0xff
+    function(pxData, data, pxPos, rawPos) {
+        if (rawPos === data.length) {
+            throw new Error("Ran out of data");
+        }
+        let pixel = data[rawPos];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = 0xff;
+    },
+    // 2 - LA
+    // 0: 0, 1: 0, 2: 0, 3: 1
+    function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 1 >= data.length) {
+            throw new Error("Ran out of data");
+        }
+        let pixel = data[rawPos];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = data[rawPos + 1];
+    },
+    // 3 - RGB
+    // 0: 0, 1: 1, 2: 2, 3: 0xff
+    function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 2 >= data.length) {
+            throw new Error("Ran out of data");
+        }
+        pxData[pxPos] = data[rawPos];
+        pxData[pxPos + 1] = data[rawPos + 1];
+        pxData[pxPos + 2] = data[rawPos + 2];
+        pxData[pxPos + 3] = 0xff;
+    },
+    // 4 - RGBA
+    // 0: 0, 1: 1, 2: 2, 3: 3
+    function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 3 >= data.length) {
+            throw new Error("Ran out of data");
+        }
+        pxData[pxPos] = data[rawPos];
+        pxData[pxPos + 1] = data[rawPos + 1];
+        pxData[pxPos + 2] = data[rawPos + 2];
+        pxData[pxPos + 3] = data[rawPos + 3];
+    }
+];
+let pixelBppCustomMapper = [
+    // 0 - dummy entry
+    function() {},
+    // 1 - L
+    // 0: 0, 1: 0, 2: 0, 3: 0xff
+    function(pxData, pixelData, pxPos, maxBit) {
+        let pixel = pixelData[0];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = maxBit;
+    },
+    // 2 - LA
+    // 0: 0, 1: 0, 2: 0, 3: 1
+    function(pxData, pixelData, pxPos) {
+        let pixel = pixelData[0];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = pixelData[1];
+    },
+    // 3 - RGB
+    // 0: 0, 1: 1, 2: 2, 3: 0xff
+    function(pxData, pixelData, pxPos, maxBit) {
+        pxData[pxPos] = pixelData[0];
+        pxData[pxPos + 1] = pixelData[1];
+        pxData[pxPos + 2] = pixelData[2];
+        pxData[pxPos + 3] = maxBit;
+    },
+    // 4 - RGBA
+    // 0: 0, 1: 1, 2: 2, 3: 3
+    function(pxData, pixelData, pxPos) {
+        pxData[pxPos] = pixelData[0];
+        pxData[pxPos + 1] = pixelData[1];
+        pxData[pxPos + 2] = pixelData[2];
+        pxData[pxPos + 3] = pixelData[3];
+    }
+];
+function bitRetriever(data, depth) {
+    let leftOver = [];
+    let i = 0;
+    function split() {
+        if (i === data.length) {
+            throw new Error("Ran out of data");
+        }
+        let byte = data[i];
+        i++;
+        let byte8, byte7, byte6, byte5, byte4, byte3, byte2, byte1;
+        switch(depth){
+            default:
+                throw new Error("unrecognised depth");
+            case 16:
+                byte2 = data[i];
+                i++;
+                leftOver.push((byte << 8) + byte2);
+                break;
+            case 4:
+                byte2 = byte & 0x0f;
+                byte1 = byte >> 4;
+                leftOver.push(byte1, byte2);
+                break;
+            case 2:
+                byte4 = byte & 3;
+                byte3 = byte >> 2 & 3;
+                byte2 = byte >> 4 & 3;
+                byte1 = byte >> 6 & 3;
+                leftOver.push(byte1, byte2, byte3, byte4);
+                break;
+            case 1:
+                byte8 = byte & 1;
+                byte7 = byte >> 1 & 1;
+                byte6 = byte >> 2 & 1;
+                byte5 = byte >> 3 & 1;
+                byte4 = byte >> 4 & 1;
+                byte3 = byte >> 5 & 1;
+                byte2 = byte >> 6 & 1;
+                byte1 = byte >> 7 & 1;
+                leftOver.push(byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8);
+                break;
+        }
+    }
+    return {
+        get: function(count) {
+            while(leftOver.length < count){
+                split();
+            }
+            let returner = leftOver.slice(0, count);
+            leftOver = leftOver.slice(count);
+            return returner;
+        },
+        resetAfterLine: function() {
+            leftOver.length = 0;
+        },
+        end: function() {
+            if (i !== data.length) {
+                throw new Error("extra data found");
+            }
+        }
+    };
+}
+function mapImage8Bit(image, pxData, getPxPos, bpp, data, rawPos) {
+    // eslint-disable-line max-params
+    let imageWidth = image.width;
+    let imageHeight = image.height;
+    let imagePass = image.index;
+    for(let y = 0; y < imageHeight; y++){
+        for(let x = 0; x < imageWidth; x++){
+            let pxPos = getPxPos(x, y, imagePass);
+            pixelBppMapper[bpp](pxData, data, pxPos, rawPos);
+            rawPos += bpp; //eslint-disable-line no-param-reassign
+        }
+    }
+    return rawPos;
+}
+function mapImageCustomBit(image, pxData, getPxPos, bpp, bits, maxBit) {
+    // eslint-disable-line max-params
+    let imageWidth = image.width;
+    let imageHeight = image.height;
+    let imagePass = image.index;
+    for(let y = 0; y < imageHeight; y++){
+        for(let x = 0; x < imageWidth; x++){
+            let pixelData = bits.get(bpp);
+            let pxPos = getPxPos(x, y, imagePass);
+            pixelBppCustomMapper[bpp](pxData, pixelData, pxPos, maxBit);
+        }
+        bits.resetAfterLine();
+    }
+}
+exports.dataToBitMap = function(data, bitmapInfo) {
+    let width = bitmapInfo.width;
+    let height = bitmapInfo.height;
+    let depth = bitmapInfo.depth;
+    let bpp = bitmapInfo.bpp;
+    let interlace = bitmapInfo.interlace;
+    let bits;
+    if (depth !== 8) {
+        bits = bitRetriever(data, depth);
+    }
+    let pxData;
+    if (depth <= 8) {
+        pxData = Buffer.alloc(width * height * 4);
+    } else {
+        pxData = new Uint16Array(width * height * 4);
+    }
+    let maxBit = Math.pow(2, depth) - 1;
+    let rawPos = 0;
+    let images;
+    let getPxPos;
+    if (interlace) {
+        images = interlaceUtils.getImagePasses(width, height);
+        getPxPos = interlaceUtils.getInterlaceIterator(width, height);
+    } else {
+        let nonInterlacedPxPos = 0;
+        getPxPos = function() {
+            let returner = nonInterlacedPxPos;
+            nonInterlacedPxPos += 4;
+            return returner;
+        };
+        images = [
+            {
+                width: width,
+                height: height
+            }
+        ];
+    }
+    for(let imageIndex = 0; imageIndex < images.length; imageIndex++){
+        if (depth === 8) {
+            rawPos = mapImage8Bit(images[imageIndex], pxData, getPxPos, bpp, data, rawPos);
+        } else {
+            mapImageCustomBit(images[imageIndex], pxData, getPxPos, bpp, bits, maxBit);
+        }
+    }
+    if (depth === 8) {
+        if (rawPos !== data.length) {
+            throw new Error("extra data found");
+        }
+    } else {
+        bits.end();
+    }
+    return pxData;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/format-normaliser.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+function dePalette(indata, outdata, width, height, palette) {
+    let pxPos = 0;
+    // use values from palette
+    for(let y = 0; y < height; y++){
+        for(let x = 0; x < width; x++){
+            let color = palette[indata[pxPos]];
+            if (!color) {
+                throw new Error("index " + indata[pxPos] + " not in palette");
+            }
+            for(let i = 0; i < 4; i++){
+                outdata[pxPos + i] = color[i];
+            }
+            pxPos += 4;
+        }
+    }
+}
+function replaceTransparentColor(indata, outdata, width, height, transColor) {
+    let pxPos = 0;
+    for(let y = 0; y < height; y++){
+        for(let x = 0; x < width; x++){
+            let makeTrans = false;
+            if (transColor.length === 1) {
+                if (transColor[0] === indata[pxPos]) {
+                    makeTrans = true;
+                }
+            } else if (transColor[0] === indata[pxPos] && transColor[1] === indata[pxPos + 1] && transColor[2] === indata[pxPos + 2]) {
+                makeTrans = true;
+            }
+            if (makeTrans) {
+                for(let i = 0; i < 4; i++){
+                    outdata[pxPos + i] = 0;
+                }
+            }
+            pxPos += 4;
+        }
+    }
+}
+function scaleDepth(indata, outdata, width, height, depth) {
+    let maxOutSample = 255;
+    let maxInSample = Math.pow(2, depth) - 1;
+    let pxPos = 0;
+    for(let y = 0; y < height; y++){
+        for(let x = 0; x < width; x++){
+            for(let i = 0; i < 4; i++){
+                outdata[pxPos + i] = Math.floor(indata[pxPos + i] * maxOutSample / maxInSample + 0.5);
+            }
+            pxPos += 4;
+        }
+    }
+}
+module.exports = function(indata, imageData) {
+    let depth = imageData.depth;
+    let width = imageData.width;
+    let height = imageData.height;
+    let colorType = imageData.colorType;
+    let transColor = imageData.transColor;
+    let palette = imageData.palette;
+    let outdata = indata; // only different for 16 bits
+    if (colorType === 3) {
+        // paletted
+        dePalette(indata, outdata, width, height, palette);
+    } else {
+        if (transColor) {
+            replaceTransparentColor(indata, outdata, width, height, transColor);
+        }
+        // if it needs scaling
+        if (depth !== 8) {
+            // if we need to change the buffer size
+            if (depth === 16) {
+                outdata = Buffer.alloc(width * height * 4);
+            }
+            scaleDepth(indata, outdata, width, height, depth);
+        }
+    }
+    return outdata;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser-async.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let zlib = __turbopack_context__.r("[externals]/zlib [external] (zlib, cjs)");
+let ChunkStream = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/chunkstream.js [app-ssr] (ecmascript)");
+let FilterAsync = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse-async.js [app-ssr] (ecmascript)");
+let Parser = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser.js [app-ssr] (ecmascript)");
+let bitmapper = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/bitmapper.js [app-ssr] (ecmascript)");
+let formatNormaliser = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/format-normaliser.js [app-ssr] (ecmascript)");
+let ParserAsync = module.exports = function(options) {
+    ChunkStream.call(this);
+    this._parser = new Parser(options, {
+        read: this.read.bind(this),
+        error: this._handleError.bind(this),
+        metadata: this._handleMetaData.bind(this),
+        gamma: this.emit.bind(this, "gamma"),
+        palette: this._handlePalette.bind(this),
+        transColor: this._handleTransColor.bind(this),
+        finished: this._finished.bind(this),
+        inflateData: this._inflateData.bind(this),
+        simpleTransparency: this._simpleTransparency.bind(this),
+        headersFinished: this._headersFinished.bind(this)
+    });
+    this._options = options;
+    this.writable = true;
+    this._parser.start();
+};
+util.inherits(ParserAsync, ChunkStream);
+ParserAsync.prototype._handleError = function(err) {
+    this.emit("error", err);
+    this.writable = false;
+    this.destroy();
+    if (this._inflate && this._inflate.destroy) {
+        this._inflate.destroy();
+    }
+    if (this._filter) {
+        this._filter.destroy();
+        // For backward compatibility with Node 7 and below.
+        // Suppress errors due to _inflate calling write() even after
+        // it's destroy()'ed.
+        this._filter.on("error", function() {});
+    }
+    this.errord = true;
+};
+ParserAsync.prototype._inflateData = function(data) {
+    if (!this._inflate) {
+        if (this._bitmapInfo.interlace) {
+            this._inflate = zlib.createInflate();
+            this._inflate.on("error", this.emit.bind(this, "error"));
+            this._filter.on("complete", this._complete.bind(this));
+            this._inflate.pipe(this._filter);
+        } else {
+            let rowSize = (this._bitmapInfo.width * this._bitmapInfo.bpp * this._bitmapInfo.depth + 7 >> 3) + 1;
+            let imageSize = rowSize * this._bitmapInfo.height;
+            let chunkSize = Math.max(imageSize, zlib.Z_MIN_CHUNK);
+            this._inflate = zlib.createInflate({
+                chunkSize: chunkSize
+            });
+            let leftToInflate = imageSize;
+            let emitError = this.emit.bind(this, "error");
+            this._inflate.on("error", function(err) {
+                if (!leftToInflate) {
+                    return;
+                }
+                emitError(err);
+            });
+            this._filter.on("complete", this._complete.bind(this));
+            let filterWrite = this._filter.write.bind(this._filter);
+            this._inflate.on("data", function(chunk) {
+                if (!leftToInflate) {
+                    return;
+                }
+                if (chunk.length > leftToInflate) {
+                    chunk = chunk.slice(0, leftToInflate);
+                }
+                leftToInflate -= chunk.length;
+                filterWrite(chunk);
+            });
+            this._inflate.on("end", this._filter.end.bind(this._filter));
+        }
+    }
+    this._inflate.write(data);
+};
+ParserAsync.prototype._handleMetaData = function(metaData) {
+    this._metaData = metaData;
+    this._bitmapInfo = Object.create(metaData);
+    this._filter = new FilterAsync(this._bitmapInfo);
+};
+ParserAsync.prototype._handleTransColor = function(transColor) {
+    this._bitmapInfo.transColor = transColor;
+};
+ParserAsync.prototype._handlePalette = function(palette) {
+    this._bitmapInfo.palette = palette;
+};
+ParserAsync.prototype._simpleTransparency = function() {
+    this._metaData.alpha = true;
+};
+ParserAsync.prototype._headersFinished = function() {
+    // Up until this point, we don't know if we have a tRNS chunk (alpha)
+    // so we can't emit metadata any earlier
+    this.emit("metadata", this._metaData);
+};
+ParserAsync.prototype._finished = function() {
+    if (this.errord) {
+        return;
+    }
+    if (!this._inflate) {
+        this.emit("error", "No Inflate block");
+    } else {
+        // no more data to inflate
+        this._inflate.end();
+    }
+};
+ParserAsync.prototype._complete = function(filteredData) {
+    if (this.errord) {
+        return;
+    }
+    let normalisedBitmapData;
+    try {
+        let bitmapData = bitmapper.dataToBitMap(filteredData, this._bitmapInfo);
+        normalisedBitmapData = formatNormaliser(bitmapData, this._bitmapInfo);
+        bitmapData = null;
+    } catch (ex) {
+        this._handleError(ex);
+        return;
+    }
+    this.emit("parsed", normalisedBitmapData);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/bitpacker.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let constants = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)");
+module.exports = function(dataIn, width, height, options) {
+    let outHasAlpha = [
+        constants.COLORTYPE_COLOR_ALPHA,
+        constants.COLORTYPE_ALPHA
+    ].indexOf(options.colorType) !== -1;
+    if (options.colorType === options.inputColorType) {
+        let bigEndian = function() {
+            let buffer = new ArrayBuffer(2);
+            new DataView(buffer).setInt16(0, 256, true);
+            // Int16Array uses the platform's endianness.
+            return new Int16Array(buffer)[0] !== 256;
+        }();
+        // If no need to convert to grayscale and alpha is present/absent in both, take a fast route
+        if (options.bitDepth === 8 || options.bitDepth === 16 && bigEndian) {
+            return dataIn;
+        }
+    }
+    // map to a UInt16 array if data is 16bit, fix endianness below
+    let data = options.bitDepth !== 16 ? dataIn : new Uint16Array(dataIn.buffer);
+    let maxValue = 255;
+    let inBpp = constants.COLORTYPE_TO_BPP_MAP[options.inputColorType];
+    if (inBpp === 4 && !options.inputHasAlpha) {
+        inBpp = 3;
+    }
+    let outBpp = constants.COLORTYPE_TO_BPP_MAP[options.colorType];
+    if (options.bitDepth === 16) {
+        maxValue = 65535;
+        outBpp *= 2;
+    }
+    let outData = Buffer.alloc(width * height * outBpp);
+    let inIndex = 0;
+    let outIndex = 0;
+    let bgColor = options.bgColor || {};
+    if (bgColor.red === undefined) {
+        bgColor.red = maxValue;
+    }
+    if (bgColor.green === undefined) {
+        bgColor.green = maxValue;
+    }
+    if (bgColor.blue === undefined) {
+        bgColor.blue = maxValue;
+    }
+    function getRGBA() {
+        let red;
+        let green;
+        let blue;
+        let alpha = maxValue;
+        switch(options.inputColorType){
+            case constants.COLORTYPE_COLOR_ALPHA:
+                alpha = data[inIndex + 3];
+                red = data[inIndex];
+                green = data[inIndex + 1];
+                blue = data[inIndex + 2];
+                break;
+            case constants.COLORTYPE_COLOR:
+                red = data[inIndex];
+                green = data[inIndex + 1];
+                blue = data[inIndex + 2];
+                break;
+            case constants.COLORTYPE_ALPHA:
+                alpha = data[inIndex + 1];
+                red = data[inIndex];
+                green = red;
+                blue = red;
+                break;
+            case constants.COLORTYPE_GRAYSCALE:
+                red = data[inIndex];
+                green = red;
+                blue = red;
+                break;
+            default:
+                throw new Error("input color type:" + options.inputColorType + " is not supported at present");
+        }
+        if (options.inputHasAlpha) {
+            if (!outHasAlpha) {
+                alpha /= maxValue;
+                red = Math.min(Math.max(Math.round((1 - alpha) * bgColor.red + alpha * red), 0), maxValue);
+                green = Math.min(Math.max(Math.round((1 - alpha) * bgColor.green + alpha * green), 0), maxValue);
+                blue = Math.min(Math.max(Math.round((1 - alpha) * bgColor.blue + alpha * blue), 0), maxValue);
+            }
+        }
+        return {
+            red: red,
+            green: green,
+            blue: blue,
+            alpha: alpha
+        };
+    }
+    for(let y = 0; y < height; y++){
+        for(let x = 0; x < width; x++){
+            let rgba = getRGBA(data, inIndex);
+            switch(options.colorType){
+                case constants.COLORTYPE_COLOR_ALPHA:
+                case constants.COLORTYPE_COLOR:
+                    if (options.bitDepth === 8) {
+                        outData[outIndex] = rgba.red;
+                        outData[outIndex + 1] = rgba.green;
+                        outData[outIndex + 2] = rgba.blue;
+                        if (outHasAlpha) {
+                            outData[outIndex + 3] = rgba.alpha;
+                        }
+                    } else {
+                        outData.writeUInt16BE(rgba.red, outIndex);
+                        outData.writeUInt16BE(rgba.green, outIndex + 2);
+                        outData.writeUInt16BE(rgba.blue, outIndex + 4);
+                        if (outHasAlpha) {
+                            outData.writeUInt16BE(rgba.alpha, outIndex + 6);
+                        }
+                    }
+                    break;
+                case constants.COLORTYPE_ALPHA:
+                case constants.COLORTYPE_GRAYSCALE:
+                    {
+                        // Convert to grayscale and alpha
+                        let grayscale = (rgba.red + rgba.green + rgba.blue) / 3;
+                        if (options.bitDepth === 8) {
+                            outData[outIndex] = grayscale;
+                            if (outHasAlpha) {
+                                outData[outIndex + 1] = rgba.alpha;
+                            }
+                        } else {
+                            outData.writeUInt16BE(grayscale, outIndex);
+                            if (outHasAlpha) {
+                                outData.writeUInt16BE(rgba.alpha, outIndex + 2);
+                            }
+                        }
+                        break;
+                    }
+                default:
+                    throw new Error("unrecognised color Type " + options.colorType);
+            }
+            inIndex += inBpp;
+            outIndex += outBpp;
+        }
+    }
+    return outData;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-pack.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let paethPredictor = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/paeth-predictor.js [app-ssr] (ecmascript)");
+function filterNone(pxData, pxPos, byteWidth, rawData, rawPos) {
+    for(let x = 0; x < byteWidth; x++){
+        rawData[rawPos + x] = pxData[pxPos + x];
+    }
+}
+function filterSumNone(pxData, pxPos, byteWidth) {
+    let sum = 0;
+    let length = pxPos + byteWidth;
+    for(let i = pxPos; i < length; i++){
+        sum += Math.abs(pxData[i]);
+    }
+    return sum;
+}
+function filterSub(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let val = pxData[pxPos + x] - left;
+        rawData[rawPos + x] = val;
+    }
+}
+function filterSumSub(pxData, pxPos, byteWidth, bpp) {
+    let sum = 0;
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let val = pxData[pxPos + x] - left;
+        sum += Math.abs(val);
+    }
+    return sum;
+}
+function filterUp(pxData, pxPos, byteWidth, rawData, rawPos) {
+    for(let x = 0; x < byteWidth; x++){
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - up;
+        rawData[rawPos + x] = val;
+    }
+}
+function filterSumUp(pxData, pxPos, byteWidth) {
+    let sum = 0;
+    let length = pxPos + byteWidth;
+    for(let x = pxPos; x < length; x++){
+        let up = pxPos > 0 ? pxData[x - byteWidth] : 0;
+        let val = pxData[x] - up;
+        sum += Math.abs(val);
+    }
+    return sum;
+}
+function filterAvg(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - (left + up >> 1);
+        rawData[rawPos + x] = val;
+    }
+}
+function filterSumAvg(pxData, pxPos, byteWidth, bpp) {
+    let sum = 0;
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - (left + up >> 1);
+        sum += Math.abs(val);
+    }
+    return sum;
+}
+function filterPaeth(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let upleft = pxPos > 0 && x >= bpp ? pxData[pxPos + x - (byteWidth + bpp)] : 0;
+        let val = pxData[pxPos + x] - paethPredictor(left, up, upleft);
+        rawData[rawPos + x] = val;
+    }
+}
+function filterSumPaeth(pxData, pxPos, byteWidth, bpp) {
+    let sum = 0;
+    for(let x = 0; x < byteWidth; x++){
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let upleft = pxPos > 0 && x >= bpp ? pxData[pxPos + x - (byteWidth + bpp)] : 0;
+        let val = pxData[pxPos + x] - paethPredictor(left, up, upleft);
+        sum += Math.abs(val);
+    }
+    return sum;
+}
+let filters = {
+    0: filterNone,
+    1: filterSub,
+    2: filterUp,
+    3: filterAvg,
+    4: filterPaeth
+};
+let filterSums = {
+    0: filterSumNone,
+    1: filterSumSub,
+    2: filterSumUp,
+    3: filterSumAvg,
+    4: filterSumPaeth
+};
+module.exports = function(pxData, width, height, options, bpp) {
+    let filterTypes;
+    if (!("filterType" in options) || options.filterType === -1) {
+        filterTypes = [
+            0,
+            1,
+            2,
+            3,
+            4
+        ];
+    } else if (typeof options.filterType === "number") {
+        filterTypes = [
+            options.filterType
+        ];
+    } else {
+        throw new Error("unrecognised filter types");
+    }
+    if (options.bitDepth === 16) {
+        bpp *= 2;
+    }
+    let byteWidth = width * bpp;
+    let rawPos = 0;
+    let pxPos = 0;
+    let rawData = Buffer.alloc((byteWidth + 1) * height);
+    let sel = filterTypes[0];
+    for(let y = 0; y < height; y++){
+        if (filterTypes.length > 1) {
+            // find best filter for this line (with lowest sum of values)
+            let min = Infinity;
+            for(let i = 0; i < filterTypes.length; i++){
+                let sum = filterSums[filterTypes[i]](pxData, pxPos, byteWidth, bpp);
+                if (sum < min) {
+                    sel = filterTypes[i];
+                    min = sum;
+                }
+            }
+        }
+        rawData[rawPos] = sel;
+        rawPos++;
+        filters[sel](pxData, pxPos, byteWidth, rawData, rawPos, bpp);
+        rawPos += byteWidth;
+        pxPos += byteWidth;
+    }
+    return rawData;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let constants = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)");
+let CrcStream = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/crc.js [app-ssr] (ecmascript)");
+let bitPacker = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/bitpacker.js [app-ssr] (ecmascript)");
+let filter = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-pack.js [app-ssr] (ecmascript)");
+let zlib = __turbopack_context__.r("[externals]/zlib [external] (zlib, cjs)");
+let Packer = module.exports = function(options) {
+    this._options = options;
+    options.deflateChunkSize = options.deflateChunkSize || 32 * 1024;
+    options.deflateLevel = options.deflateLevel != null ? options.deflateLevel : 9;
+    options.deflateStrategy = options.deflateStrategy != null ? options.deflateStrategy : 3;
+    options.inputHasAlpha = options.inputHasAlpha != null ? options.inputHasAlpha : true;
+    options.deflateFactory = options.deflateFactory || zlib.createDeflate;
+    options.bitDepth = options.bitDepth || 8;
+    // This is outputColorType
+    options.colorType = typeof options.colorType === "number" ? options.colorType : constants.COLORTYPE_COLOR_ALPHA;
+    options.inputColorType = typeof options.inputColorType === "number" ? options.inputColorType : constants.COLORTYPE_COLOR_ALPHA;
+    if ([
+        constants.COLORTYPE_GRAYSCALE,
+        constants.COLORTYPE_COLOR,
+        constants.COLORTYPE_COLOR_ALPHA,
+        constants.COLORTYPE_ALPHA
+    ].indexOf(options.colorType) === -1) {
+        throw new Error("option color type:" + options.colorType + " is not supported at present");
+    }
+    if ([
+        constants.COLORTYPE_GRAYSCALE,
+        constants.COLORTYPE_COLOR,
+        constants.COLORTYPE_COLOR_ALPHA,
+        constants.COLORTYPE_ALPHA
+    ].indexOf(options.inputColorType) === -1) {
+        throw new Error("option input color type:" + options.inputColorType + " is not supported at present");
+    }
+    if (options.bitDepth !== 8 && options.bitDepth !== 16) {
+        throw new Error("option bit depth:" + options.bitDepth + " is not supported at present");
+    }
+};
+Packer.prototype.getDeflateOptions = function() {
+    return {
+        chunkSize: this._options.deflateChunkSize,
+        level: this._options.deflateLevel,
+        strategy: this._options.deflateStrategy
+    };
+};
+Packer.prototype.createDeflate = function() {
+    return this._options.deflateFactory(this.getDeflateOptions());
+};
+Packer.prototype.filterData = function(data, width, height) {
+    // convert to correct format for filtering (e.g. right bpp and bit depth)
+    let packedData = bitPacker(data, width, height, this._options);
+    // filter pixel data
+    let bpp = constants.COLORTYPE_TO_BPP_MAP[this._options.colorType];
+    let filteredData = filter(packedData, width, height, this._options, bpp);
+    return filteredData;
+};
+Packer.prototype._packChunk = function(type, data) {
+    let len = data ? data.length : 0;
+    let buf = Buffer.alloc(len + 12);
+    buf.writeUInt32BE(len, 0);
+    buf.writeUInt32BE(type, 4);
+    if (data) {
+        data.copy(buf, 8);
+    }
+    buf.writeInt32BE(CrcStream.crc32(buf.slice(4, buf.length - 4)), buf.length - 4);
+    return buf;
+};
+Packer.prototype.packGAMA = function(gamma) {
+    let buf = Buffer.alloc(4);
+    buf.writeUInt32BE(Math.floor(gamma * constants.GAMMA_DIVISION), 0);
+    return this._packChunk(constants.TYPE_gAMA, buf);
+};
+Packer.prototype.packIHDR = function(width, height) {
+    let buf = Buffer.alloc(13);
+    buf.writeUInt32BE(width, 0);
+    buf.writeUInt32BE(height, 4);
+    buf[8] = this._options.bitDepth; // Bit depth
+    buf[9] = this._options.colorType; // colorType
+    buf[10] = 0; // compression
+    buf[11] = 0; // filter
+    buf[12] = 0; // interlace
+    return this._packChunk(constants.TYPE_IHDR, buf);
+};
+Packer.prototype.packIDAT = function(data) {
+    return this._packChunk(constants.TYPE_IDAT, data);
+};
+Packer.prototype.packIEND = function() {
+    return this._packChunk(constants.TYPE_IEND, null);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer-async.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let Stream = __turbopack_context__.r("[externals]/stream [external] (stream, cjs)");
+let constants = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)");
+let Packer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer.js [app-ssr] (ecmascript)");
+let PackerAsync = module.exports = function(opt) {
+    Stream.call(this);
+    let options = opt || {};
+    this._packer = new Packer(options);
+    this._deflate = this._packer.createDeflate();
+    this.readable = true;
+};
+util.inherits(PackerAsync, Stream);
+PackerAsync.prototype.pack = function(data, width, height, gamma) {
+    // Signature
+    this.emit("data", Buffer.from(constants.PNG_SIGNATURE));
+    this.emit("data", this._packer.packIHDR(width, height));
+    if (gamma) {
+        this.emit("data", this._packer.packGAMA(gamma));
+    }
+    let filteredData = this._packer.filterData(data, width, height);
+    // compress it
+    this._deflate.on("error", this.emit.bind(this, "error"));
+    this._deflate.on("data", (function(compressedData) {
+        this.emit("data", this._packer.packIDAT(compressedData));
+    }).bind(this));
+    this._deflate.on("end", (function() {
+        this.emit("data", this._packer.packIEND());
+        this.emit("end");
+    }).bind(this));
+    this._deflate.end(filteredData);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/sync-inflate.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let assert = __turbopack_context__.r("[externals]/assert [external] (assert, cjs)").ok;
+let zlib = __turbopack_context__.r("[externals]/zlib [external] (zlib, cjs)");
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let kMaxLength = __turbopack_context__.r("[externals]/buffer [external] (buffer, cjs)").kMaxLength;
+function Inflate(opts) {
+    if (!(this instanceof Inflate)) {
+        return new Inflate(opts);
+    }
+    if (opts && opts.chunkSize < zlib.Z_MIN_CHUNK) {
+        opts.chunkSize = zlib.Z_MIN_CHUNK;
+    }
+    zlib.Inflate.call(this, opts);
+    // Node 8 --> 9 compatibility check
+    this._offset = this._offset === undefined ? this._outOffset : this._offset;
+    this._buffer = this._buffer || this._outBuffer;
+    if (opts && opts.maxLength != null) {
+        this._maxLength = opts.maxLength;
+    }
+}
+function createInflate(opts) {
+    return new Inflate(opts);
+}
+function _close(engine, callback) {
+    if (callback) {
+        process.nextTick(callback);
+    }
+    // Caller may invoke .close after a zlib error (which will null _handle).
+    if (!engine._handle) {
+        return;
+    }
+    engine._handle.close();
+    engine._handle = null;
+}
+Inflate.prototype._processChunk = function(chunk, flushFlag, asyncCb) {
+    if (typeof asyncCb === "function") {
+        return zlib.Inflate._processChunk.call(this, chunk, flushFlag, asyncCb);
+    }
+    let self = this;
+    let availInBefore = chunk && chunk.length;
+    let availOutBefore = this._chunkSize - this._offset;
+    let leftToInflate = this._maxLength;
+    let inOff = 0;
+    let buffers = [];
+    let nread = 0;
+    let error;
+    this.on("error", function(err) {
+        error = err;
+    });
+    function handleChunk(availInAfter, availOutAfter) {
+        if (self._hadError) {
+            return;
+        }
+        let have = availOutBefore - availOutAfter;
+        assert(have >= 0, "have should not go down");
+        if (have > 0) {
+            let out = self._buffer.slice(self._offset, self._offset + have);
+            self._offset += have;
+            if (out.length > leftToInflate) {
+                out = out.slice(0, leftToInflate);
+            }
+            buffers.push(out);
+            nread += out.length;
+            leftToInflate -= out.length;
+            if (leftToInflate === 0) {
+                return false;
+            }
+        }
+        if (availOutAfter === 0 || self._offset >= self._chunkSize) {
+            availOutBefore = self._chunkSize;
+            self._offset = 0;
+            self._buffer = Buffer.allocUnsafe(self._chunkSize);
+        }
+        if (availOutAfter === 0) {
+            inOff += availInBefore - availInAfter;
+            availInBefore = availInAfter;
+            return true;
+        }
+        return false;
+    }
+    assert(this._handle, "zlib binding closed");
+    let res;
+    do {
+        res = this._handle.writeSync(flushFlag, chunk, inOff, availInBefore, this._buffer, this._offset, availOutBefore); // out_len
+        // Node 8 --> 9 compatibility check
+        res = res || this._writeState;
+    }while (!this._hadError && handleChunk(res[0], res[1]))
+    if (this._hadError) {
+        throw error;
+    }
+    if (nread >= kMaxLength) {
+        _close(this);
+        throw new RangeError("Cannot create final Buffer. It would be larger than 0x" + kMaxLength.toString(16) + " bytes");
+    }
+    let buf = Buffer.concat(buffers, nread);
+    _close(this);
+    return buf;
+};
+util.inherits(Inflate, zlib.Inflate);
+function zlibBufferSync(engine, buffer) {
+    if (typeof buffer === "string") {
+        buffer = Buffer.from(buffer);
+    }
+    if (!(buffer instanceof Buffer)) {
+        throw new TypeError("Not a string or buffer");
+    }
+    let flushFlag = engine._finishFlushFlag;
+    if (flushFlag == null) {
+        flushFlag = zlib.Z_FINISH;
+    }
+    return engine._processChunk(buffer, flushFlag);
+}
+function inflateSync(buffer, opts) {
+    return zlibBufferSync(new Inflate(opts), buffer);
+}
+module.exports = exports = inflateSync;
+exports.Inflate = Inflate;
+exports.createInflate = createInflate;
+exports.inflateSync = inflateSync;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/sync-reader.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let SyncReader = module.exports = function(buffer) {
+    this._buffer = buffer;
+    this._reads = [];
+};
+SyncReader.prototype.read = function(length, callback) {
+    this._reads.push({
+        length: Math.abs(length),
+        allowLess: length < 0,
+        func: callback
+    });
+};
+SyncReader.prototype.process = function() {
+    // as long as there is any data and read requests
+    while(this._reads.length > 0 && this._buffer.length){
+        let read = this._reads[0];
+        if (this._buffer.length && (this._buffer.length >= read.length || read.allowLess)) {
+            // ok there is any data so that we can satisfy this request
+            this._reads.shift(); // == read
+            let buf = this._buffer;
+            this._buffer = buf.slice(read.length);
+            read.func.call(this, buf.slice(0, read.length));
+        } else {
+            break;
+        }
+    }
+    if (this._reads.length > 0) {
+        return new Error("There are some read requests waitng on finished stream");
+    }
+    if (this._buffer.length > 0) {
+        return new Error("unrecognised content at end of stream");
+    }
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse-sync.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let SyncReader = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/sync-reader.js [app-ssr] (ecmascript)");
+let Filter = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse.js [app-ssr] (ecmascript)");
+exports.process = function(inBuffer, bitmapInfo) {
+    let outBuffers = [];
+    let reader = new SyncReader(inBuffer);
+    let filter = new Filter(bitmapInfo, {
+        read: reader.read.bind(reader),
+        write: function(bufferPart) {
+            outBuffers.push(bufferPart);
+        },
+        complete: function() {}
+    });
+    filter.start();
+    reader.process();
+    return Buffer.concat(outBuffers);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser-sync.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let hasSyncZlib = true;
+let zlib = __turbopack_context__.r("[externals]/zlib [external] (zlib, cjs)");
+let inflateSync = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/sync-inflate.js [app-ssr] (ecmascript)");
+if (!zlib.deflateSync) {
+    hasSyncZlib = false;
+}
+let SyncReader = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/sync-reader.js [app-ssr] (ecmascript)");
+let FilterSync = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/filter-parse-sync.js [app-ssr] (ecmascript)");
+let Parser = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser.js [app-ssr] (ecmascript)");
+let bitmapper = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/bitmapper.js [app-ssr] (ecmascript)");
+let formatNormaliser = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/format-normaliser.js [app-ssr] (ecmascript)");
+module.exports = function(buffer, options) {
+    if (!hasSyncZlib) {
+        throw new Error("To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0");
+    }
+    let err;
+    function handleError(_err_) {
+        err = _err_;
+    }
+    let metaData;
+    function handleMetaData(_metaData_) {
+        metaData = _metaData_;
+    }
+    function handleTransColor(transColor) {
+        metaData.transColor = transColor;
+    }
+    function handlePalette(palette) {
+        metaData.palette = palette;
+    }
+    function handleSimpleTransparency() {
+        metaData.alpha = true;
+    }
+    let gamma;
+    function handleGamma(_gamma_) {
+        gamma = _gamma_;
+    }
+    let inflateDataList = [];
+    function handleInflateData(inflatedData) {
+        inflateDataList.push(inflatedData);
+    }
+    let reader = new SyncReader(buffer);
+    let parser = new Parser(options, {
+        read: reader.read.bind(reader),
+        error: handleError,
+        metadata: handleMetaData,
+        gamma: handleGamma,
+        palette: handlePalette,
+        transColor: handleTransColor,
+        inflateData: handleInflateData,
+        simpleTransparency: handleSimpleTransparency
+    });
+    parser.start();
+    reader.process();
+    if (err) {
+        throw err;
+    }
+    //join together the inflate datas
+    let inflateData = Buffer.concat(inflateDataList);
+    inflateDataList.length = 0;
+    let inflatedData;
+    if (metaData.interlace) {
+        inflatedData = zlib.inflateSync(inflateData);
+    } else {
+        let rowSize = (metaData.width * metaData.bpp * metaData.depth + 7 >> 3) + 1;
+        let imageSize = rowSize * metaData.height;
+        inflatedData = inflateSync(inflateData, {
+            chunkSize: imageSize,
+            maxLength: imageSize
+        });
+    }
+    inflateData = null;
+    if (!inflatedData || !inflatedData.length) {
+        throw new Error("bad png - invalid inflate data response");
+    }
+    let unfilteredData = FilterSync.process(inflatedData, metaData);
+    inflateData = null;
+    let bitmapData = bitmapper.dataToBitMap(unfilteredData, metaData);
+    unfilteredData = null;
+    let normalisedBitmapData = formatNormaliser(bitmapData, metaData);
+    metaData.data = normalisedBitmapData;
+    metaData.gamma = gamma || 0;
+    return metaData;
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer-sync.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let hasSyncZlib = true;
+let zlib = __turbopack_context__.r("[externals]/zlib [external] (zlib, cjs)");
+if (!zlib.deflateSync) {
+    hasSyncZlib = false;
+}
+let constants = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/constants.js [app-ssr] (ecmascript)");
+let Packer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer.js [app-ssr] (ecmascript)");
+module.exports = function(metaData, opt) {
+    if (!hasSyncZlib) {
+        throw new Error("To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0");
+    }
+    let options = opt || {};
+    let packer = new Packer(options);
+    let chunks = [];
+    // Signature
+    chunks.push(Buffer.from(constants.PNG_SIGNATURE));
+    // Header
+    chunks.push(packer.packIHDR(metaData.width, metaData.height));
+    if (metaData.gamma) {
+        chunks.push(packer.packGAMA(metaData.gamma));
+    }
+    let filteredData = packer.filterData(metaData.data, metaData.width, metaData.height);
+    // compress it
+    let compressedData = zlib.deflateSync(filteredData, packer.getDeflateOptions());
+    filteredData = null;
+    if (!compressedData || !compressedData.length) {
+        throw new Error("bad png - invalid compressed data response");
+    }
+    chunks.push(packer.packIDAT(compressedData));
+    // End
+    chunks.push(packer.packIEND());
+    return Buffer.concat(chunks);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/png-sync.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let parse = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser-sync.js [app-ssr] (ecmascript)");
+let pack = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer-sync.js [app-ssr] (ecmascript)");
+exports.read = function(buffer, options) {
+    return parse(buffer, options || {});
+};
+exports.write = function(png, options) {
+    return pack(png, options);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/png.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+let util = __turbopack_context__.r("[externals]/util [external] (util, cjs)");
+let Stream = __turbopack_context__.r("[externals]/stream [external] (stream, cjs)");
+let Parser = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/parser-async.js [app-ssr] (ecmascript)");
+let Packer = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/packer-async.js [app-ssr] (ecmascript)");
+let PNGSync = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/pngjs/lib/png-sync.js [app-ssr] (ecmascript)");
+let PNG = exports.PNG = function(options) {
+    Stream.call(this);
+    options = options || {}; // eslint-disable-line no-param-reassign
+    // coerce pixel dimensions to integers (also coerces undefined -> 0):
+    this.width = options.width | 0;
+    this.height = options.height | 0;
+    this.data = this.width > 0 && this.height > 0 ? Buffer.alloc(4 * this.width * this.height) : null;
+    if (options.fill && this.data) {
+        this.data.fill(0);
+    }
+    this.gamma = 0;
+    this.readable = this.writable = true;
+    this._parser = new Parser(options);
+    this._parser.on("error", this.emit.bind(this, "error"));
+    this._parser.on("close", this._handleClose.bind(this));
+    this._parser.on("metadata", this._metadata.bind(this));
+    this._parser.on("gamma", this._gamma.bind(this));
+    this._parser.on("parsed", (function(data) {
+        this.data = data;
+        this.emit("parsed", data);
+    }).bind(this));
+    this._packer = new Packer(options);
+    this._packer.on("data", this.emit.bind(this, "data"));
+    this._packer.on("end", this.emit.bind(this, "end"));
+    this._parser.on("close", this._handleClose.bind(this));
+    this._packer.on("error", this.emit.bind(this, "error"));
+};
+util.inherits(PNG, Stream);
+PNG.sync = PNGSync;
+PNG.prototype.pack = function() {
+    if (!this.data || !this.data.length) {
+        this.emit("error", "No data provided");
+        return this;
+    }
+    process.nextTick((function() {
+        this._packer.pack(this.data, this.width, this.height, this.gamma);
+    }).bind(this));
+    return this;
+};
+PNG.prototype.parse = function(data, callback) {
+    if (callback) {
+        let onParsed, onError;
+        onParsed = (function(parsedData) {
+            this.removeListener("error", onError);
+            this.data = parsedData;
+            callback(null, this);
+        }).bind(this);
+        onError = (function(err) {
+            this.removeListener("parsed", onParsed);
+            callback(err, null);
+        }).bind(this);
+        this.once("parsed", onParsed);
+        this.once("error", onError);
+    }
+    this.end(data);
+    return this;
+};
+PNG.prototype.write = function(data) {
+    this._parser.write(data);
+    return true;
+};
+PNG.prototype.end = function(data) {
+    this._parser.end(data);
+};
+PNG.prototype._metadata = function(metadata) {
+    this.width = metadata.width;
+    this.height = metadata.height;
+    this.emit("metadata", metadata);
+};
+PNG.prototype._gamma = function(gamma) {
+    this.gamma = gamma;
+};
+PNG.prototype._handleClose = function() {
+    if (!this._parser.writable && !this._packer.readable) {
+        this.emit("close");
+    }
+};
+PNG.bitblt = function(src, dst, srcX, srcY, width, height, deltaX, deltaY) {
+    // eslint-disable-line max-params
+    // coerce pixel dimensions to integers (also coerces undefined -> 0):
+    /* eslint-disable no-param-reassign */ srcX |= 0;
+    srcY |= 0;
+    width |= 0;
+    height |= 0;
+    deltaX |= 0;
+    deltaY |= 0;
+    /* eslint-enable no-param-reassign */ if (srcX > src.width || srcY > src.height || srcX + width > src.width || srcY + height > src.height) {
+        throw new Error("bitblt reading outside image");
+    }
+    if (deltaX > dst.width || deltaY > dst.height || deltaX + width > dst.width || deltaY + height > dst.height) {
+        throw new Error("bitblt writing outside image");
+    }
+    for(let y = 0; y < height; y++){
+        src.data.copy(dst.data, (deltaY + y) * dst.width + deltaX << 2, (srcY + y) * src.width + srcX << 2, (srcY + y) * src.width + srcX + width << 2);
+    }
+};
+PNG.prototype.bitblt = function(dst, srcX, srcY, width, height, deltaX, deltaY) {
+    // eslint-disable-line max-params
+    PNG.bitblt(this, dst, srcX, srcY, width, height, deltaX, deltaY);
+    return this;
+};
+PNG.adjustGamma = function(src) {
+    if (src.gamma) {
+        for(let y = 0; y < src.height; y++){
+            for(let x = 0; x < src.width; x++){
+                let idx = src.width * y + x << 2;
+                for(let i = 0; i < 3; i++){
+                    let sample = src.data[idx + i] / 255;
+                    sample = Math.pow(sample, 1 / 2.2 / src.gamma);
+                    src.data[idx + i] = Math.round(sample * 255);
+                }
+            }
+        }
+        src.gamma = 0;
+    }
+};
+PNG.prototype.adjustGamma = function() {
+    PNG.adjustGamma(this);
+};
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/browser-image-compression/dist/browser-image-compression.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * Browser Image Compression
+ * v2.0.2
+ * by Donald <donaldcwl@gmail.com>
+ * https://github.com/Donaldcwl/browser-image-compression
+ */ __turbopack_context__.s([
+    "default",
+    ()=>imageCompression
+]);
+function _mergeNamespaces(e, t1) {
+    return t1.forEach(function(t1) {
+        t1 && "string" != typeof t1 && !Array.isArray(t1) && Object.keys(t1).forEach(function(r) {
+            if ("default" !== r && !(r in e)) {
+                var i = Object.getOwnPropertyDescriptor(t1, r);
+                Object.defineProperty(e, r, i.get ? i : {
+                    enumerable: !0,
+                    get: function() {
+                        return t1[r];
+                    }
+                });
+            }
+        });
+    }), Object.freeze(e);
+}
+function copyExifWithoutOrientation(e, t1) {
+    return new Promise(function(r, i) {
+        let o;
+        return getApp1Segment(e).then(function(e) {
+            try {
+                return o = e, r(new Blob([
+                    t1.slice(0, 2),
+                    o,
+                    t1.slice(2)
+                ], {
+                    type: "image/jpeg"
+                }));
+            } catch (e) {
+                return i(e);
+            }
+        }, i);
+    });
+}
+const getApp1Segment = (e)=>new Promise((t1, r)=>{
+        const i = new FileReader;
+        i.addEventListener("load", ({ target: { result: e } })=>{
+            const i = new DataView(e);
+            let o = 0;
+            if (65496 !== i.getUint16(o)) return r("not a valid JPEG");
+            for(o += 2;;){
+                const a = i.getUint16(o);
+                if (65498 === a) break;
+                const s = i.getUint16(o + 2);
+                if (65505 === a && 1165519206 === i.getUint32(o + 4)) {
+                    const a = o + 10;
+                    let f;
+                    switch(i.getUint16(a)){
+                        case 18761:
+                            f = !0;
+                            break;
+                        case 19789:
+                            f = !1;
+                            break;
+                        default:
+                            return r("TIFF header contains invalid endian");
+                    }
+                    if (42 !== i.getUint16(a + 2, f)) return r("TIFF header contains invalid version");
+                    const l = i.getUint32(a + 4, f), c = a + l + 2 + 12 * i.getUint16(a + l, f);
+                    for(let e = a + l + 2; e < c; e += 12){
+                        if (274 == i.getUint16(e, f)) {
+                            if (3 !== i.getUint16(e + 2, f)) return r("Orientation data type is invalid");
+                            if (1 !== i.getUint32(e + 4, f)) return r("Orientation data count is invalid");
+                            i.setUint16(e + 8, 1, f);
+                            break;
+                        }
+                    }
+                    return t1(e.slice(o, o + 2 + s));
+                }
+                o += 2 + s;
+            }
+            return t1(new Blob);
+        }), i.readAsArrayBuffer(e);
+    });
+var e = {}, t1 = {
+    get exports () {
+        return e;
+    },
+    set exports (t){
+        e = t;
+    }
+};
+!function(e) {
+    var r, i, UZIP = {};
+    t1.exports = UZIP, UZIP.parse = function(e, t1) {
+        for(var r = UZIP.bin.readUshort, i = UZIP.bin.readUint, o = 0, a = {}, s = new Uint8Array(e), f = s.length - 4; 101010256 != i(s, f);)f--;
+        o = f;
+        o += 4;
+        var l = r(s, o += 4);
+        r(s, o += 2);
+        var c = i(s, o += 2), u = i(s, o += 4);
+        o += 4, o = u;
+        for(var h = 0; h < l; h++){
+            i(s, o), o += 4, o += 4, o += 4, i(s, o += 4);
+            c = i(s, o += 4);
+            var d = i(s, o += 4), A = r(s, o += 4), g = r(s, o + 2), p = r(s, o + 4);
+            o += 6;
+            var m = i(s, o += 8);
+            o += 4, o += A + g + p, UZIP._readLocal(s, m, a, c, d, t1);
+        }
+        return a;
+    }, UZIP._readLocal = function(e, t1, r, i, o, a) {
+        var s = UZIP.bin.readUshort, f = UZIP.bin.readUint;
+        f(e, t1), s(e, t1 += 4), s(e, t1 += 2);
+        var l = s(e, t1 += 2);
+        f(e, t1 += 2), f(e, t1 += 4), t1 += 4;
+        var c = s(e, t1 += 8), u = s(e, t1 += 2);
+        t1 += 2;
+        var h = UZIP.bin.readUTF8(e, t1, c);
+        if (t1 += c, t1 += u, a) r[h] = {
+            size: o,
+            csize: i
+        };
+        else {
+            var d = new Uint8Array(e.buffer, t1);
+            if (0 == l) r[h] = new Uint8Array(d.buffer.slice(t1, t1 + i));
+            else {
+                if (8 != l) throw "unknown compression method: " + l;
+                var A = new Uint8Array(o);
+                UZIP.inflateRaw(d, A), r[h] = A;
+            }
+        }
+    }, UZIP.inflateRaw = function(e, t1) {
+        return UZIP.F.inflate(e, t1);
+    }, UZIP.inflate = function(e, t1) {
+        return e[0], e[1], UZIP.inflateRaw(new Uint8Array(e.buffer, e.byteOffset + 2, e.length - 6), t1);
+    }, UZIP.deflate = function(e, t1) {
+        null == t1 && (t1 = {
+            level: 6
+        });
+        var r = 0, i = new Uint8Array(50 + Math.floor(1.1 * e.length));
+        i[r] = 120, i[r + 1] = 156, r += 2, r = UZIP.F.deflateRaw(e, i, r, t1.level);
+        var o = UZIP.adler(e, 0, e.length);
+        return i[r + 0] = o >>> 24 & 255, i[r + 1] = o >>> 16 & 255, i[r + 2] = o >>> 8 & 255, i[r + 3] = o >>> 0 & 255, new Uint8Array(i.buffer, 0, r + 4);
+    }, UZIP.deflateRaw = function(e, t1) {
+        null == t1 && (t1 = {
+            level: 6
+        });
+        var r = new Uint8Array(50 + Math.floor(1.1 * e.length)), i = UZIP.F.deflateRaw(e, r, i, t1.level);
+        return new Uint8Array(r.buffer, 0, i);
+    }, UZIP.encode = function(e, t1) {
+        null == t1 && (t1 = !1);
+        var r = 0, i = UZIP.bin.writeUint, o = UZIP.bin.writeUshort, a = {};
+        for(var s in e){
+            var f = !UZIP._noNeed(s) && !t1, l = e[s], c = UZIP.crc.crc(l, 0, l.length);
+            a[s] = {
+                cpr: f,
+                usize: l.length,
+                crc: c,
+                file: f ? UZIP.deflateRaw(l) : l
+            };
+        }
+        for(var s in a)r += a[s].file.length + 30 + 46 + 2 * UZIP.bin.sizeUTF8(s);
+        r += 22;
+        var u = new Uint8Array(r), h = 0, d = [];
+        for(var s in a){
+            var A = a[s];
+            d.push(h), h = UZIP._writeHeader(u, h, s, A, 0);
+        }
+        var g = 0, p = h;
+        for(var s in a){
+            A = a[s];
+            d.push(h), h = UZIP._writeHeader(u, h, s, A, 1, d[g++]);
+        }
+        var m = h - p;
+        return i(u, h, 101010256), h += 4, o(u, h += 4, g), o(u, h += 2, g), i(u, h += 2, m), i(u, h += 4, p), h += 4, h += 2, u.buffer;
+    }, UZIP._noNeed = function(e) {
+        var t1 = e.split(".").pop().toLowerCase();
+        return -1 != "png,jpg,jpeg,zip".indexOf(t1);
+    }, UZIP._writeHeader = function(e, t1, r, i, o, a) {
+        var s = UZIP.bin.writeUint, f = UZIP.bin.writeUshort, l = i.file;
+        return s(e, t1, 0 == o ? 67324752 : 33639248), t1 += 4, 1 == o && (t1 += 2), f(e, t1, 20), f(e, t1 += 2, 0), f(e, t1 += 2, i.cpr ? 8 : 0), s(e, t1 += 2, 0), s(e, t1 += 4, i.crc), s(e, t1 += 4, l.length), s(e, t1 += 4, i.usize), f(e, t1 += 4, UZIP.bin.sizeUTF8(r)), f(e, t1 += 2, 0), t1 += 2, 1 == o && (t1 += 2, t1 += 2, s(e, t1 += 6, a), t1 += 4), t1 += UZIP.bin.writeUTF8(e, t1, r), 0 == o && (e.set(l, t1), t1 += l.length), t1;
+    }, UZIP.crc = {
+        table: function() {
+            for(var e = new Uint32Array(256), t1 = 0; t1 < 256; t1++){
+                for(var r = t1, i = 0; i < 8; i++)1 & r ? r = 3988292384 ^ r >>> 1 : r >>>= 1;
+                e[t1] = r;
+            }
+            return e;
+        }(),
+        update: function(e, t1, r, i) {
+            for(var o = 0; o < i; o++)e = UZIP.crc.table[255 & (e ^ t1[r + o])] ^ e >>> 8;
+            return e;
+        },
+        crc: function(e, t1, r) {
+            return 4294967295 ^ UZIP.crc.update(4294967295, e, t1, r);
+        }
+    }, UZIP.adler = function(e, t1, r) {
+        for(var i = 1, o = 0, a = t1, s = t1 + r; a < s;){
+            for(var f = Math.min(a + 5552, s); a < f;)o += i += e[a++];
+            i %= 65521, o %= 65521;
+        }
+        return o << 16 | i;
+    }, UZIP.bin = {
+        readUshort: function(e, t1) {
+            return e[t1] | e[t1 + 1] << 8;
+        },
+        writeUshort: function(e, t1, r) {
+            e[t1] = 255 & r, e[t1 + 1] = r >> 8 & 255;
+        },
+        readUint: function(e, t1) {
+            return 16777216 * e[t1 + 3] + (e[t1 + 2] << 16 | e[t1 + 1] << 8 | e[t1]);
+        },
+        writeUint: function(e, t1, r) {
+            e[t1] = 255 & r, e[t1 + 1] = r >> 8 & 255, e[t1 + 2] = r >> 16 & 255, e[t1 + 3] = r >> 24 & 255;
+        },
+        readASCII: function(e, t1, r) {
+            for(var i = "", o = 0; o < r; o++)i += String.fromCharCode(e[t1 + o]);
+            return i;
+        },
+        writeASCII: function(e, t1, r) {
+            for(var i = 0; i < r.length; i++)e[t1 + i] = r.charCodeAt(i);
+        },
+        pad: function(e) {
+            return e.length < 2 ? "0" + e : e;
+        },
+        readUTF8: function(e, t1, r) {
+            for(var i, o = "", a = 0; a < r; a++)o += "%" + UZIP.bin.pad(e[t1 + a].toString(16));
+            try {
+                i = decodeURIComponent(o);
+            } catch (i) {
+                return UZIP.bin.readASCII(e, t1, r);
+            }
+            return i;
+        },
+        writeUTF8: function(e, t1, r) {
+            for(var i = r.length, o = 0, a = 0; a < i; a++){
+                var s = r.charCodeAt(a);
+                if (0 == (4294967168 & s)) e[t1 + o] = s, o++;
+                else if (0 == (4294965248 & s)) e[t1 + o] = 192 | s >> 6, e[t1 + o + 1] = 128 | s >> 0 & 63, o += 2;
+                else if (0 == (4294901760 & s)) e[t1 + o] = 224 | s >> 12, e[t1 + o + 1] = 128 | s >> 6 & 63, e[t1 + o + 2] = 128 | s >> 0 & 63, o += 3;
+                else {
+                    if (0 != (4292870144 & s)) throw "e";
+                    e[t1 + o] = 240 | s >> 18, e[t1 + o + 1] = 128 | s >> 12 & 63, e[t1 + o + 2] = 128 | s >> 6 & 63, e[t1 + o + 3] = 128 | s >> 0 & 63, o += 4;
+                }
+            }
+            return o;
+        },
+        sizeUTF8: function(e) {
+            for(var t1 = e.length, r = 0, i = 0; i < t1; i++){
+                var o = e.charCodeAt(i);
+                if (0 == (4294967168 & o)) r++;
+                else if (0 == (4294965248 & o)) r += 2;
+                else if (0 == (4294901760 & o)) r += 3;
+                else {
+                    if (0 != (4292870144 & o)) throw "e";
+                    r += 4;
+                }
+            }
+            return r;
+        }
+    }, UZIP.F = {}, UZIP.F.deflateRaw = function(e, t1, r, i) {
+        var o = [
+            [
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                4,
+                4,
+                8,
+                4,
+                0
+            ],
+            [
+                4,
+                5,
+                16,
+                8,
+                0
+            ],
+            [
+                4,
+                6,
+                16,
+                16,
+                0
+            ],
+            [
+                4,
+                10,
+                16,
+                32,
+                0
+            ],
+            [
+                8,
+                16,
+                32,
+                32,
+                0
+            ],
+            [
+                8,
+                16,
+                128,
+                128,
+                0
+            ],
+            [
+                8,
+                32,
+                128,
+                256,
+                0
+            ],
+            [
+                32,
+                128,
+                258,
+                1024,
+                1
+            ],
+            [
+                32,
+                258,
+                258,
+                4096,
+                1
+            ]
+        ][i], a = UZIP.F.U, s = UZIP.F._goodIndex;
+        UZIP.F._hash;
+        var f = UZIP.F._putsE, l = 0, c = r << 3, u = 0, h = e.length;
+        if (0 == i) {
+            for(; l < h;){
+                f(t1, c, l + (_ = Math.min(65535, h - l)) == h ? 1 : 0), c = UZIP.F._copyExact(e, l, _, t1, c + 8), l += _;
+            }
+            return c >>> 3;
+        }
+        var d = a.lits, A = a.strt, g = a.prev, p = 0, m = 0, w = 0, v = 0, b = 0, y = 0;
+        for(h > 2 && (A[y = UZIP.F._hash(e, 0)] = 0), l = 0; l < h; l++){
+            if (b = y, l + 1 < h - 2) {
+                y = UZIP.F._hash(e, l + 1);
+                var E = l + 1 & 32767;
+                g[E] = A[y], A[y] = E;
+            }
+            if (u <= l) {
+                (p > 14e3 || m > 26697) && h - l > 100 && (u < l && (d[p] = l - u, p += 2, u = l), c = UZIP.F._writeBlock(l == h - 1 || u == h ? 1 : 0, d, p, v, e, w, l - w, t1, c), p = m = v = 0, w = l);
+                var F = 0;
+                l < h - 2 && (F = UZIP.F._bestMatch(e, l, g, b, Math.min(o[2], h - l), o[3]));
+                var _ = F >>> 16, B = 65535 & F;
+                if (0 != F) {
+                    B = 65535 & F;
+                    var U = s(_ = F >>> 16, a.of0);
+                    a.lhst[257 + U]++;
+                    var C = s(B, a.df0);
+                    a.dhst[C]++, v += a.exb[U] + a.dxb[C], d[p] = _ << 23 | l - u, d[p + 1] = B << 16 | U << 8 | C, p += 2, u = l + _;
+                } else a.lhst[e[l]]++;
+                m++;
+            }
+        }
+        for(w == l && 0 != e.length || (u < l && (d[p] = l - u, p += 2, u = l), c = UZIP.F._writeBlock(1, d, p, v, e, w, l - w, t1, c), p = 0, m = 0, p = m = v = 0, w = l); 0 != (7 & c);)c++;
+        return c >>> 3;
+    }, UZIP.F._bestMatch = function(e, t1, r, i, o, a) {
+        var s = 32767 & t1, f = r[s], l = s - f + 32768 & 32767;
+        if (f == s || i != UZIP.F._hash(e, t1 - l)) return 0;
+        for(var c = 0, u = 0, h = Math.min(32767, t1); l <= h && 0 != --a && f != s;){
+            if (0 == c || e[t1 + c] == e[t1 + c - l]) {
+                var d = UZIP.F._howLong(e, t1, l);
+                if (d > c) {
+                    if (u = l, (c = d) >= o) break;
+                    l + 2 < d && (d = l + 2);
+                    for(var A = 0, g = 0; g < d - 2; g++){
+                        var p = t1 - l + g + 32768 & 32767, m = p - r[p] + 32768 & 32767;
+                        m > A && (A = m, f = p);
+                    }
+                }
+            }
+            l += (s = f) - (f = r[s]) + 32768 & 32767;
+        }
+        return c << 16 | u;
+    }, UZIP.F._howLong = function(e, t1, r) {
+        if (e[t1] != e[t1 - r] || e[t1 + 1] != e[t1 + 1 - r] || e[t1 + 2] != e[t1 + 2 - r]) return 0;
+        var i = t1, o = Math.min(e.length, t1 + 258);
+        for(t1 += 3; t1 < o && e[t1] == e[t1 - r];)t1++;
+        return t1 - i;
+    }, UZIP.F._hash = function(e, t1) {
+        return (e[t1] << 8 | e[t1 + 1]) + (e[t1 + 2] << 4) & 65535;
+    }, UZIP.saved = 0, UZIP.F._writeBlock = function(e, t1, r, i, o, a, s, f, l) {
+        var c, u, h, d, A, g, p, m, w, v = UZIP.F.U, b = UZIP.F._putsF, y = UZIP.F._putsE;
+        v.lhst[256]++, u = (c = UZIP.F.getTrees())[0], h = c[1], d = c[2], A = c[3], g = c[4], p = c[5], m = c[6], w = c[7];
+        var E = 32 + (0 == (l + 3 & 7) ? 0 : 8 - (l + 3 & 7)) + (s << 3), F = i + UZIP.F.contSize(v.fltree, v.lhst) + UZIP.F.contSize(v.fdtree, v.dhst), _ = i + UZIP.F.contSize(v.ltree, v.lhst) + UZIP.F.contSize(v.dtree, v.dhst);
+        _ += 14 + 3 * p + UZIP.F.contSize(v.itree, v.ihst) + (2 * v.ihst[16] + 3 * v.ihst[17] + 7 * v.ihst[18]);
+        for(var B = 0; B < 286; B++)v.lhst[B] = 0;
+        for(B = 0; B < 30; B++)v.dhst[B] = 0;
+        for(B = 0; B < 19; B++)v.ihst[B] = 0;
+        var U = E < F && E < _ ? 0 : F < _ ? 1 : 2;
+        if (b(f, l, e), b(f, l + 1, U), l += 3, 0 == U) {
+            for(; 0 != (7 & l);)l++;
+            l = UZIP.F._copyExact(o, a, s, f, l);
+        } else {
+            var C, I;
+            if (1 == U && (C = v.fltree, I = v.fdtree), 2 == U) {
+                UZIP.F.makeCodes(v.ltree, u), UZIP.F.revCodes(v.ltree, u), UZIP.F.makeCodes(v.dtree, h), UZIP.F.revCodes(v.dtree, h), UZIP.F.makeCodes(v.itree, d), UZIP.F.revCodes(v.itree, d), C = v.ltree, I = v.dtree, y(f, l, A - 257), y(f, l += 5, g - 1), y(f, l += 5, p - 4), l += 4;
+                for(var Q = 0; Q < p; Q++)y(f, l + 3 * Q, v.itree[1 + (v.ordr[Q] << 1)]);
+                l += 3 * p, l = UZIP.F._codeTiny(m, v.itree, f, l), l = UZIP.F._codeTiny(w, v.itree, f, l);
+            }
+            for(var M = a, x = 0; x < r; x += 2){
+                for(var S = t1[x], R = S >>> 23, T = M + (8388607 & S); M < T;)l = UZIP.F._writeLit(o[M++], C, f, l);
+                if (0 != R) {
+                    var O = t1[x + 1], P = O >> 16, H = O >> 8 & 255, L = 255 & O;
+                    y(f, l = UZIP.F._writeLit(257 + H, C, f, l), R - v.of0[H]), l += v.exb[H], b(f, l = UZIP.F._writeLit(L, I, f, l), P - v.df0[L]), l += v.dxb[L], M += R;
+                }
+            }
+            l = UZIP.F._writeLit(256, C, f, l);
+        }
+        return l;
+    }, UZIP.F._copyExact = function(e, t1, r, i, o) {
+        var a = o >>> 3;
+        return i[a] = r, i[a + 1] = r >>> 8, i[a + 2] = 255 - i[a], i[a + 3] = 255 - i[a + 1], a += 4, i.set(new Uint8Array(e.buffer, t1, r), a), o + (r + 4 << 3);
+    }, UZIP.F.getTrees = function() {
+        for(var e = UZIP.F.U, t1 = UZIP.F._hufTree(e.lhst, e.ltree, 15), r = UZIP.F._hufTree(e.dhst, e.dtree, 15), i = [], o = UZIP.F._lenCodes(e.ltree, i), a = [], s = UZIP.F._lenCodes(e.dtree, a), f = 0; f < i.length; f += 2)e.ihst[i[f]]++;
+        for(f = 0; f < a.length; f += 2)e.ihst[a[f]]++;
+        for(var l = UZIP.F._hufTree(e.ihst, e.itree, 7), c = 19; c > 4 && 0 == e.itree[1 + (e.ordr[c - 1] << 1)];)c--;
+        return [
+            t1,
+            r,
+            l,
+            o,
+            s,
+            c,
+            i,
+            a
+        ];
+    }, UZIP.F.getSecond = function(e) {
+        for(var t1 = [], r = 0; r < e.length; r += 2)t1.push(e[r + 1]);
+        return t1;
+    }, UZIP.F.nonZero = function(e) {
+        for(var t1 = "", r = 0; r < e.length; r += 2)0 != e[r + 1] && (t1 += (r >> 1) + ",");
+        return t1;
+    }, UZIP.F.contSize = function(e, t1) {
+        for(var r = 0, i = 0; i < t1.length; i++)r += t1[i] * e[1 + (i << 1)];
+        return r;
+    }, UZIP.F._codeTiny = function(e, t1, r, i) {
+        for(var o = 0; o < e.length; o += 2){
+            var a = e[o], s = e[o + 1];
+            i = UZIP.F._writeLit(a, t1, r, i);
+            var f = 16 == a ? 2 : 17 == a ? 3 : 7;
+            a > 15 && (UZIP.F._putsE(r, i, s, f), i += f);
+        }
+        return i;
+    }, UZIP.F._lenCodes = function(e, t1) {
+        for(var r = e.length; 2 != r && 0 == e[r - 1];)r -= 2;
+        for(var i = 0; i < r; i += 2){
+            var o = e[i + 1], a = i + 3 < r ? e[i + 3] : -1, s = i + 5 < r ? e[i + 5] : -1, f = 0 == i ? -1 : e[i - 1];
+            if (0 == o && a == o && s == o) {
+                for(var l = i + 5; l + 2 < r && e[l + 2] == o;)l += 2;
+                (c = Math.min(l + 1 - i >>> 1, 138)) < 11 ? t1.push(17, c - 3) : t1.push(18, c - 11), i += 2 * c - 2;
+            } else if (o == f && a == o && s == o) {
+                for(l = i + 5; l + 2 < r && e[l + 2] == o;)l += 2;
+                var c = Math.min(l + 1 - i >>> 1, 6);
+                t1.push(16, c - 3), i += 2 * c - 2;
+            } else t1.push(o, 0);
+        }
+        return r >>> 1;
+    }, UZIP.F._hufTree = function(e, t1, r) {
+        var i = [], o = e.length, a = t1.length, s = 0;
+        for(s = 0; s < a; s += 2)t1[s] = 0, t1[s + 1] = 0;
+        for(s = 0; s < o; s++)0 != e[s] && i.push({
+            lit: s,
+            f: e[s]
+        });
+        var f = i.length, l = i.slice(0);
+        if (0 == f) return 0;
+        if (1 == f) {
+            var c = i[0].lit;
+            l = 0 == c ? 1 : 0;
+            return t1[1 + (c << 1)] = 1, t1[1 + (l << 1)] = 1, 1;
+        }
+        i.sort(function(e, t1) {
+            return e.f - t1.f;
+        });
+        var u = i[0], h = i[1], d = 0, A = 1, g = 2;
+        for(i[0] = {
+            lit: -1,
+            f: u.f + h.f,
+            l: u,
+            r: h,
+            d: 0
+        }; A != f - 1;)u = d != A && (g == f || i[d].f < i[g].f) ? i[d++] : i[g++], h = d != A && (g == f || i[d].f < i[g].f) ? i[d++] : i[g++], i[A++] = {
+            lit: -1,
+            f: u.f + h.f,
+            l: u,
+            r: h
+        };
+        var p = UZIP.F.setDepth(i[A - 1], 0);
+        for(p > r && (UZIP.F.restrictDepth(l, r, p), p = r), s = 0; s < f; s++)t1[1 + (l[s].lit << 1)] = l[s].d;
+        return p;
+    }, UZIP.F.setDepth = function(e, t1) {
+        return -1 != e.lit ? (e.d = t1, t1) : Math.max(UZIP.F.setDepth(e.l, t1 + 1), UZIP.F.setDepth(e.r, t1 + 1));
+    }, UZIP.F.restrictDepth = function(e, t1, r) {
+        var i = 0, o = 1 << r - t1, a = 0;
+        for(e.sort(function(e, t1) {
+            return t1.d == e.d ? e.f - t1.f : t1.d - e.d;
+        }), i = 0; i < e.length && e[i].d > t1; i++){
+            var s = e[i].d;
+            e[i].d = t1, a += o - (1 << r - s);
+        }
+        for(a >>>= r - t1; a > 0;){
+            (s = e[i].d) < t1 ? (e[i].d++, a -= 1 << t1 - s - 1) : i++;
+        }
+        for(; i >= 0; i--)e[i].d == t1 && a < 0 && (e[i].d--, a++);
+        0 != a && console.log("debt left");
+    }, UZIP.F._goodIndex = function(e, t1) {
+        var r = 0;
+        return t1[16 | r] <= e && (r |= 16), t1[8 | r] <= e && (r |= 8), t1[4 | r] <= e && (r |= 4), t1[2 | r] <= e && (r |= 2), t1[1 | r] <= e && (r |= 1), r;
+    }, UZIP.F._writeLit = function(e, t1, r, i) {
+        return UZIP.F._putsF(r, i, t1[e << 1]), i + t1[1 + (e << 1)];
+    }, UZIP.F.inflate = function(e, t1) {
+        var r = Uint8Array;
+        if (3 == e[0] && 0 == e[1]) return t1 || new r(0);
+        var i = UZIP.F, o = i._bitsF, a = i._bitsE, s = i._decodeTiny, f = i.makeCodes, l = i.codes2map, c = i._get17, u = i.U, h = null == t1;
+        h && (t1 = new r(e.length >>> 2 << 3));
+        for(var d, A, g = 0, p = 0, m = 0, w = 0, v = 0, b = 0, y = 0, E = 0, F = 0; 0 == g;)if (g = o(e, F, 1), p = o(e, F + 1, 2), F += 3, 0 != p) {
+            if (h && (t1 = UZIP.F._check(t1, E + (1 << 17))), 1 == p && (d = u.flmap, A = u.fdmap, b = 511, y = 31), 2 == p) {
+                m = a(e, F, 5) + 257, w = a(e, F + 5, 5) + 1, v = a(e, F + 10, 4) + 4, F += 14;
+                for(var _ = 0; _ < 38; _ += 2)u.itree[_] = 0, u.itree[_ + 1] = 0;
+                var B = 1;
+                for(_ = 0; _ < v; _++){
+                    var U = a(e, F + 3 * _, 3);
+                    u.itree[1 + (u.ordr[_] << 1)] = U, U > B && (B = U);
+                }
+                F += 3 * v, f(u.itree, B), l(u.itree, B, u.imap), d = u.lmap, A = u.dmap, F = s(u.imap, (1 << B) - 1, m + w, e, F, u.ttree);
+                var C = i._copyOut(u.ttree, 0, m, u.ltree);
+                b = (1 << C) - 1;
+                var I = i._copyOut(u.ttree, m, w, u.dtree);
+                y = (1 << I) - 1, f(u.ltree, C), l(u.ltree, C, d), f(u.dtree, I), l(u.dtree, I, A);
+            }
+            for(;;){
+                var Q = d[c(e, F) & b];
+                F += 15 & Q;
+                var M = Q >>> 4;
+                if (M >>> 8 == 0) t1[E++] = M;
+                else {
+                    if (256 == M) break;
+                    var x = E + M - 254;
+                    if (M > 264) {
+                        var S = u.ldef[M - 257];
+                        x = E + (S >>> 3) + a(e, F, 7 & S), F += 7 & S;
+                    }
+                    var R = A[c(e, F) & y];
+                    F += 15 & R;
+                    var T = R >>> 4, O = u.ddef[T], P = (O >>> 4) + o(e, F, 15 & O);
+                    for(F += 15 & O, h && (t1 = UZIP.F._check(t1, E + (1 << 17))); E < x;)t1[E] = t1[E++ - P], t1[E] = t1[E++ - P], t1[E] = t1[E++ - P], t1[E] = t1[E++ - P];
+                    E = x;
+                }
+            }
+        } else {
+            0 != (7 & F) && (F += 8 - (7 & F));
+            var H = 4 + (F >>> 3), L = e[H - 4] | e[H - 3] << 8;
+            h && (t1 = UZIP.F._check(t1, E + L)), t1.set(new r(e.buffer, e.byteOffset + H, L), E), F = H + L << 3, E += L;
+        }
+        return t1.length == E ? t1 : t1.slice(0, E);
+    }, UZIP.F._check = function(e, t1) {
+        var r = e.length;
+        if (t1 <= r) return e;
+        var i = new Uint8Array(Math.max(r << 1, t1));
+        return i.set(e, 0), i;
+    }, UZIP.F._decodeTiny = function(e, t1, r, i, o, a) {
+        for(var s = UZIP.F._bitsE, f = UZIP.F._get17, l = 0; l < r;){
+            var c = e[f(i, o) & t1];
+            o += 15 & c;
+            var u = c >>> 4;
+            if (u <= 15) a[l] = u, l++;
+            else {
+                var h = 0, d = 0;
+                16 == u ? (d = 3 + s(i, o, 2), o += 2, h = a[l - 1]) : 17 == u ? (d = 3 + s(i, o, 3), o += 3) : 18 == u && (d = 11 + s(i, o, 7), o += 7);
+                for(var A = l + d; l < A;)a[l] = h, l++;
+            }
+        }
+        return o;
+    }, UZIP.F._copyOut = function(e, t1, r, i) {
+        for(var o = 0, a = 0, s = i.length >>> 1; a < r;){
+            var f = e[a + t1];
+            i[a << 1] = 0, i[1 + (a << 1)] = f, f > o && (o = f), a++;
+        }
+        for(; a < s;)i[a << 1] = 0, i[1 + (a << 1)] = 0, a++;
+        return o;
+    }, UZIP.F.makeCodes = function(e, t1) {
+        for(var r, i, o, a, s = UZIP.F.U, f = e.length, l = s.bl_count, c = 0; c <= t1; c++)l[c] = 0;
+        for(c = 1; c < f; c += 2)l[e[c]]++;
+        var u = s.next_code;
+        for(r = 0, l[0] = 0, i = 1; i <= t1; i++)r = r + l[i - 1] << 1, u[i] = r;
+        for(o = 0; o < f; o += 2)0 != (a = e[o + 1]) && (e[o] = u[a], u[a]++);
+    }, UZIP.F.codes2map = function(e, t1, r) {
+        for(var i = e.length, o = UZIP.F.U.rev15, a = 0; a < i; a += 2)if (0 != e[a + 1]) for(var s = a >> 1, f = e[a + 1], l = s << 4 | f, c = t1 - f, u = e[a] << c, h = u + (1 << c); u != h;){
+            r[o[u] >>> 15 - t1] = l, u++;
+        }
+    }, UZIP.F.revCodes = function(e, t1) {
+        for(var r = UZIP.F.U.rev15, i = 15 - t1, o = 0; o < e.length; o += 2){
+            var a = e[o] << t1 - e[o + 1];
+            e[o] = r[a] >>> i;
+        }
+    }, UZIP.F._putsE = function(e, t1, r) {
+        r <<= 7 & t1;
+        var i = t1 >>> 3;
+        e[i] |= r, e[i + 1] |= r >>> 8;
+    }, UZIP.F._putsF = function(e, t1, r) {
+        r <<= 7 & t1;
+        var i = t1 >>> 3;
+        e[i] |= r, e[i + 1] |= r >>> 8, e[i + 2] |= r >>> 16;
+    }, UZIP.F._bitsE = function(e, t1, r) {
+        return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8) >>> (7 & t1) & (1 << r) - 1;
+    }, UZIP.F._bitsF = function(e, t1, r) {
+        return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16) >>> (7 & t1) & (1 << r) - 1;
+    }, UZIP.F._get17 = function(e, t1) {
+        return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16) >>> (7 & t1);
+    }, UZIP.F._get25 = function(e, t1) {
+        return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16 | e[3 + (t1 >>> 3)] << 24) >>> (7 & t1);
+    }, UZIP.F.U = (r = Uint16Array, i = Uint32Array, {
+        next_code: new r(16),
+        bl_count: new r(16),
+        ordr: [
+            16,
+            17,
+            18,
+            0,
+            8,
+            7,
+            9,
+            6,
+            10,
+            5,
+            11,
+            4,
+            12,
+            3,
+            13,
+            2,
+            14,
+            1,
+            15
+        ],
+        of0: [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13,
+            15,
+            17,
+            19,
+            23,
+            27,
+            31,
+            35,
+            43,
+            51,
+            59,
+            67,
+            83,
+            99,
+            115,
+            131,
+            163,
+            195,
+            227,
+            258,
+            999,
+            999,
+            999
+        ],
+        exb: [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            2,
+            2,
+            3,
+            3,
+            3,
+            3,
+            4,
+            4,
+            4,
+            4,
+            5,
+            5,
+            5,
+            5,
+            0,
+            0,
+            0,
+            0
+        ],
+        ldef: new r(32),
+        df0: [
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            9,
+            13,
+            17,
+            25,
+            33,
+            49,
+            65,
+            97,
+            129,
+            193,
+            257,
+            385,
+            513,
+            769,
+            1025,
+            1537,
+            2049,
+            3073,
+            4097,
+            6145,
+            8193,
+            12289,
+            16385,
+            24577,
+            65535,
+            65535
+        ],
+        dxb: [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            3,
+            3,
+            4,
+            4,
+            5,
+            5,
+            6,
+            6,
+            7,
+            7,
+            8,
+            8,
+            9,
+            9,
+            10,
+            10,
+            11,
+            11,
+            12,
+            12,
+            13,
+            13,
+            0,
+            0
+        ],
+        ddef: new i(32),
+        flmap: new r(512),
+        fltree: [],
+        fdmap: new r(32),
+        fdtree: [],
+        lmap: new r(32768),
+        ltree: [],
+        ttree: [],
+        dmap: new r(32768),
+        dtree: [],
+        imap: new r(512),
+        itree: [],
+        rev15: new r(32768),
+        lhst: new i(286),
+        dhst: new i(30),
+        ihst: new i(19),
+        lits: new i(15e3),
+        strt: new r(65536),
+        prev: new r(32768)
+    }), function() {
+        for(var e = UZIP.F.U, t1 = 0; t1 < 32768; t1++){
+            var r = t1;
+            r = (4278255360 & (r = (4042322160 & (r = (3435973836 & (r = (2863311530 & r) >>> 1 | (1431655765 & r) << 1)) >>> 2 | (858993459 & r) << 2)) >>> 4 | (252645135 & r) << 4)) >>> 8 | (16711935 & r) << 8, e.rev15[t1] = (r >>> 16 | r << 16) >>> 17;
+        }
+        function pushV(e, t1, r) {
+            for(; 0 != t1--;)e.push(0, r);
+        }
+        for(t1 = 0; t1 < 32; t1++)e.ldef[t1] = e.of0[t1] << 3 | e.exb[t1], e.ddef[t1] = e.df0[t1] << 4 | e.dxb[t1];
+        pushV(e.fltree, 144, 8), pushV(e.fltree, 112, 9), pushV(e.fltree, 24, 7), pushV(e.fltree, 8, 8), UZIP.F.makeCodes(e.fltree, 9), UZIP.F.codes2map(e.fltree, 9, e.flmap), UZIP.F.revCodes(e.fltree, 9), pushV(e.fdtree, 32, 5), UZIP.F.makeCodes(e.fdtree, 5), UZIP.F.codes2map(e.fdtree, 5, e.fdmap), UZIP.F.revCodes(e.fdtree, 5), pushV(e.itree, 19, 0), pushV(e.ltree, 286, 0), pushV(e.dtree, 30, 0), pushV(e.ttree, 320, 0);
+    }();
+}();
+var UZIP = _mergeNamespaces({
+    __proto__: null,
+    default: e
+}, [
+    e
+]);
+const UPNG = function() {
+    var e = {
+        nextZero (e, t1) {
+            for(; 0 != e[t1];)t1++;
+            return t1;
+        },
+        readUshort: (e, t1)=>e[t1] << 8 | e[t1 + 1],
+        writeUshort (e, t1, r) {
+            e[t1] = r >> 8 & 255, e[t1 + 1] = 255 & r;
+        },
+        readUint: (e, t1)=>16777216 * e[t1] + (e[t1 + 1] << 16 | e[t1 + 2] << 8 | e[t1 + 3]),
+        writeUint (e, t1, r) {
+            e[t1] = r >> 24 & 255, e[t1 + 1] = r >> 16 & 255, e[t1 + 2] = r >> 8 & 255, e[t1 + 3] = 255 & r;
+        },
+        readASCII (e, t1, r) {
+            let i = "";
+            for(let o = 0; o < r; o++)i += String.fromCharCode(e[t1 + o]);
+            return i;
+        },
+        writeASCII (e, t1, r) {
+            for(let i = 0; i < r.length; i++)e[t1 + i] = r.charCodeAt(i);
+        },
+        readBytes (e, t1, r) {
+            const i = [];
+            for(let o = 0; o < r; o++)i.push(e[t1 + o]);
+            return i;
+        },
+        pad: (e)=>e.length < 2 ? `0${e}` : e,
+        readUTF8 (t1, r, i) {
+            let o, a = "";
+            for(let o = 0; o < i; o++)a += `%${e.pad(t1[r + o].toString(16))}`;
+            try {
+                o = decodeURIComponent(a);
+            } catch (o) {
+                return e.readASCII(t1, r, i);
+            }
+            return o;
+        }
+    };
+    function decodeImage(t1, r, i, o) {
+        const a = r * i, s = _getBPP(o), f = Math.ceil(r * s / 8), l = new Uint8Array(4 * a), c = new Uint32Array(l.buffer), { ctype: u } = o, { depth: h } = o, d = e.readUshort;
+        if (6 == u) {
+            const e = a << 2;
+            if (8 == h) for(var A = 0; A < e; A += 4)l[A] = t1[A], l[A + 1] = t1[A + 1], l[A + 2] = t1[A + 2], l[A + 3] = t1[A + 3];
+            if (16 == h) for(A = 0; A < e; A++)l[A] = t1[A << 1];
+        } else if (2 == u) {
+            const e = o.tabs.tRNS;
+            if (null == e) {
+                if (8 == h) for(A = 0; A < a; A++){
+                    var g = 3 * A;
+                    c[A] = 255 << 24 | t1[g + 2] << 16 | t1[g + 1] << 8 | t1[g];
+                }
+                if (16 == h) for(A = 0; A < a; A++){
+                    g = 6 * A;
+                    c[A] = 255 << 24 | t1[g + 4] << 16 | t1[g + 2] << 8 | t1[g];
+                }
+            } else {
+                var p = e[0];
+                const r = e[1], i = e[2];
+                if (8 == h) for(A = 0; A < a; A++){
+                    var m = A << 2;
+                    g = 3 * A;
+                    c[A] = 255 << 24 | t1[g + 2] << 16 | t1[g + 1] << 8 | t1[g], t1[g] == p && t1[g + 1] == r && t1[g + 2] == i && (l[m + 3] = 0);
+                }
+                if (16 == h) for(A = 0; A < a; A++){
+                    m = A << 2, g = 6 * A;
+                    c[A] = 255 << 24 | t1[g + 4] << 16 | t1[g + 2] << 8 | t1[g], d(t1, g) == p && d(t1, g + 2) == r && d(t1, g + 4) == i && (l[m + 3] = 0);
+                }
+            }
+        } else if (3 == u) {
+            const e = o.tabs.PLTE, s = o.tabs.tRNS, c = s ? s.length : 0;
+            if (1 == h) for(var w = 0; w < i; w++){
+                var v = w * f, b = w * r;
+                for(A = 0; A < r; A++){
+                    m = b + A << 2;
+                    var y = 3 * (E = t1[v + (A >> 3)] >> 7 - ((7 & A) << 0) & 1);
+                    l[m] = e[y], l[m + 1] = e[y + 1], l[m + 2] = e[y + 2], l[m + 3] = E < c ? s[E] : 255;
+                }
+            }
+            if (2 == h) for(w = 0; w < i; w++)for(v = w * f, b = w * r, A = 0; A < r; A++){
+                m = b + A << 2, y = 3 * (E = t1[v + (A >> 2)] >> 6 - ((3 & A) << 1) & 3);
+                l[m] = e[y], l[m + 1] = e[y + 1], l[m + 2] = e[y + 2], l[m + 3] = E < c ? s[E] : 255;
+            }
+            if (4 == h) for(w = 0; w < i; w++)for(v = w * f, b = w * r, A = 0; A < r; A++){
+                m = b + A << 2, y = 3 * (E = t1[v + (A >> 1)] >> 4 - ((1 & A) << 2) & 15);
+                l[m] = e[y], l[m + 1] = e[y + 1], l[m + 2] = e[y + 2], l[m + 3] = E < c ? s[E] : 255;
+            }
+            if (8 == h) for(A = 0; A < a; A++){
+                var E;
+                m = A << 2, y = 3 * (E = t1[A]);
+                l[m] = e[y], l[m + 1] = e[y + 1], l[m + 2] = e[y + 2], l[m + 3] = E < c ? s[E] : 255;
+            }
+        } else if (4 == u) {
+            if (8 == h) for(A = 0; A < a; A++){
+                m = A << 2;
+                var F = t1[_ = A << 1];
+                l[m] = F, l[m + 1] = F, l[m + 2] = F, l[m + 3] = t1[_ + 1];
+            }
+            if (16 == h) for(A = 0; A < a; A++){
+                var _;
+                m = A << 2, F = t1[_ = A << 2];
+                l[m] = F, l[m + 1] = F, l[m + 2] = F, l[m + 3] = t1[_ + 2];
+            }
+        } else if (0 == u) for(p = o.tabs.tRNS ? o.tabs.tRNS : -1, w = 0; w < i; w++){
+            const e = w * f, i = w * r;
+            if (1 == h) for(var B = 0; B < r; B++){
+                var U = (F = 255 * (t1[e + (B >>> 3)] >>> 7 - (7 & B) & 1)) == 255 * p ? 0 : 255;
+                c[i + B] = U << 24 | F << 16 | F << 8 | F;
+            }
+            else if (2 == h) for(B = 0; B < r; B++){
+                U = (F = 85 * (t1[e + (B >>> 2)] >>> 6 - ((3 & B) << 1) & 3)) == 85 * p ? 0 : 255;
+                c[i + B] = U << 24 | F << 16 | F << 8 | F;
+            }
+            else if (4 == h) for(B = 0; B < r; B++){
+                U = (F = 17 * (t1[e + (B >>> 1)] >>> 4 - ((1 & B) << 2) & 15)) == 17 * p ? 0 : 255;
+                c[i + B] = U << 24 | F << 16 | F << 8 | F;
+            }
+            else if (8 == h) for(B = 0; B < r; B++){
+                U = (F = t1[e + B]) == p ? 0 : 255;
+                c[i + B] = U << 24 | F << 16 | F << 8 | F;
+            }
+            else if (16 == h) for(B = 0; B < r; B++){
+                F = t1[e + (B << 1)], U = d(t1, e + (B << 1)) == p ? 0 : 255;
+                c[i + B] = U << 24 | F << 16 | F << 8 | F;
+            }
+        }
+        return l;
+    }
+    function _decompress(e, r, i, o) {
+        const a = _getBPP(e), s = Math.ceil(i * a / 8), f = new Uint8Array((s + 1 + e.interlace) * o);
+        return r = e.tabs.CgBI ? t1(r, f) : _inflate(r, f), 0 == e.interlace ? r = _filterZero(r, e, 0, i, o) : 1 == e.interlace && (r = function _readInterlace(e, t1) {
+            const r = t1.width, i = t1.height, o = _getBPP(t1), a = o >> 3, s = Math.ceil(r * o / 8), f = new Uint8Array(i * s);
+            let l = 0;
+            const c = [
+                0,
+                0,
+                4,
+                0,
+                2,
+                0,
+                1
+            ], u = [
+                0,
+                4,
+                0,
+                2,
+                0,
+                1,
+                0
+            ], h = [
+                8,
+                8,
+                8,
+                4,
+                4,
+                2,
+                2
+            ], d = [
+                8,
+                8,
+                4,
+                4,
+                2,
+                2,
+                1
+            ];
+            let A = 0;
+            for(; A < 7;){
+                const p = h[A], m = d[A];
+                let w = 0, v = 0, b = c[A];
+                for(; b < i;)b += p, v++;
+                let y = u[A];
+                for(; y < r;)y += m, w++;
+                const E = Math.ceil(w * o / 8);
+                _filterZero(e, t1, l, w, v);
+                let F = 0, _ = c[A];
+                for(; _ < i;){
+                    let t1 = u[A], i = l + F * E << 3;
+                    for(; t1 < r;){
+                        var g;
+                        if (1 == o) g = (g = e[i >> 3]) >> 7 - (7 & i) & 1, f[_ * s + (t1 >> 3)] |= g << 7 - ((7 & t1) << 0);
+                        if (2 == o) g = (g = e[i >> 3]) >> 6 - (7 & i) & 3, f[_ * s + (t1 >> 2)] |= g << 6 - ((3 & t1) << 1);
+                        if (4 == o) g = (g = e[i >> 3]) >> 4 - (7 & i) & 15, f[_ * s + (t1 >> 1)] |= g << 4 - ((1 & t1) << 2);
+                        if (o >= 8) {
+                            const r = _ * s + t1 * a;
+                            for(let t1 = 0; t1 < a; t1++)f[r + t1] = e[(i >> 3) + t1];
+                        }
+                        i += o, t1 += m;
+                    }
+                    F++, _ += p;
+                }
+                w * v != 0 && (l += v * (1 + E)), A += 1;
+            }
+            return f;
+        }(r, e)), r;
+    }
+    function _inflate(e, r) {
+        return t1(new Uint8Array(e.buffer, 2, e.length - 6), r);
+    }
+    var t1 = function() {
+        const e = {
+            H: {}
+        };
+        return e.H.N = function(t1, r) {
+            const i = Uint8Array;
+            let o, a, s = 0, f = 0, l = 0, c = 0, u = 0, h = 0, d = 0, A = 0, g = 0;
+            if (3 == t1[0] && 0 == t1[1]) return r || new i(0);
+            const p = e.H, m = p.b, w = p.e, v = p.R, b = p.n, y = p.A, E = p.Z, F = p.m, _ = null == r;
+            for(_ && (r = new i(t1.length >>> 2 << 5)); 0 == s;)if (s = m(t1, g, 1), f = m(t1, g + 1, 2), g += 3, 0 != f) {
+                if (_ && (r = e.H.W(r, A + (1 << 17))), 1 == f && (o = F.J, a = F.h, h = 511, d = 31), 2 == f) {
+                    l = w(t1, g, 5) + 257, c = w(t1, g + 5, 5) + 1, u = w(t1, g + 10, 4) + 4, g += 14;
+                    let e = 1;
+                    for(var B = 0; B < 38; B += 2)F.Q[B] = 0, F.Q[B + 1] = 0;
+                    for(B = 0; B < u; B++){
+                        const r = w(t1, g + 3 * B, 3);
+                        F.Q[1 + (F.X[B] << 1)] = r, r > e && (e = r);
+                    }
+                    g += 3 * u, b(F.Q, e), y(F.Q, e, F.u), o = F.w, a = F.d, g = v(F.u, (1 << e) - 1, l + c, t1, g, F.v);
+                    const r = p.V(F.v, 0, l, F.C);
+                    h = (1 << r) - 1;
+                    const i = p.V(F.v, l, c, F.D);
+                    d = (1 << i) - 1, b(F.C, r), y(F.C, r, o), b(F.D, i), y(F.D, i, a);
+                }
+                for(;;){
+                    const e = o[E(t1, g) & h];
+                    g += 15 & e;
+                    const i = e >>> 4;
+                    if (i >>> 8 == 0) r[A++] = i;
+                    else {
+                        if (256 == i) break;
+                        {
+                            let e = A + i - 254;
+                            if (i > 264) {
+                                const r = F.q[i - 257];
+                                e = A + (r >>> 3) + w(t1, g, 7 & r), g += 7 & r;
+                            }
+                            const o = a[E(t1, g) & d];
+                            g += 15 & o;
+                            const s = o >>> 4, f = F.c[s], l = (f >>> 4) + m(t1, g, 15 & f);
+                            for(g += 15 & f; A < e;)r[A] = r[A++ - l], r[A] = r[A++ - l], r[A] = r[A++ - l], r[A] = r[A++ - l];
+                            A = e;
+                        }
+                    }
+                }
+            } else {
+                0 != (7 & g) && (g += 8 - (7 & g));
+                const o = 4 + (g >>> 3), a = t1[o - 4] | t1[o - 3] << 8;
+                _ && (r = e.H.W(r, A + a)), r.set(new i(t1.buffer, t1.byteOffset + o, a), A), g = o + a << 3, A += a;
+            }
+            return r.length == A ? r : r.slice(0, A);
+        }, e.H.W = function(e, t1) {
+            const r = e.length;
+            if (t1 <= r) return e;
+            const i = new Uint8Array(r << 1);
+            return i.set(e, 0), i;
+        }, e.H.R = function(t1, r, i, o, a, s) {
+            const f = e.H.e, l = e.H.Z;
+            let c = 0;
+            for(; c < i;){
+                const e = t1[l(o, a) & r];
+                a += 15 & e;
+                const i = e >>> 4;
+                if (i <= 15) s[c] = i, c++;
+                else {
+                    let e = 0, t1 = 0;
+                    16 == i ? (t1 = 3 + f(o, a, 2), a += 2, e = s[c - 1]) : 17 == i ? (t1 = 3 + f(o, a, 3), a += 3) : 18 == i && (t1 = 11 + f(o, a, 7), a += 7);
+                    const r = c + t1;
+                    for(; c < r;)s[c] = e, c++;
+                }
+            }
+            return a;
+        }, e.H.V = function(e, t1, r, i) {
+            let o = 0, a = 0;
+            const s = i.length >>> 1;
+            for(; a < r;){
+                const r = e[a + t1];
+                i[a << 1] = 0, i[1 + (a << 1)] = r, r > o && (o = r), a++;
+            }
+            for(; a < s;)i[a << 1] = 0, i[1 + (a << 1)] = 0, a++;
+            return o;
+        }, e.H.n = function(t1, r) {
+            const i = e.H.m, o = t1.length;
+            let a, s, f;
+            let l;
+            const c = i.j;
+            for(var u = 0; u <= r; u++)c[u] = 0;
+            for(u = 1; u < o; u += 2)c[t1[u]]++;
+            const h = i.K;
+            for(a = 0, c[0] = 0, s = 1; s <= r; s++)a = a + c[s - 1] << 1, h[s] = a;
+            for(f = 0; f < o; f += 2)l = t1[f + 1], 0 != l && (t1[f] = h[l], h[l]++);
+        }, e.H.A = function(t1, r, i) {
+            const o = t1.length, a = e.H.m.r;
+            for(let e = 0; e < o; e += 2)if (0 != t1[e + 1]) {
+                const o = e >> 1, s = t1[e + 1], f = o << 4 | s, l = r - s;
+                let c = t1[e] << l;
+                const u = c + (1 << l);
+                for(; c != u;){
+                    i[a[c] >>> 15 - r] = f, c++;
+                }
+            }
+        }, e.H.l = function(t1, r) {
+            const i = e.H.m.r, o = 15 - r;
+            for(let e = 0; e < t1.length; e += 2){
+                const a = t1[e] << r - t1[e + 1];
+                t1[e] = i[a] >>> o;
+            }
+        }, e.H.M = function(e, t1, r) {
+            r <<= 7 & t1;
+            const i = t1 >>> 3;
+            e[i] |= r, e[i + 1] |= r >>> 8;
+        }, e.H.I = function(e, t1, r) {
+            r <<= 7 & t1;
+            const i = t1 >>> 3;
+            e[i] |= r, e[i + 1] |= r >>> 8, e[i + 2] |= r >>> 16;
+        }, e.H.e = function(e, t1, r) {
+            return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8) >>> (7 & t1) & (1 << r) - 1;
+        }, e.H.b = function(e, t1, r) {
+            return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16) >>> (7 & t1) & (1 << r) - 1;
+        }, e.H.Z = function(e, t1) {
+            return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16) >>> (7 & t1);
+        }, e.H.i = function(e, t1) {
+            return (e[t1 >>> 3] | e[1 + (t1 >>> 3)] << 8 | e[2 + (t1 >>> 3)] << 16 | e[3 + (t1 >>> 3)] << 24) >>> (7 & t1);
+        }, e.H.m = function() {
+            const e = Uint16Array, t1 = Uint32Array;
+            return {
+                K: new e(16),
+                j: new e(16),
+                X: [
+                    16,
+                    17,
+                    18,
+                    0,
+                    8,
+                    7,
+                    9,
+                    6,
+                    10,
+                    5,
+                    11,
+                    4,
+                    12,
+                    3,
+                    13,
+                    2,
+                    14,
+                    1,
+                    15
+                ],
+                S: [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    13,
+                    15,
+                    17,
+                    19,
+                    23,
+                    27,
+                    31,
+                    35,
+                    43,
+                    51,
+                    59,
+                    67,
+                    83,
+                    99,
+                    115,
+                    131,
+                    163,
+                    195,
+                    227,
+                    258,
+                    999,
+                    999,
+                    999
+                ],
+                T: [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    2,
+                    2,
+                    2,
+                    2,
+                    3,
+                    3,
+                    3,
+                    3,
+                    4,
+                    4,
+                    4,
+                    4,
+                    5,
+                    5,
+                    5,
+                    5,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                q: new e(32),
+                p: [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    7,
+                    9,
+                    13,
+                    17,
+                    25,
+                    33,
+                    49,
+                    65,
+                    97,
+                    129,
+                    193,
+                    257,
+                    385,
+                    513,
+                    769,
+                    1025,
+                    1537,
+                    2049,
+                    3073,
+                    4097,
+                    6145,
+                    8193,
+                    12289,
+                    16385,
+                    24577,
+                    65535,
+                    65535
+                ],
+                z: [
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    1,
+                    2,
+                    2,
+                    3,
+                    3,
+                    4,
+                    4,
+                    5,
+                    5,
+                    6,
+                    6,
+                    7,
+                    7,
+                    8,
+                    8,
+                    9,
+                    9,
+                    10,
+                    10,
+                    11,
+                    11,
+                    12,
+                    12,
+                    13,
+                    13,
+                    0,
+                    0
+                ],
+                c: new t1(32),
+                J: new e(512),
+                _: [],
+                h: new e(32),
+                $: [],
+                w: new e(32768),
+                C: [],
+                v: [],
+                d: new e(32768),
+                D: [],
+                u: new e(512),
+                Q: [],
+                r: new e(32768),
+                s: new t1(286),
+                Y: new t1(30),
+                a: new t1(19),
+                t: new t1(15e3),
+                k: new e(65536),
+                g: new e(32768)
+            };
+        }(), function() {
+            const t1 = e.H.m;
+            for(var r = 0; r < 32768; r++){
+                let e = r;
+                e = (2863311530 & e) >>> 1 | (1431655765 & e) << 1, e = (3435973836 & e) >>> 2 | (858993459 & e) << 2, e = (4042322160 & e) >>> 4 | (252645135 & e) << 4, e = (4278255360 & e) >>> 8 | (16711935 & e) << 8, t1.r[r] = (e >>> 16 | e << 16) >>> 17;
+            }
+            function n(e, t1, r) {
+                for(; 0 != t1--;)e.push(0, r);
+            }
+            for(r = 0; r < 32; r++)t1.q[r] = t1.S[r] << 3 | t1.T[r], t1.c[r] = t1.p[r] << 4 | t1.z[r];
+            n(t1._, 144, 8), n(t1._, 112, 9), n(t1._, 24, 7), n(t1._, 8, 8), e.H.n(t1._, 9), e.H.A(t1._, 9, t1.J), e.H.l(t1._, 9), n(t1.$, 32, 5), e.H.n(t1.$, 5), e.H.A(t1.$, 5, t1.h), e.H.l(t1.$, 5), n(t1.Q, 19, 0), n(t1.C, 286, 0), n(t1.D, 30, 0), n(t1.v, 320, 0);
+        }(), e.H.N;
+    }();
+    function _getBPP(e) {
+        return [
+            1,
+            null,
+            3,
+            1,
+            2,
+            null,
+            4
+        ][e.ctype] * e.depth;
+    }
+    function _filterZero(e, t1, r, i, o) {
+        let a = _getBPP(t1);
+        const s = Math.ceil(i * a / 8);
+        let f, l;
+        a = Math.ceil(a / 8);
+        let c = e[r], u = 0;
+        if (c > 1 && (e[r] = [
+            0,
+            0,
+            1
+        ][c - 2]), 3 == c) for(u = a; u < s; u++)e[u + 1] = e[u + 1] + (e[u + 1 - a] >>> 1) & 255;
+        for(let t1 = 0; t1 < o; t1++)if (f = r + t1 * s, l = f + t1 + 1, c = e[l - 1], u = 0, 0 == c) for(; u < s; u++)e[f + u] = e[l + u];
+        else if (1 == c) {
+            for(; u < a; u++)e[f + u] = e[l + u];
+            for(; u < s; u++)e[f + u] = e[l + u] + e[f + u - a];
+        } else if (2 == c) for(; u < s; u++)e[f + u] = e[l + u] + e[f + u - s];
+        else if (3 == c) {
+            for(; u < a; u++)e[f + u] = e[l + u] + (e[f + u - s] >>> 1);
+            for(; u < s; u++)e[f + u] = e[l + u] + (e[f + u - s] + e[f + u - a] >>> 1);
+        } else {
+            for(; u < a; u++)e[f + u] = e[l + u] + _paeth(0, e[f + u - s], 0);
+            for(; u < s; u++)e[f + u] = e[l + u] + _paeth(e[f + u - a], e[f + u - s], e[f + u - a - s]);
+        }
+        return e;
+    }
+    function _paeth(e, t1, r) {
+        const i = e + t1 - r, o = i - e, a = i - t1, s = i - r;
+        return o * o <= a * a && o * o <= s * s ? e : a * a <= s * s ? t1 : r;
+    }
+    function _IHDR(t1, r, i) {
+        i.width = e.readUint(t1, r), r += 4, i.height = e.readUint(t1, r), r += 4, i.depth = t1[r], r++, i.ctype = t1[r], r++, i.compress = t1[r], r++, i.filter = t1[r], r++, i.interlace = t1[r], r++;
+    }
+    function _copyTile(e, t1, r, i, o, a, s, f, l) {
+        const c = Math.min(t1, o), u = Math.min(r, a);
+        let h = 0, d = 0;
+        for(let r = 0; r < u; r++)for(let a = 0; a < c; a++)if (s >= 0 && f >= 0 ? (h = r * t1 + a << 2, d = (f + r) * o + s + a << 2) : (h = (-f + r) * t1 - s + a << 2, d = r * o + a << 2), 0 == l) i[d] = e[h], i[d + 1] = e[h + 1], i[d + 2] = e[h + 2], i[d + 3] = e[h + 3];
+        else if (1 == l) {
+            var A = e[h + 3] * (1 / 255), g = e[h] * A, p = e[h + 1] * A, m = e[h + 2] * A, w = i[d + 3] * (1 / 255), v = i[d] * w, b = i[d + 1] * w, y = i[d + 2] * w;
+            const t1 = 1 - A, r = A + w * t1, o = 0 == r ? 0 : 1 / r;
+            i[d + 3] = 255 * r, i[d + 0] = (g + v * t1) * o, i[d + 1] = (p + b * t1) * o, i[d + 2] = (m + y * t1) * o;
+        } else if (2 == l) {
+            A = e[h + 3], g = e[h], p = e[h + 1], m = e[h + 2], w = i[d + 3], v = i[d], b = i[d + 1], y = i[d + 2];
+            A == w && g == v && p == b && m == y ? (i[d] = 0, i[d + 1] = 0, i[d + 2] = 0, i[d + 3] = 0) : (i[d] = g, i[d + 1] = p, i[d + 2] = m, i[d + 3] = A);
+        } else if (3 == l) {
+            A = e[h + 3], g = e[h], p = e[h + 1], m = e[h + 2], w = i[d + 3], v = i[d], b = i[d + 1], y = i[d + 2];
+            if (A == w && g == v && p == b && m == y) continue;
+            if (A < 220 && w > 20) return !1;
+        }
+        return !0;
+    }
+    return {
+        decode: function decode(r) {
+            const i = new Uint8Array(r);
+            let o = 8;
+            const a = e, s = a.readUshort, f = a.readUint, l = {
+                tabs: {},
+                frames: []
+            }, c = new Uint8Array(i.length);
+            let u, h = 0, d = 0;
+            const A = [
+                137,
+                80,
+                78,
+                71,
+                13,
+                10,
+                26,
+                10
+            ];
+            for(var g = 0; g < 8; g++)if (i[g] != A[g]) throw "The input is not a PNG file!";
+            for(; o < i.length;){
+                const e = a.readUint(i, o);
+                o += 4;
+                const r = a.readASCII(i, o, 4);
+                if (o += 4, "IHDR" == r) _IHDR(i, o, l);
+                else if ("iCCP" == r) {
+                    for(var p = o; 0 != i[p];)p++;
+                    a.readASCII(i, o, p - o), i[p + 1];
+                    const s = i.slice(p + 2, o + e);
+                    let f = null;
+                    try {
+                        f = _inflate(s);
+                    } catch (e) {
+                        f = t1(s);
+                    }
+                    l.tabs[r] = f;
+                } else if ("CgBI" == r) l.tabs[r] = i.slice(o, o + 4);
+                else if ("IDAT" == r) {
+                    for(g = 0; g < e; g++)c[h + g] = i[o + g];
+                    h += e;
+                } else if ("acTL" == r) l.tabs[r] = {
+                    num_frames: f(i, o),
+                    num_plays: f(i, o + 4)
+                }, u = new Uint8Array(i.length);
+                else if ("fcTL" == r) {
+                    if (0 != d) (E = l.frames[l.frames.length - 1]).data = _decompress(l, u.slice(0, d), E.rect.width, E.rect.height), d = 0;
+                    const e = {
+                        x: f(i, o + 12),
+                        y: f(i, o + 16),
+                        width: f(i, o + 4),
+                        height: f(i, o + 8)
+                    };
+                    let t1 = s(i, o + 22);
+                    t1 = s(i, o + 20) / (0 == t1 ? 100 : t1);
+                    const r = {
+                        rect: e,
+                        delay: Math.round(1e3 * t1),
+                        dispose: i[o + 24],
+                        blend: i[o + 25]
+                    };
+                    l.frames.push(r);
+                } else if ("fdAT" == r) {
+                    for(g = 0; g < e - 4; g++)u[d + g] = i[o + g + 4];
+                    d += e - 4;
+                } else if ("pHYs" == r) l.tabs[r] = [
+                    a.readUint(i, o),
+                    a.readUint(i, o + 4),
+                    i[o + 8]
+                ];
+                else if ("cHRM" == r) {
+                    l.tabs[r] = [];
+                    for(g = 0; g < 8; g++)l.tabs[r].push(a.readUint(i, o + 4 * g));
+                } else if ("tEXt" == r || "zTXt" == r) {
+                    null == l.tabs[r] && (l.tabs[r] = {});
+                    var m = a.nextZero(i, o), w = a.readASCII(i, o, m - o), v = o + e - m - 1;
+                    if ("tEXt" == r) y = a.readASCII(i, m + 1, v);
+                    else {
+                        var b = _inflate(i.slice(m + 2, m + 2 + v));
+                        y = a.readUTF8(b, 0, b.length);
+                    }
+                    l.tabs[r][w] = y;
+                } else if ("iTXt" == r) {
+                    null == l.tabs[r] && (l.tabs[r] = {});
+                    m = 0, p = o;
+                    m = a.nextZero(i, p);
+                    w = a.readASCII(i, p, m - p);
+                    const t1 = i[p = m + 1];
+                    var y;
+                    i[p + 1], p += 2, m = a.nextZero(i, p), a.readASCII(i, p, m - p), p = m + 1, m = a.nextZero(i, p), a.readUTF8(i, p, m - p);
+                    v = e - ((p = m + 1) - o);
+                    if (0 == t1) y = a.readUTF8(i, p, v);
+                    else {
+                        b = _inflate(i.slice(p, p + v));
+                        y = a.readUTF8(b, 0, b.length);
+                    }
+                    l.tabs[r][w] = y;
+                } else if ("PLTE" == r) l.tabs[r] = a.readBytes(i, o, e);
+                else if ("hIST" == r) {
+                    const e = l.tabs.PLTE.length / 3;
+                    l.tabs[r] = [];
+                    for(g = 0; g < e; g++)l.tabs[r].push(s(i, o + 2 * g));
+                } else if ("tRNS" == r) 3 == l.ctype ? l.tabs[r] = a.readBytes(i, o, e) : 0 == l.ctype ? l.tabs[r] = s(i, o) : 2 == l.ctype && (l.tabs[r] = [
+                    s(i, o),
+                    s(i, o + 2),
+                    s(i, o + 4)
+                ]);
+                else if ("gAMA" == r) l.tabs[r] = a.readUint(i, o) / 1e5;
+                else if ("sRGB" == r) l.tabs[r] = i[o];
+                else if ("bKGD" == r) 0 == l.ctype || 4 == l.ctype ? l.tabs[r] = [
+                    s(i, o)
+                ] : 2 == l.ctype || 6 == l.ctype ? l.tabs[r] = [
+                    s(i, o),
+                    s(i, o + 2),
+                    s(i, o + 4)
+                ] : 3 == l.ctype && (l.tabs[r] = i[o]);
+                else if ("IEND" == r) break;
+                o += e, a.readUint(i, o), o += 4;
+            }
+            var E;
+            return 0 != d && ((E = l.frames[l.frames.length - 1]).data = _decompress(l, u.slice(0, d), E.rect.width, E.rect.height)), l.data = _decompress(l, c, l.width, l.height), delete l.compress, delete l.interlace, delete l.filter, l;
+        },
+        toRGBA8: function toRGBA8(e) {
+            const t1 = e.width, r = e.height;
+            if (null == e.tabs.acTL) return [
+                decodeImage(e.data, t1, r, e).buffer
+            ];
+            const i = [];
+            null == e.frames[0].data && (e.frames[0].data = e.data);
+            const o = t1 * r * 4, a = new Uint8Array(o), s = new Uint8Array(o), f = new Uint8Array(o);
+            for(let c = 0; c < e.frames.length; c++){
+                const u = e.frames[c], h = u.rect.x, d = u.rect.y, A = u.rect.width, g = u.rect.height, p = decodeImage(u.data, A, g, e);
+                if (0 != c) for(var l = 0; l < o; l++)f[l] = a[l];
+                if (0 == u.blend ? _copyTile(p, A, g, a, t1, r, h, d, 0) : 1 == u.blend && _copyTile(p, A, g, a, t1, r, h, d, 1), i.push(a.buffer.slice(0)), 0 == u.dispose) ;
+                else if (1 == u.dispose) _copyTile(s, A, g, a, t1, r, h, d, 0);
+                else if (2 == u.dispose) for(l = 0; l < o; l++)a[l] = f[l];
+            }
+            return i;
+        },
+        _paeth: _paeth,
+        _copyTile: _copyTile,
+        _bin: e
+    };
+}();
+!function() {
+    const { _copyTile: e } = UPNG, { _bin: t1 } = UPNG, r = UPNG._paeth;
+    var i = {
+        table: function() {
+            const e = new Uint32Array(256);
+            for(let t1 = 0; t1 < 256; t1++){
+                let r = t1;
+                for(let e = 0; e < 8; e++)1 & r ? r = 3988292384 ^ r >>> 1 : r >>>= 1;
+                e[t1] = r;
+            }
+            return e;
+        }(),
+        update (e, t1, r, o) {
+            for(let a = 0; a < o; a++)e = i.table[255 & (e ^ t1[r + a])] ^ e >>> 8;
+            return e;
+        },
+        crc: (e, t1, r)=>4294967295 ^ i.update(4294967295, e, t1, r)
+    };
+    function addErr(e, t1, r, i) {
+        t1[r] += e[0] * i >> 4, t1[r + 1] += e[1] * i >> 4, t1[r + 2] += e[2] * i >> 4, t1[r + 3] += e[3] * i >> 4;
+    }
+    function N(e) {
+        return Math.max(0, Math.min(255, e));
+    }
+    function D(e, t1) {
+        const r = e[0] - t1[0], i = e[1] - t1[1], o = e[2] - t1[2], a = e[3] - t1[3];
+        return r * r + i * i + o * o + a * a;
+    }
+    function dither(e, t1, r, i, o, a, s) {
+        null == s && (s = 1);
+        const f = i.length, l = [];
+        for(var c = 0; c < f; c++){
+            const e = i[c];
+            l.push([
+                e >>> 0 & 255,
+                e >>> 8 & 255,
+                e >>> 16 & 255,
+                e >>> 24 & 255
+            ]);
+        }
+        for(c = 0; c < f; c++){
+            let e = 4294967295;
+            for(var u = 0, h = 0; h < f; h++){
+                var d = D(l[c], l[h]);
+                h != c && d < e && (e = d, u = h);
+            }
+        }
+        const A = new Uint32Array(o.buffer), g = new Int16Array(t1 * r * 4), p = [
+            0,
+            8,
+            2,
+            10,
+            12,
+            4,
+            14,
+            6,
+            3,
+            11,
+            1,
+            9,
+            15,
+            7,
+            13,
+            5
+        ];
+        for(c = 0; c < p.length; c++)p[c] = 255 * ((p[c] + .5) / 16 - .5);
+        for(let o = 0; o < r; o++)for(let w = 0; w < t1; w++){
+            var m;
+            c = 4 * (o * t1 + w);
+            if (2 != s) m = [
+                N(e[c] + g[c]),
+                N(e[c + 1] + g[c + 1]),
+                N(e[c + 2] + g[c + 2]),
+                N(e[c + 3] + g[c + 3])
+            ];
+            else {
+                d = p[4 * (3 & o) + (3 & w)];
+                m = [
+                    N(e[c] + d),
+                    N(e[c + 1] + d),
+                    N(e[c + 2] + d),
+                    N(e[c + 3] + d)
+                ];
+            }
+            u = 0;
+            let v = 16777215;
+            for(h = 0; h < f; h++){
+                const e = D(m, l[h]);
+                e < v && (v = e, u = h);
+            }
+            const b = l[u], y = [
+                m[0] - b[0],
+                m[1] - b[1],
+                m[2] - b[2],
+                m[3] - b[3]
+            ];
+            1 == s && (w != t1 - 1 && addErr(y, g, c + 4, 7), o != r - 1 && (0 != w && addErr(y, g, c + 4 * t1 - 4, 3), addErr(y, g, c + 4 * t1, 5), w != t1 - 1 && addErr(y, g, c + 4 * t1 + 4, 1))), a[c >> 2] = u, A[c >> 2] = i[u];
+        }
+    }
+    function _main(e, r, o, a, s) {
+        null == s && (s = {});
+        const { crc: f } = i, l = t1.writeUint, c = t1.writeUshort, u = t1.writeASCII;
+        let h = 8;
+        const d = e.frames.length > 1;
+        let A, g = !1, p = 33 + (d ? 20 : 0);
+        if (null != s.sRGB && (p += 13), null != s.pHYs && (p += 21), null != s.iCCP && (A = pako.deflate(s.iCCP), p += 21 + A.length + 4), 3 == e.ctype) {
+            for(var m = e.plte.length, w = 0; w < m; w++)e.plte[w] >>> 24 != 255 && (g = !0);
+            p += 8 + 3 * m + 4 + (g ? 8 + 1 * m + 4 : 0);
+        }
+        for(var v = 0; v < e.frames.length; v++){
+            d && (p += 38), p += (F = e.frames[v]).cimg.length + 12, 0 != v && (p += 4);
+        }
+        p += 12;
+        const b = new Uint8Array(p), y = [
+            137,
+            80,
+            78,
+            71,
+            13,
+            10,
+            26,
+            10
+        ];
+        for(w = 0; w < 8; w++)b[w] = y[w];
+        if (l(b, h, 13), h += 4, u(b, h, "IHDR"), h += 4, l(b, h, r), h += 4, l(b, h, o), h += 4, b[h] = e.depth, h++, b[h] = e.ctype, h++, b[h] = 0, h++, b[h] = 0, h++, b[h] = 0, h++, l(b, h, f(b, h - 17, 17)), h += 4, null != s.sRGB && (l(b, h, 1), h += 4, u(b, h, "sRGB"), h += 4, b[h] = s.sRGB, h++, l(b, h, f(b, h - 5, 5)), h += 4), null != s.iCCP) {
+            const e = 13 + A.length;
+            l(b, h, e), h += 4, u(b, h, "iCCP"), h += 4, u(b, h, "ICC profile"), h += 11, h += 2, b.set(A, h), h += A.length, l(b, h, f(b, h - (e + 4), e + 4)), h += 4;
+        }
+        if (null != s.pHYs && (l(b, h, 9), h += 4, u(b, h, "pHYs"), h += 4, l(b, h, s.pHYs[0]), h += 4, l(b, h, s.pHYs[1]), h += 4, b[h] = s.pHYs[2], h++, l(b, h, f(b, h - 13, 13)), h += 4), d && (l(b, h, 8), h += 4, u(b, h, "acTL"), h += 4, l(b, h, e.frames.length), h += 4, l(b, h, null != s.loop ? s.loop : 0), h += 4, l(b, h, f(b, h - 12, 12)), h += 4), 3 == e.ctype) {
+            l(b, h, 3 * (m = e.plte.length)), h += 4, u(b, h, "PLTE"), h += 4;
+            for(w = 0; w < m; w++){
+                const t1 = 3 * w, r = e.plte[w], i = 255 & r, o = r >>> 8 & 255, a = r >>> 16 & 255;
+                b[h + t1 + 0] = i, b[h + t1 + 1] = o, b[h + t1 + 2] = a;
+            }
+            if (h += 3 * m, l(b, h, f(b, h - 3 * m - 4, 3 * m + 4)), h += 4, g) {
+                l(b, h, m), h += 4, u(b, h, "tRNS"), h += 4;
+                for(w = 0; w < m; w++)b[h + w] = e.plte[w] >>> 24 & 255;
+                h += m, l(b, h, f(b, h - m - 4, m + 4)), h += 4;
+            }
+        }
+        let E = 0;
+        for(v = 0; v < e.frames.length; v++){
+            var F = e.frames[v];
+            d && (l(b, h, 26), h += 4, u(b, h, "fcTL"), h += 4, l(b, h, E++), h += 4, l(b, h, F.rect.width), h += 4, l(b, h, F.rect.height), h += 4, l(b, h, F.rect.x), h += 4, l(b, h, F.rect.y), h += 4, c(b, h, a[v]), h += 2, c(b, h, 1e3), h += 2, b[h] = F.dispose, h++, b[h] = F.blend, h++, l(b, h, f(b, h - 30, 30)), h += 4);
+            const t1 = F.cimg;
+            l(b, h, (m = t1.length) + (0 == v ? 0 : 4)), h += 4;
+            const r = h;
+            u(b, h, 0 == v ? "IDAT" : "fdAT"), h += 4, 0 != v && (l(b, h, E++), h += 4), b.set(t1, h), h += m, l(b, h, f(b, r, h - r)), h += 4;
+        }
+        return l(b, h, 0), h += 4, u(b, h, "IEND"), h += 4, l(b, h, f(b, h - 4, 4)), h += 4, b.buffer;
+    }
+    function compressPNG(e, t1, r) {
+        for(let i = 0; i < e.frames.length; i++){
+            const o = e.frames[i];
+            o.rect.width;
+            const a = o.rect.height, s = new Uint8Array(a * o.bpl + a);
+            o.cimg = _filterZero(o.img, a, o.bpp, o.bpl, s, t1, r);
+        }
+    }
+    function compress(t1, r, i, o, a) {
+        const s = a[0], f = a[1], l = a[2], c = a[3], u = a[4], h = a[5];
+        let d = 6, A = 8, g = 255;
+        for(var p = 0; p < t1.length; p++){
+            const e = new Uint8Array(t1[p]);
+            for(var m = e.length, w = 0; w < m; w += 4)g &= e[w + 3];
+        }
+        const v = 255 != g, b = function framize(t1, r, i, o, a, s) {
+            const f = [];
+            for(var l = 0; l < t1.length; l++){
+                const h = new Uint8Array(t1[l]), A = new Uint32Array(h.buffer);
+                var c;
+                let g = 0, p = 0, m = r, w = i, v = o ? 1 : 0;
+                if (0 != l) {
+                    const b = s || o || 1 == l || 0 != f[l - 2].dispose ? 1 : 2;
+                    let y = 0, E = 1e9;
+                    for(let e = 0; e < b; e++){
+                        var u = new Uint8Array(t1[l - 1 - e]);
+                        const o = new Uint32Array(t1[l - 1 - e]);
+                        let s = r, f = i, c = -1, h = -1;
+                        for(let e = 0; e < i; e++)for(let t1 = 0; t1 < r; t1++){
+                            A[d = e * r + t1] != o[d] && (t1 < s && (s = t1), t1 > c && (c = t1), e < f && (f = e), e > h && (h = e));
+                        }
+                        -1 == c && (s = f = c = h = 0), a && (1 == (1 & s) && s--, 1 == (1 & f) && f--);
+                        const v = (c - s + 1) * (h - f + 1);
+                        v < E && (E = v, y = e, g = s, p = f, m = c - s + 1, w = h - f + 1);
+                    }
+                    u = new Uint8Array(t1[l - 1 - y]);
+                    1 == y && (f[l - 1].dispose = 2), c = new Uint8Array(m * w * 4), e(u, r, i, c, m, w, -g, -p, 0), v = e(h, r, i, c, m, w, -g, -p, 3) ? 1 : 0, 1 == v ? _prepareDiff(h, r, i, c, {
+                        x: g,
+                        y: p,
+                        width: m,
+                        height: w
+                    }) : e(h, r, i, c, m, w, -g, -p, 0);
+                } else c = h.slice(0);
+                f.push({
+                    rect: {
+                        x: g,
+                        y: p,
+                        width: m,
+                        height: w
+                    },
+                    img: c,
+                    blend: v,
+                    dispose: 0
+                });
+            }
+            if (o) for(l = 0; l < f.length; l++){
+                if (1 == (A = f[l]).blend) continue;
+                const e = A.rect, o = f[l - 1].rect, s = Math.min(e.x, o.x), c = Math.min(e.y, o.y), u = {
+                    x: s,
+                    y: c,
+                    width: Math.max(e.x + e.width, o.x + o.width) - s,
+                    height: Math.max(e.y + e.height, o.y + o.height) - c
+                };
+                f[l - 1].dispose = 1, l - 1 != 0 && _updateFrame(t1, r, i, f, l - 1, u, a), _updateFrame(t1, r, i, f, l, u, a);
+            }
+            let h = 0;
+            if (1 != t1.length) for(var d = 0; d < f.length; d++){
+                var A;
+                h += (A = f[d]).rect.width * A.rect.height;
+            }
+            return f;
+        }(t1, r, i, s, f, l), y = {}, E = [], F = [];
+        if (0 != o) {
+            const e = [];
+            for(w = 0; w < b.length; w++)e.push(b[w].img.buffer);
+            const t1 = function concatRGBA(e) {
+                let t1 = 0;
+                for(var r = 0; r < e.length; r++)t1 += e[r].byteLength;
+                const i = new Uint8Array(t1);
+                let o = 0;
+                for(r = 0; r < e.length; r++){
+                    const t1 = new Uint8Array(e[r]), a = t1.length;
+                    for(let e = 0; e < a; e += 4){
+                        let r = t1[e], a = t1[e + 1], s = t1[e + 2];
+                        const f = t1[e + 3];
+                        0 == f && (r = a = s = 0), i[o + e] = r, i[o + e + 1] = a, i[o + e + 2] = s, i[o + e + 3] = f;
+                    }
+                    o += a;
+                }
+                return i.buffer;
+            }(e), r = quantize(t1, o);
+            for(w = 0; w < r.plte.length; w++)E.push(r.plte[w].est.rgba);
+            let i = 0;
+            for(w = 0; w < b.length; w++){
+                const e = (B = b[w]).img.length;
+                var _ = new Uint8Array(r.inds.buffer, i >> 2, e >> 2);
+                F.push(_);
+                const t1 = new Uint8Array(r.abuf, i, e);
+                h && dither(B.img, B.rect.width, B.rect.height, E, t1, _), B.img.set(t1), i += e;
+            }
+        } else for(p = 0; p < b.length; p++){
+            var B = b[p];
+            const e = new Uint32Array(B.img.buffer);
+            var U = B.rect.width;
+            m = e.length, _ = new Uint8Array(m);
+            F.push(_);
+            for(w = 0; w < m; w++){
+                const t1 = e[w];
+                if (0 != w && t1 == e[w - 1]) _[w] = _[w - 1];
+                else if (w > U && t1 == e[w - U]) _[w] = _[w - U];
+                else {
+                    let e = y[t1];
+                    if (null == e && (y[t1] = e = E.length, E.push(t1), E.length >= 300)) break;
+                    _[w] = e;
+                }
+            }
+        }
+        const C = E.length;
+        C <= 256 && 0 == u && (A = C <= 2 ? 1 : C <= 4 ? 2 : C <= 16 ? 4 : 8, A = Math.max(A, c));
+        for(p = 0; p < b.length; p++){
+            (B = b[p]).rect.x, B.rect.y;
+            U = B.rect.width;
+            const e = B.rect.height;
+            let t1 = B.img;
+            new Uint32Array(t1.buffer);
+            let r = 4 * U, i = 4;
+            if (C <= 256 && 0 == u) {
+                r = Math.ceil(A * U / 8);
+                var I = new Uint8Array(r * e);
+                const o = F[p];
+                for(let t1 = 0; t1 < e; t1++){
+                    w = t1 * r;
+                    const e = t1 * U;
+                    if (8 == A) for(var Q = 0; Q < U; Q++)I[w + Q] = o[e + Q];
+                    else if (4 == A) for(Q = 0; Q < U; Q++)I[w + (Q >> 1)] |= o[e + Q] << 4 - 4 * (1 & Q);
+                    else if (2 == A) for(Q = 0; Q < U; Q++)I[w + (Q >> 2)] |= o[e + Q] << 6 - 2 * (3 & Q);
+                    else if (1 == A) for(Q = 0; Q < U; Q++)I[w + (Q >> 3)] |= o[e + Q] << 7 - 1 * (7 & Q);
+                }
+                t1 = I, d = 3, i = 1;
+            } else if (0 == v && 1 == b.length) {
+                I = new Uint8Array(U * e * 3);
+                const o = U * e;
+                for(w = 0; w < o; w++){
+                    const e = 3 * w, r = 4 * w;
+                    I[e] = t1[r], I[e + 1] = t1[r + 1], I[e + 2] = t1[r + 2];
+                }
+                t1 = I, d = 2, i = 3, r = 3 * U;
+            }
+            B.img = t1, B.bpl = r, B.bpp = i;
+        }
+        return {
+            ctype: d,
+            depth: A,
+            plte: E,
+            frames: b
+        };
+    }
+    function _updateFrame(t1, r, i, o, a, s, f) {
+        const l = Uint8Array, c = Uint32Array, u = new l(t1[a - 1]), h = new c(t1[a - 1]), d = a + 1 < t1.length ? new l(t1[a + 1]) : null, A = new l(t1[a]), g = new c(A.buffer);
+        let p = r, m = i, w = -1, v = -1;
+        for(let e = 0; e < s.height; e++)for(let t1 = 0; t1 < s.width; t1++){
+            const i = s.x + t1, f = s.y + e, l = f * r + i, c = g[l];
+            0 == c || 0 == o[a - 1].dispose && h[l] == c && (null == d || 0 != d[4 * l + 3]) || (i < p && (p = i), i > w && (w = i), f < m && (m = f), f > v && (v = f));
+        }
+        -1 == w && (p = m = w = v = 0), f && (1 == (1 & p) && p--, 1 == (1 & m) && m--), s = {
+            x: p,
+            y: m,
+            width: w - p + 1,
+            height: v - m + 1
+        };
+        const b = o[a];
+        b.rect = s, b.blend = 1, b.img = new Uint8Array(s.width * s.height * 4), 0 == o[a - 1].dispose ? (e(u, r, i, b.img, s.width, s.height, -s.x, -s.y, 0), _prepareDiff(A, r, i, b.img, s)) : e(A, r, i, b.img, s.width, s.height, -s.x, -s.y, 0);
+    }
+    function _prepareDiff(t1, r, i, o, a) {
+        e(t1, r, i, o, a.width, a.height, -a.x, -a.y, 2);
+    }
+    function _filterZero(e, t1, r, i, o, a, s) {
+        const f = [];
+        let l, c = [
+            0,
+            1,
+            2,
+            3,
+            4
+        ];
+        -1 != a ? c = [
+            a
+        ] : (t1 * i > 5e5 || 1 == r) && (c = [
+            0
+        ]), s && (l = {
+            level: 0
+        });
+        const u = UZIP;
+        for(var h = 0; h < c.length; h++){
+            for(let a = 0; a < t1; a++)_filterLine(o, e, a, i, r, c[h]);
+            f.push(u.deflate(o, l));
+        }
+        let d, A = 1e9;
+        for(h = 0; h < f.length; h++)f[h].length < A && (d = h, A = f[h].length);
+        return f[d];
+    }
+    function _filterLine(e, t1, i, o, a, s) {
+        const f = i * o;
+        let l = f + i;
+        if (e[l] = s, l++, 0 == s) if (o < 500) for(var c = 0; c < o; c++)e[l + c] = t1[f + c];
+        else e.set(new Uint8Array(t1.buffer, f, o), l);
+        else if (1 == s) {
+            for(c = 0; c < a; c++)e[l + c] = t1[f + c];
+            for(c = a; c < o; c++)e[l + c] = t1[f + c] - t1[f + c - a] + 256 & 255;
+        } else if (0 == i) {
+            for(c = 0; c < a; c++)e[l + c] = t1[f + c];
+            if (2 == s) for(c = a; c < o; c++)e[l + c] = t1[f + c];
+            if (3 == s) for(c = a; c < o; c++)e[l + c] = t1[f + c] - (t1[f + c - a] >> 1) + 256 & 255;
+            if (4 == s) for(c = a; c < o; c++)e[l + c] = t1[f + c] - r(t1[f + c - a], 0, 0) + 256 & 255;
+        } else {
+            if (2 == s) for(c = 0; c < o; c++)e[l + c] = t1[f + c] + 256 - t1[f + c - o] & 255;
+            if (3 == s) {
+                for(c = 0; c < a; c++)e[l + c] = t1[f + c] + 256 - (t1[f + c - o] >> 1) & 255;
+                for(c = a; c < o; c++)e[l + c] = t1[f + c] + 256 - (t1[f + c - o] + t1[f + c - a] >> 1) & 255;
+            }
+            if (4 == s) {
+                for(c = 0; c < a; c++)e[l + c] = t1[f + c] + 256 - r(0, t1[f + c - o], 0) & 255;
+                for(c = a; c < o; c++)e[l + c] = t1[f + c] + 256 - r(t1[f + c - a], t1[f + c - o], t1[f + c - a - o]) & 255;
+            }
+        }
+    }
+    function quantize(e, t1) {
+        const r = new Uint8Array(e), i = r.slice(0), o = new Uint32Array(i.buffer), a = getKDtree(i, t1), s = a[0], f = a[1], l = r.length, c = new Uint8Array(l >> 2);
+        let u;
+        if (r.length < 2e7) for(var h = 0; h < l; h += 4){
+            u = getNearest(s, d = r[h] * (1 / 255), A = r[h + 1] * (1 / 255), g = r[h + 2] * (1 / 255), p = r[h + 3] * (1 / 255)), c[h >> 2] = u.ind, o[h >> 2] = u.est.rgba;
+        }
+        else for(h = 0; h < l; h += 4){
+            var d = r[h] * (1 / 255), A = r[h + 1] * (1 / 255), g = r[h + 2] * (1 / 255), p = r[h + 3] * (1 / 255);
+            for(u = s; u.left;)u = planeDst(u.est, d, A, g, p) <= 0 ? u.left : u.right;
+            c[h >> 2] = u.ind, o[h >> 2] = u.est.rgba;
+        }
+        return {
+            abuf: i.buffer,
+            inds: c,
+            plte: f
+        };
+    }
+    function getKDtree(e, t1, r) {
+        null == r && (r = 1e-4);
+        const i = new Uint32Array(e.buffer), o = {
+            i0: 0,
+            i1: e.length,
+            bst: null,
+            est: null,
+            tdst: 0,
+            left: null,
+            right: null
+        };
+        o.bst = stats(e, o.i0, o.i1), o.est = estats(o.bst);
+        const a = [
+            o
+        ];
+        for(; a.length < t1;){
+            let t1 = 0, o = 0;
+            for(var s = 0; s < a.length; s++)a[s].est.L > t1 && (t1 = a[s].est.L, o = s);
+            if (t1 < r) break;
+            const f = a[o], l = splitPixels(e, i, f.i0, f.i1, f.est.e, f.est.eMq255);
+            if (f.i0 >= l || f.i1 <= l) {
+                f.est.L = 0;
+                continue;
+            }
+            const c = {
+                i0: f.i0,
+                i1: l,
+                bst: null,
+                est: null,
+                tdst: 0,
+                left: null,
+                right: null
+            };
+            c.bst = stats(e, c.i0, c.i1), c.est = estats(c.bst);
+            const u = {
+                i0: l,
+                i1: f.i1,
+                bst: null,
+                est: null,
+                tdst: 0,
+                left: null,
+                right: null
+            };
+            u.bst = {
+                R: [],
+                m: [],
+                N: f.bst.N - c.bst.N
+            };
+            for(s = 0; s < 16; s++)u.bst.R[s] = f.bst.R[s] - c.bst.R[s];
+            for(s = 0; s < 4; s++)u.bst.m[s] = f.bst.m[s] - c.bst.m[s];
+            u.est = estats(u.bst), f.left = c, f.right = u, a[o] = c, a.push(u);
+        }
+        a.sort((e, t1)=>t1.bst.N - e.bst.N);
+        for(s = 0; s < a.length; s++)a[s].ind = s;
+        return [
+            o,
+            a
+        ];
+    }
+    function getNearest(e, t1, r, i, o) {
+        if (null == e.left) return e.tdst = function dist(e, t1, r, i, o) {
+            const a = t1 - e[0], s = r - e[1], f = i - e[2], l = o - e[3];
+            return a * a + s * s + f * f + l * l;
+        }(e.est.q, t1, r, i, o), e;
+        const a = planeDst(e.est, t1, r, i, o);
+        let s = e.left, f = e.right;
+        a > 0 && (s = e.right, f = e.left);
+        const l = getNearest(s, t1, r, i, o);
+        if (l.tdst <= a * a) return l;
+        const c = getNearest(f, t1, r, i, o);
+        return c.tdst < l.tdst ? c : l;
+    }
+    function planeDst(e, t1, r, i, o) {
+        const { e: a } = e;
+        return a[0] * t1 + a[1] * r + a[2] * i + a[3] * o - e.eMq;
+    }
+    function splitPixels(e, t1, r, i, o, a) {
+        for(i -= 4; r < i;){
+            for(; vecDot(e, r, o) <= a;)r += 4;
+            for(; vecDot(e, i, o) > a;)i -= 4;
+            if (r >= i) break;
+            const s = t1[r >> 2];
+            t1[r >> 2] = t1[i >> 2], t1[i >> 2] = s, r += 4, i -= 4;
+        }
+        for(; vecDot(e, r, o) > a;)r -= 4;
+        return r + 4;
+    }
+    function vecDot(e, t1, r) {
+        return e[t1] * r[0] + e[t1 + 1] * r[1] + e[t1 + 2] * r[2] + e[t1 + 3] * r[3];
+    }
+    function stats(e, t1, r) {
+        const i = [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ], o = [
+            0,
+            0,
+            0,
+            0
+        ], a = r - t1 >> 2;
+        for(let a = t1; a < r; a += 4){
+            const t1 = e[a] * (1 / 255), r = e[a + 1] * (1 / 255), s = e[a + 2] * (1 / 255), f = e[a + 3] * (1 / 255);
+            o[0] += t1, o[1] += r, o[2] += s, o[3] += f, i[0] += t1 * t1, i[1] += t1 * r, i[2] += t1 * s, i[3] += t1 * f, i[5] += r * r, i[6] += r * s, i[7] += r * f, i[10] += s * s, i[11] += s * f, i[15] += f * f;
+        }
+        return i[4] = i[1], i[8] = i[2], i[9] = i[6], i[12] = i[3], i[13] = i[7], i[14] = i[11], {
+            R: i,
+            m: o,
+            N: a
+        };
+    }
+    function estats(e) {
+        const { R: t1 } = e, { m: r } = e, { N: i } = e, a = r[0], s = r[1], f = r[2], l = r[3], c = 0 == i ? 0 : 1 / i, u = [
+            t1[0] - a * a * c,
+            t1[1] - a * s * c,
+            t1[2] - a * f * c,
+            t1[3] - a * l * c,
+            t1[4] - s * a * c,
+            t1[5] - s * s * c,
+            t1[6] - s * f * c,
+            t1[7] - s * l * c,
+            t1[8] - f * a * c,
+            t1[9] - f * s * c,
+            t1[10] - f * f * c,
+            t1[11] - f * l * c,
+            t1[12] - l * a * c,
+            t1[13] - l * s * c,
+            t1[14] - l * f * c,
+            t1[15] - l * l * c
+        ], h = u, d = o;
+        let A = [
+            Math.random(),
+            Math.random(),
+            Math.random(),
+            Math.random()
+        ], g = 0, p = 0;
+        if (0 != i) for(let e = 0; e < 16 && (A = d.multVec(h, A), p = Math.sqrt(d.dot(A, A)), A = d.sml(1 / p, A), !(0 != e && Math.abs(p - g) < 1e-9)); e++)g = p;
+        const m = [
+            a * c,
+            s * c,
+            f * c,
+            l * c
+        ];
+        return {
+            Cov: u,
+            q: m,
+            e: A,
+            L: g,
+            eMq255: d.dot(d.sml(255, m), A),
+            eMq: d.dot(A, m),
+            rgba: (Math.round(255 * m[3]) << 24 | Math.round(255 * m[2]) << 16 | Math.round(255 * m[1]) << 8 | Math.round(255 * m[0]) << 0) >>> 0
+        };
+    }
+    var o = {
+        multVec: (e, t1)=>[
+                e[0] * t1[0] + e[1] * t1[1] + e[2] * t1[2] + e[3] * t1[3],
+                e[4] * t1[0] + e[5] * t1[1] + e[6] * t1[2] + e[7] * t1[3],
+                e[8] * t1[0] + e[9] * t1[1] + e[10] * t1[2] + e[11] * t1[3],
+                e[12] * t1[0] + e[13] * t1[1] + e[14] * t1[2] + e[15] * t1[3]
+            ],
+        dot: (e, t1)=>e[0] * t1[0] + e[1] * t1[1] + e[2] * t1[2] + e[3] * t1[3],
+        sml: (e, t1)=>[
+                e * t1[0],
+                e * t1[1],
+                e * t1[2],
+                e * t1[3]
+            ]
+    };
+    UPNG.encode = function encode(e, t1, r, i, o, a, s) {
+        null == i && (i = 0), null == s && (s = !1);
+        const f = compress(e, t1, r, i, [
+            !1,
+            !1,
+            !1,
+            0,
+            s,
+            !1
+        ]);
+        return compressPNG(f, -1), _main(f, t1, r, o, a);
+    }, UPNG.encodeLL = function encodeLL(e, t1, r, i, o, a, s, f) {
+        const l = {
+            ctype: 0 + (1 == i ? 0 : 2) + (0 == o ? 0 : 4),
+            depth: a,
+            frames: []
+        }, c = (i + o) * a, u = c * t1;
+        for(let i = 0; i < e.length; i++)l.frames.push({
+            rect: {
+                x: 0,
+                y: 0,
+                width: t1,
+                height: r
+            },
+            img: new Uint8Array(e[i]),
+            blend: 0,
+            dispose: 1,
+            bpp: Math.ceil(c / 8),
+            bpl: Math.ceil(u / 8)
+        });
+        return compressPNG(l, 0, !0), _main(l, t1, r, s, f);
+    }, UPNG.encode.compress = compress, UPNG.encode.dither = dither, UPNG.quantize = quantize, UPNG.quantize.getKDtree = getKDtree, UPNG.quantize.getNearest = getNearest;
+}();
+const r = {
+    toArrayBuffer (e, t1) {
+        const i = e.width, o = e.height, a = i << 2, s = e.getContext("2d").getImageData(0, 0, i, o), f = new Uint32Array(s.data.buffer), l = (32 * i + 31) / 32 << 2, c = l * o, u = 122 + c, h = new ArrayBuffer(u), d = new DataView(h), A = 1 << 20;
+        let g, p, m, w, v = A, b = 0, y = 0, E = 0;
+        function set16(e) {
+            d.setUint16(y, e, !0), y += 2;
+        }
+        function set32(e) {
+            d.setUint32(y, e, !0), y += 4;
+        }
+        function seek(e) {
+            y += e;
+        }
+        set16(19778), set32(u), seek(4), set32(122), set32(108), set32(i), set32(-o >>> 0), set16(1), set16(32), set32(3), set32(c), set32(2835), set32(2835), seek(8), set32(16711680), set32(65280), set32(255), set32(4278190080), set32(1466527264), function convert() {
+            for(; b < o && v > 0;){
+                for(w = 122 + b * l, g = 0; g < a;)v--, p = f[E++], m = p >>> 24, d.setUint32(w + g, p << 8 | m), g += 4;
+                b++;
+            }
+            E < f.length ? (v = A, setTimeout(convert, r._dly)) : t1(h);
+        }();
+    },
+    toBlob (e, t1) {
+        this.toArrayBuffer(e, (e)=>{
+            t1(new Blob([
+                e
+            ], {
+                type: "image/bmp"
+            }));
+        });
+    },
+    _dly: 9
+};
+var i = {
+    CHROME: "CHROME",
+    FIREFOX: "FIREFOX",
+    DESKTOP_SAFARI: "DESKTOP_SAFARI",
+    IE: "IE",
+    IOS: "IOS",
+    ETC: "ETC"
+}, o = {
+    [i.CHROME]: 16384,
+    [i.FIREFOX]: 11180,
+    [i.DESKTOP_SAFARI]: 16384,
+    [i.IE]: 8192,
+    [i.IOS]: 4096,
+    [i.ETC]: 8192
+};
+const a = "undefined" != ("TURBOPACK compile-time value", "undefined"), s = "undefined" != typeof WorkerGlobalScope && self instanceof WorkerGlobalScope, f = a && window.cordova && window.cordova.require && window.cordova.require("cordova/modulemapper"), CustomFile = (a || s) && (f && f.getOriginalSymbol(window, "File") || "undefined" != typeof File && File), CustomFileReader = (a || s) && (f && f.getOriginalSymbol(window, "FileReader") || "undefined" != typeof FileReader && FileReader);
+function getFilefromDataUrl(e, t1, r = Date.now()) {
+    return new Promise((i)=>{
+        const o = e.split(","), a = o[0].match(/:(.*?);/)[1], s = globalThis.atob(o[1]);
+        let f = s.length;
+        const l = new Uint8Array(f);
+        for(; f--;)l[f] = s.charCodeAt(f);
+        const c = new Blob([
+            l
+        ], {
+            type: a
+        });
+        c.name = t1, c.lastModified = r, i(c);
+    });
+}
+function getDataUrlFromFile(e) {
+    return new Promise((t1, r)=>{
+        const i = new CustomFileReader;
+        i.onload = ()=>t1(i.result), i.onerror = (e)=>r(e), i.readAsDataURL(e);
+    });
+}
+function loadImage(e) {
+    return new Promise((t1, r)=>{
+        const i = new Image;
+        i.onload = ()=>t1(i), i.onerror = (e)=>r(e), i.src = e;
+    });
+}
+function getBrowserName() {
+    if (void 0 !== getBrowserName.cachedResult) return getBrowserName.cachedResult;
+    let e = i.ETC;
+    const { userAgent: t1 } = navigator;
+    return /Chrom(e|ium)/i.test(t1) ? e = i.CHROME : /iP(ad|od|hone)/i.test(t1) && /WebKit/i.test(t1) ? e = i.IOS : /Safari/i.test(t1) ? e = i.DESKTOP_SAFARI : /Firefox/i.test(t1) ? e = i.FIREFOX : (/MSIE/i.test(t1) || !0 == !!document.documentMode) && (e = i.IE), getBrowserName.cachedResult = e, getBrowserName.cachedResult;
+}
+function approximateBelowMaximumCanvasSizeOfBrowser(e, t1) {
+    const r = getBrowserName(), i = o[r];
+    let a = e, s = t1, f = a * s;
+    const l = a > s ? s / a : a / s;
+    for(; f > i * i;){
+        const e = (i + a) / 2, t1 = (i + s) / 2;
+        e < t1 ? (s = t1, a = t1 * l) : (s = e * l, a = e), f = a * s;
+    }
+    return {
+        width: a,
+        height: s
+    };
+}
+function getNewCanvasAndCtx(e, t1) {
+    let r, i;
+    try {
+        if (r = new OffscreenCanvas(e, t1), i = r.getContext("2d"), null === i) throw new Error("getContext of OffscreenCanvas returns null");
+    } catch (e) {
+        r = document.createElement("canvas"), i = r.getContext("2d");
+    }
+    return r.width = e, r.height = t1, [
+        r,
+        i
+    ];
+}
+function drawImageInCanvas(e, t1) {
+    const { width: r, height: i } = approximateBelowMaximumCanvasSizeOfBrowser(e.width, e.height), [o, a] = getNewCanvasAndCtx(r, i);
+    return t1 && /jpe?g/.test(t1) && (a.fillStyle = "white", a.fillRect(0, 0, o.width, o.height)), a.drawImage(e, 0, 0, o.width, o.height), o;
+}
+function isIOS() {
+    return void 0 !== isIOS.cachedResult || (isIOS.cachedResult = [
+        "iPad Simulator",
+        "iPhone Simulator",
+        "iPod Simulator",
+        "iPad",
+        "iPhone",
+        "iPod"
+    ].includes(navigator.platform) || navigator.userAgent.includes("Mac") && "undefined" != typeof document && "ontouchend" in document), isIOS.cachedResult;
+}
+function drawFileInCanvas(e, t1 = {}) {
+    return new Promise(function(r, o) {
+        let a, s;
+        var $Try_2_Post = function() {
+            try {
+                return s = drawImageInCanvas(a, t1.fileType || e.type), r([
+                    a,
+                    s
+                ]);
+            } catch (e) {
+                return o(e);
+            }
+        }, $Try_2_Catch = function(t1) {
+            try {
+                0;
+                var $Try_3_Catch = function(e) {
+                    try {
+                        throw e;
+                    } catch (e) {
+                        return o(e);
+                    }
+                };
+                try {
+                    let t1;
+                    return getDataUrlFromFile(e).then(function(e) {
+                        try {
+                            return t1 = e, loadImage(t1).then(function(e) {
+                                try {
+                                    return a = e, function() {
+                                        try {
+                                            return $Try_2_Post();
+                                        } catch (e) {
+                                            return o(e);
+                                        }
+                                    }();
+                                } catch (e) {
+                                    return $Try_3_Catch(e);
+                                }
+                            }, $Try_3_Catch);
+                        } catch (e) {
+                            return $Try_3_Catch(e);
+                        }
+                    }, $Try_3_Catch);
+                } catch (e) {
+                    $Try_3_Catch(e);
+                }
+            } catch (e) {
+                return o(e);
+            }
+        };
+        try {
+            if (isIOS() || [
+                i.DESKTOP_SAFARI,
+                i.MOBILE_SAFARI
+            ].includes(getBrowserName())) throw new Error("Skip createImageBitmap on IOS and Safari");
+            return createImageBitmap(e).then(function(e) {
+                try {
+                    return a = e, $Try_2_Post();
+                } catch (e) {
+                    return $Try_2_Catch();
+                }
+            }, $Try_2_Catch);
+        } catch (e) {
+            $Try_2_Catch();
+        }
+    });
+}
+function canvasToFile(e, t1, i, o, a = 1) {
+    return new Promise(function(s, f) {
+        let l;
+        if ("image/png" === t1) {
+            let c, u, h;
+            return c = e.getContext("2d"), { data: u } = c.getImageData(0, 0, e.width, e.height), h = UPNG.encode([
+                u.buffer
+            ], e.width, e.height, 4096 * a), l = new Blob([
+                h
+            ], {
+                type: t1
+            }), l.name = i, l.lastModified = o, $If_4.call(this);
+        }
+        {
+            if ("image/bmp" === t1) return new Promise((t1)=>r.toBlob(e, t1)).then((function(e) {
+                try {
+                    return l = e, l.name = i, l.lastModified = o, $If_5.call(this);
+                } catch (e) {
+                    return f(e);
+                }
+            }).bind(this), f);
+            {
+                if ("function" == typeof OffscreenCanvas && e instanceof OffscreenCanvas) return e.convertToBlob({
+                    type: t1,
+                    quality: a
+                }).then((function(e) {
+                    try {
+                        return l = e, l.name = i, l.lastModified = o, $If_6.call(this);
+                    } catch (e) {
+                        return f(e);
+                    }
+                }).bind(this), f);
+                {
+                    let d;
+                    return d = e.toDataURL(t1, a), getFilefromDataUrl(d, i, o).then((function(e) {
+                        try {
+                            return l = e, $If_6.call(this);
+                        } catch (e) {
+                            return f(e);
+                        }
+                    }).bind(this), f);
+                }
+                //TURBOPACK unreachable
+                ;
+                function $If_6() {
+                    return $If_5.call(this);
+                }
+            }
+            //TURBOPACK unreachable
+            ;
+            function $If_5() {
+                return $If_4.call(this);
+            }
+        }
+        //TURBOPACK unreachable
+        ;
+        function $If_4() {
+            return s(l);
+        }
+    });
+}
+function cleanupCanvasMemory(e) {
+    e.width = 0, e.height = 0;
+}
+function isAutoOrientationInBrowser() {
+    return new Promise(function(e, t1) {
+        let r, i, o, a, s;
+        return void 0 !== isAutoOrientationInBrowser.cachedResult ? e(isAutoOrientationInBrowser.cachedResult) : (r = "data:image/jpeg;base64,/9j/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAAEAAgMBEQACEQEDEQH/xABKAAEAAAAAAAAAAAAAAAAAAAALEAEAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8H//2Q==", getFilefromDataUrl("data:image/jpeg;base64,/9j/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAAEAAgMBEQACEQEDEQH/xABKAAEAAAAAAAAAAAAAAAAAAAALEAEAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8H//2Q==", "test.jpg", Date.now()).then(function(r) {
+            try {
+                return i = r, drawFileInCanvas(i).then(function(r) {
+                    try {
+                        return o = r[1], canvasToFile(o, i.type, i.name, i.lastModified).then(function(r) {
+                            try {
+                                return a = r, cleanupCanvasMemory(o), drawFileInCanvas(a).then(function(r) {
+                                    try {
+                                        return s = r[0], isAutoOrientationInBrowser.cachedResult = 1 === s.width && 2 === s.height, e(isAutoOrientationInBrowser.cachedResult);
+                                    } catch (e) {
+                                        return t1(e);
+                                    }
+                                }, t1);
+                            } catch (e) {
+                                return t1(e);
+                            }
+                        }, t1);
+                    } catch (e) {
+                        return t1(e);
+                    }
+                }, t1);
+            } catch (e) {
+                return t1(e);
+            }
+        }, t1));
+    });
+}
+function getExifOrientation(e) {
+    return new Promise((t1, r)=>{
+        const i = new CustomFileReader;
+        i.onload = (e)=>{
+            const r = new DataView(e.target.result);
+            if (65496 != r.getUint16(0, !1)) return t1(-2);
+            const i = r.byteLength;
+            let o = 2;
+            for(; o < i;){
+                if (r.getUint16(o + 2, !1) <= 8) return t1(-1);
+                const e = r.getUint16(o, !1);
+                if (o += 2, 65505 == e) {
+                    if (1165519206 != r.getUint32(o += 2, !1)) return t1(-1);
+                    const e = 18761 == r.getUint16(o += 6, !1);
+                    o += r.getUint32(o + 4, e);
+                    const i = r.getUint16(o, e);
+                    o += 2;
+                    for(let a = 0; a < i; a++)if (274 == r.getUint16(o + 12 * a, e)) return t1(r.getUint16(o + 12 * a + 8, e));
+                } else {
+                    if (65280 != (65280 & e)) break;
+                    o += r.getUint16(o, !1);
+                }
+            }
+            return t1(-1);
+        }, i.onerror = (e)=>r(e), i.readAsArrayBuffer(e);
+    });
+}
+function handleMaxWidthOrHeight(e, t1) {
+    const { width: r } = e, { height: i } = e, { maxWidthOrHeight: o } = t1;
+    let a, s = e;
+    return isFinite(o) && (r > o || i > o) && ([s, a] = getNewCanvasAndCtx(r, i), r > i ? (s.width = o, s.height = i / r * o) : (s.width = r / i * o, s.height = o), a.drawImage(e, 0, 0, s.width, s.height), cleanupCanvasMemory(e)), s;
+}
+function followExifOrientation(e, t1) {
+    const { width: r } = e, { height: i } = e, [o, a] = getNewCanvasAndCtx(r, i);
+    switch(t1 > 4 && t1 < 9 ? (o.width = i, o.height = r) : (o.width = r, o.height = i), t1){
+        case 2:
+            a.transform(-1, 0, 0, 1, r, 0);
+            break;
+        case 3:
+            a.transform(-1, 0, 0, -1, r, i);
+            break;
+        case 4:
+            a.transform(1, 0, 0, -1, 0, i);
+            break;
+        case 5:
+            a.transform(0, 1, 1, 0, 0, 0);
+            break;
+        case 6:
+            a.transform(0, 1, -1, 0, i, 0);
+            break;
+        case 7:
+            a.transform(0, -1, -1, 0, i, r);
+            break;
+        case 8:
+            a.transform(0, -1, 1, 0, 0, r);
+    }
+    return a.drawImage(e, 0, 0, r, i), cleanupCanvasMemory(e), o;
+}
+function compress(e, t1, r = 0) {
+    return new Promise(function(i, o) {
+        let a, s, f, l, c, u, h, d, A, g, p, m, w, v, b, y, E, F, _, B;
+        function incProgress(e = 5) {
+            if (t1.signal && t1.signal.aborted) throw t1.signal.reason;
+            a += e, t1.onProgress(Math.min(a, 100));
+        }
+        function setProgress(e) {
+            if (t1.signal && t1.signal.aborted) throw t1.signal.reason;
+            a = Math.min(Math.max(e, a), 100), t1.onProgress(a);
+        }
+        return a = r, s = t1.maxIteration || 10, f = 1024 * t1.maxSizeMB * 1024, incProgress(), drawFileInCanvas(e, t1).then((function(r) {
+            try {
+                return [, l] = r, incProgress(), c = handleMaxWidthOrHeight(l, t1), incProgress(), new Promise(function(r, i) {
+                    var o;
+                    if (!(o = t1.exifOrientation)) return getExifOrientation(e).then((function(e) {
+                        try {
+                            return o = e, $If_2.call(this);
+                        } catch (e) {
+                            return i(e);
+                        }
+                    }).bind(this), i);
+                    function $If_2() {
+                        return r(o);
+                    }
+                    return $If_2.call(this);
+                }).then((function(r) {
+                    try {
+                        return u = r, incProgress(), isAutoOrientationInBrowser().then((function(r) {
+                            try {
+                                return h = r ? c : followExifOrientation(c, u), incProgress(), d = t1.initialQuality || 1, A = t1.fileType || e.type, canvasToFile(h, A, e.name, e.lastModified, d).then((function(r) {
+                                    try {
+                                        {
+                                            if (g = r, incProgress(), p = g.size > f, m = g.size > e.size, !p && !m) return setProgress(100), i(g);
+                                            var a;
+                                            function $Loop_3() {
+                                                if (s-- && (b > f || b > w)) {
+                                                    let t1, r;
+                                                    return t1 = B ? .95 * _.width : _.width, r = B ? .95 * _.height : _.height, [E, F] = getNewCanvasAndCtx(t1, r), F.drawImage(_, 0, 0, t1, r), d *= "image/png" === A ? .85 : .95, canvasToFile(E, A, e.name, e.lastModified, d).then(function(e) {
+                                                        try {
+                                                            return y = e, cleanupCanvasMemory(_), _ = E, b = y.size, setProgress(Math.min(99, Math.floor((v - b) / (v - f) * 100))), $Loop_3;
+                                                        } catch (e) {
+                                                            return o(e);
+                                                        }
+                                                    }, o);
+                                                }
+                                                return [
+                                                    1
+                                                ];
+                                            }
+                                            return w = e.size, v = g.size, b = v, _ = h, B = !t1.alwaysKeepResolution && p, (a = (function(e) {
+                                                for(; e;){
+                                                    if (e.then) return void e.then(a, o);
+                                                    try {
+                                                        if (e.pop) {
+                                                            if (e.length) return e.pop() ? $Loop_3_exit.call(this) : e;
+                                                            e = $Loop_3;
+                                                        } else e = e.call(this);
+                                                    } catch (e) {
+                                                        return o(e);
+                                                    }
+                                                }
+                                            }).bind(this))($Loop_3);
+                                            //TURBOPACK unreachable
+                                            ;
+                                            function $Loop_3_exit() {
+                                                return cleanupCanvasMemory(_), cleanupCanvasMemory(E), cleanupCanvasMemory(c), cleanupCanvasMemory(h), cleanupCanvasMemory(l), setProgress(100), i(y);
+                                            }
+                                        }
+                                    } catch (u) {
+                                        return o(u);
+                                    }
+                                }).bind(this), o);
+                            } catch (e) {
+                                return o(e);
+                            }
+                        }).bind(this), o);
+                    } catch (e) {
+                        return o(e);
+                    }
+                }).bind(this), o);
+            } catch (e) {
+                return o(e);
+            }
+        }).bind(this), o);
+    });
+}
+const l = "\nlet scriptImported = false\nself.addEventListener('message', async (e) => {\n  const { file, id, imageCompressionLibUrl, options } = e.data\n  options.onProgress = (progress) => self.postMessage({ progress, id })\n  try {\n    if (!scriptImported) {\n      // console.log('[worker] importScripts', imageCompressionLibUrl)\n      self.importScripts(imageCompressionLibUrl)\n      scriptImported = true\n    }\n    // console.log('[worker] self', self)\n    const compressedFile = await imageCompression(file, options)\n    self.postMessage({ file: compressedFile, id })\n  } catch (e) {\n    // console.error('[worker] error', e)\n    self.postMessage({ error: e.message + '\\n' + e.stack, id })\n  }\n})\n";
+let c;
+function compressOnWebWorker(e, t1) {
+    return new Promise((r, i)=>{
+        c || (c = function createWorkerScriptURL(e) {
+            const t1 = [];
+            return "function" == typeof e ? t1.push(`(${e})()`) : t1.push(e), URL.createObjectURL(new Blob(t1));
+        }(l));
+        const o = new Worker(c);
+        o.addEventListener("message", function handler(e) {
+            if (t1.signal && t1.signal.aborted) o.terminate();
+            else if (void 0 === e.data.progress) {
+                if (e.data.error) return i(new Error(e.data.error)), void o.terminate();
+                r(e.data.file), o.terminate();
+            } else t1.onProgress(e.data.progress);
+        }), o.addEventListener("error", i), t1.signal && t1.signal.addEventListener("abort", ()=>{
+            i(t1.signal.reason), o.terminate();
+        }), o.postMessage({
+            file: e,
+            imageCompressionLibUrl: t1.libURL,
+            options: {
+                ...t1,
+                onProgress: void 0,
+                signal: void 0
+            }
+        });
+    });
+}
+function imageCompression(e, t1) {
+    return new Promise(function(r, i) {
+        let o, a, s, f, l, c;
+        if (o = {
+            ...t1
+        }, s = 0, { onProgress: f } = o, o.maxSizeMB = o.maxSizeMB || Number.POSITIVE_INFINITY, l = "boolean" != typeof o.useWebWorker || o.useWebWorker, delete o.useWebWorker, o.onProgress = (e)=>{
+            s = e, "function" == typeof f && f(s);
+        }, !(e instanceof Blob || e instanceof CustomFile)) return i(new Error("The file given is not an instance of Blob or File"));
+        if (!/^image/.test(e.type)) return i(new Error("The file given is not an image"));
+        if (c = "undefined" != typeof WorkerGlobalScope && self instanceof WorkerGlobalScope, !l || "function" != typeof Worker || c) return compress(e, o).then((function(e) {
+            try {
+                return a = e, $If_4.call(this);
+            } catch (e) {
+                return i(e);
+            }
+        }).bind(this), i);
+        var u = (function() {
+            try {
+                return $If_4.call(this);
+            } catch (e) {
+                return i(e);
+            }
+        }).bind(this), $Try_1_Catch = function(t1) {
+            try {
+                return compress(e, o).then(function(e) {
+                    try {
+                        return a = e, u();
+                    } catch (e) {
+                        return i(e);
+                    }
+                }, i);
+            } catch (e) {
+                return i(e);
+            }
+        };
+        try {
+            return o.libURL = o.libURL || "https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js", compressOnWebWorker(e, o).then(function(e) {
+                try {
+                    return a = e, u();
+                } catch (e) {
+                    return $Try_1_Catch();
+                }
+            }, $Try_1_Catch);
+        } catch (e) {
+            $Try_1_Catch();
+        }
+        function $If_4() {
+            try {
+                a.name = e.name, a.lastModified = e.lastModified;
+            } catch (e) {}
+            try {
+                o.preserveExif && "image/jpeg" === e.type && (!o.fileType || o.fileType && o.fileType === e.type) && (a = copyExifWithoutOrientation(e, a));
+            } catch (e) {}
+            return r(a);
+        }
+    });
+}
+imageCompression.getDataUrlFromFile = getDataUrlFromFile, imageCompression.getFilefromDataUrl = getFilefromDataUrl, imageCompression.loadImage = loadImage, imageCompression.drawImageInCanvas = drawImageInCanvas, imageCompression.drawFileInCanvas = drawFileInCanvas, imageCompression.canvasToFile = canvasToFile, imageCompression.getExifOrientation = getExifOrientation, imageCompression.handleMaxWidthOrHeight = handleMaxWidthOrHeight, imageCompression.followExifOrientation = followExifOrientation, imageCompression.cleanupCanvasMemory = cleanupCanvasMemory, imageCompression.isAutoOrientationInBrowser = isAutoOrientationInBrowser, imageCompression.approximateBelowMaximumCanvasSizeOfBrowser = approximateBelowMaximumCanvasSizeOfBrowser, imageCompression.copyExifWithoutOrientation = copyExifWithoutOrientation, imageCompression.getBrowserName = getBrowserName, imageCompression.version = "2.0.2";
+;
+ //# sourceMappingURL=browser-image-compression.mjs.map
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/UserAgent_DEPRECATED.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+/**
+ * Copyright 2004-present Facebook. All Rights Reserved.
+ *
+ * @providesModule UserAgent_DEPRECATED
+ */ /**
+ *  Provides entirely client-side User Agent and OS detection. You should prefer
+ *  the non-deprecated UserAgent module when possible, which exposes our
+ *  authoritative server-side PHP-based detection to the client.
+ *
+ *  Usage is straightforward:
+ *
+ *    if (UserAgent_DEPRECATED.ie()) {
+ *      //  IE
+ *    }
+ *
+ *  You can also do version checks:
+ *
+ *    if (UserAgent_DEPRECATED.ie() >= 7) {
+ *      //  IE7 or better
+ *    }
+ *
+ *  The browser functions will return NaN if the browser does not match, so
+ *  you can also do version compares the other way:
+ *
+ *    if (UserAgent_DEPRECATED.ie() < 7) {
+ *      //  IE6 or worse
+ *    }
+ *
+ *  Note that the version is a float and may include a minor version number,
+ *  so you should always use range operators to perform comparisons, not
+ *  strict equality.
+ *
+ *  **Note:** You should **strongly** prefer capability detection to browser
+ *  version detection where it's reasonable:
+ *
+ *    http://www.quirksmode.org/js/support.html
+ *
+ *  Further, we have a large number of mature wrapper functions and classes
+ *  which abstract away many browser irregularities. Check the documentation,
+ *  grep for things, or ask on javascript@lists.facebook.com before writing yet
+ *  another copy of "event || window.event".
+ *
+ */ var _populated = false;
+// Browsers
+var _ie, _firefox, _opera, _webkit, _chrome;
+// Actual IE browser for compatibility mode
+var _ie_real_version;
+// Platforms
+var _osx, _windows, _linux, _android;
+// Architectures
+var _win64;
+// Devices
+var _iphone, _ipad, _native;
+var _mobile;
+function _populate() {
+    if (_populated) {
+        return;
+    }
+    _populated = true;
+    // To work around buggy JS libraries that can't handle multi-digit
+    // version numbers, Opera 10's user agent string claims it's Opera
+    // 9, then later includes a Version/X.Y field:
+    //
+    // Opera/9.80 (foo) Presto/2.2.15 Version/10.10
+    var uas = navigator.userAgent;
+    var agent = /(?:MSIE.(\d+\.\d+))|(?:(?:Firefox|GranParadiso|Iceweasel).(\d+\.\d+))|(?:Opera(?:.+Version.|.)(\d+\.\d+))|(?:AppleWebKit.(\d+(?:\.\d+)?))|(?:Trident\/\d+\.\d+.*rv:(\d+\.\d+))/.exec(uas);
+    var os = /(Mac OS X)|(Windows)|(Linux)/.exec(uas);
+    _iphone = /\b(iPhone|iP[ao]d)/.exec(uas);
+    _ipad = /\b(iP[ao]d)/.exec(uas);
+    _android = /Android/i.exec(uas);
+    _native = /FBAN\/\w+;/i.exec(uas);
+    _mobile = /Mobile/i.exec(uas);
+    // Note that the IE team blog would have you believe you should be checking
+    // for 'Win64; x64'.  But MSDN then reveals that you can actually be coming
+    // from either x64 or ia64;  so ultimately, you should just check for Win64
+    // as in indicator of whether you're in 64-bit IE.  32-bit IE on 64-bit
+    // Windows will send 'WOW64' instead.
+    _win64 = !!/Win64/.exec(uas);
+    if (agent) {
+        _ie = agent[1] ? parseFloat(agent[1]) : agent[5] ? parseFloat(agent[5]) : NaN;
+        // IE compatibility mode
+        if (_ie && document && document.documentMode) {
+            _ie = document.documentMode;
+        }
+        // grab the "true" ie version from the trident token if available
+        var trident = /(?:Trident\/(\d+.\d+))/.exec(uas);
+        _ie_real_version = trident ? parseFloat(trident[1]) + 4 : _ie;
+        _firefox = agent[2] ? parseFloat(agent[2]) : NaN;
+        _opera = agent[3] ? parseFloat(agent[3]) : NaN;
+        _webkit = agent[4] ? parseFloat(agent[4]) : NaN;
+        if (_webkit) {
+            // We do not add the regexp to the above test, because it will always
+            // match 'safari' only since 'AppleWebKit' appears before 'Chrome' in
+            // the userAgent string.
+            agent = /(?:Chrome\/(\d+\.\d+))/.exec(uas);
+            _chrome = agent && agent[1] ? parseFloat(agent[1]) : NaN;
+        } else {
+            _chrome = NaN;
+        }
+    } else {
+        _ie = _firefox = _opera = _chrome = _webkit = NaN;
+    }
+    if (os) {
+        if (os[1]) {
+            // Detect OS X version.  If no version number matches, set _osx to true.
+            // Version examples:  10, 10_6_1, 10.7
+            // Parses version number as a float, taking only first two sets of
+            // digits.  If only one set of digits is found, returns just the major
+            // version number.
+            var ver = /(?:Mac OS X (\d+(?:[._]\d+)?))/.exec(uas);
+            _osx = ver ? parseFloat(ver[1].replace('_', '.')) : true;
+        } else {
+            _osx = false;
+        }
+        _windows = !!os[2];
+        _linux = !!os[3];
+    } else {
+        _osx = _windows = _linux = false;
+    }
+}
+var UserAgent_DEPRECATED = {
+    /**
+   *  Check if the UA is Internet Explorer.
+   *
+   *
+   *  @return float|NaN Version number (if match) or NaN.
+   */ ie: function() {
+        return _populate() || _ie;
+    },
+    /**
+   * Check if we're in Internet Explorer compatibility mode.
+   *
+   * @return bool true if in compatibility mode, false if
+   * not compatibility mode or not ie
+   */ ieCompatibilityMode: function() {
+        return _populate() || _ie_real_version > _ie;
+    },
+    /**
+   * Whether the browser is 64-bit IE.  Really, this is kind of weak sauce;  we
+   * only need this because Skype can't handle 64-bit IE yet.  We need to remove
+   * this when we don't need it -- tracked by #601957.
+   */ ie64: function() {
+        return UserAgent_DEPRECATED.ie() && _win64;
+    },
+    /**
+   *  Check if the UA is Firefox.
+   *
+   *
+   *  @return float|NaN Version number (if match) or NaN.
+   */ firefox: function() {
+        return _populate() || _firefox;
+    },
+    /**
+   *  Check if the UA is Opera.
+   *
+   *
+   *  @return float|NaN Version number (if match) or NaN.
+   */ opera: function() {
+        return _populate() || _opera;
+    },
+    /**
+   *  Check if the UA is WebKit.
+   *
+   *
+   *  @return float|NaN Version number (if match) or NaN.
+   */ webkit: function() {
+        return _populate() || _webkit;
+    },
+    /**
+   *  For Push
+   *  WILL BE REMOVED VERY SOON. Use UserAgent_DEPRECATED.webkit
+   */ safari: function() {
+        return UserAgent_DEPRECATED.webkit();
+    },
+    /**
+   *  Check if the UA is a Chrome browser.
+   *
+   *
+   *  @return float|NaN Version number (if match) or NaN.
+   */ chrome: function() {
+        return _populate() || _chrome;
+    },
+    /**
+   *  Check if the user is running Windows.
+   *
+   *  @return bool `true' if the user's OS is Windows.
+   */ windows: function() {
+        return _populate() || _windows;
+    },
+    /**
+   *  Check if the user is running Mac OS X.
+   *
+   *  @return float|bool   Returns a float if a version number is detected,
+   *                       otherwise true/false.
+   */ osx: function() {
+        return _populate() || _osx;
+    },
+    /**
+   * Check if the user is running Linux.
+   *
+   * @return bool `true' if the user's OS is some flavor of Linux.
+   */ linux: function() {
+        return _populate() || _linux;
+    },
+    /**
+   * Check if the user is running on an iPhone or iPod platform.
+   *
+   * @return bool `true' if the user is running some flavor of the
+   *    iPhone OS.
+   */ iphone: function() {
+        return _populate() || _iphone;
+    },
+    mobile: function() {
+        return _populate() || _iphone || _ipad || _android || _mobile;
+    },
+    nativeApp: function() {
+        // webviews inside of the native apps
+        return _populate() || _native;
+    },
+    android: function() {
+        return _populate() || _android;
+    },
+    ipad: function() {
+        return _populate() || _ipad;
+    }
+};
+module.exports = UserAgent_DEPRECATED;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/ExecutionEnvironment.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+/**
+ * Copyright (c) 2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @providesModule ExecutionEnvironment
+ */ /*jslint evil: true */ var canUseDOM = !!(("TURBOPACK compile-time value", "undefined") !== 'undefined' && window.document && window.document.createElement);
+/**
+ * Simple, lightweight module assisting with the detection and context of
+ * Worker. Helps avoid circular dependencies and allows code to reason about
+ * whether or not they are in a Worker, even if they never include the main
+ * `ReactWorker` dependency.
+ */ var ExecutionEnvironment = {
+    canUseDOM: canUseDOM,
+    canUseWorkers: typeof Worker !== 'undefined',
+    canUseEventListeners: canUseDOM && !!(window.addEventListener || window.attachEvent),
+    canUseViewport: canUseDOM && !!window.screen,
+    isInWorker: !canUseDOM // For now, this is true - might change in the future.
+};
+module.exports = ExecutionEnvironment;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/isEventSupported.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+/**
+ * Copyright 2013-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @providesModule isEventSupported
+ */ var ExecutionEnvironment = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/ExecutionEnvironment.js [app-ssr] (ecmascript)");
+var useHasFeature;
+if (ExecutionEnvironment.canUseDOM) {
+    useHasFeature = document.implementation && document.implementation.hasFeature && // always returns true in newer browsers as per the standard.
+    // @see http://dom.spec.whatwg.org/#dom-domimplementation-hasfeature
+    document.implementation.hasFeature('', '') !== true;
+}
+/**
+ * Checks if an event is supported in the current execution environment.
+ *
+ * NOTE: This will not work correctly for non-generic events such as `change`,
+ * `reset`, `load`, `error`, and `select`.
+ *
+ * Borrows from Modernizr.
+ *
+ * @param {string} eventNameSuffix Event name, e.g. "click".
+ * @param {?boolean} capture Check if the capture phase is supported.
+ * @return {boolean} True if the event is supported.
+ * @internal
+ * @license Modernizr 3.0.0pre (Custom Build) | MIT
+ */ function isEventSupported(eventNameSuffix, capture) {
+    if (!ExecutionEnvironment.canUseDOM || capture && !('addEventListener' in document)) {
+        return false;
+    }
+    var eventName = 'on' + eventNameSuffix;
+    var isSupported = eventName in document;
+    if (!isSupported) {
+        var element = document.createElement('div');
+        element.setAttribute(eventName, 'return;');
+        isSupported = typeof element[eventName] === 'function';
+    }
+    if (!isSupported && useHasFeature && eventNameSuffix === 'wheel') {
+        // This is the only way to test support for the `wheel` event in IE9+.
+        isSupported = document.implementation.hasFeature('Events.wheel', '3.0');
+    }
+    return isSupported;
+}
+module.exports = isEventSupported;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/normalizeWheel.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+/**
+ * Copyright (c) 2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @providesModule normalizeWheel
+ * @typechecks
+ */ var UserAgent_DEPRECATED = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/UserAgent_DEPRECATED.js [app-ssr] (ecmascript)");
+var isEventSupported = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/isEventSupported.js [app-ssr] (ecmascript)");
+// Reasonable defaults
+var PIXEL_STEP = 10;
+var LINE_HEIGHT = 40;
+var PAGE_HEIGHT = 800;
+/**
+ * Mouse wheel (and 2-finger trackpad) support on the web sucks.  It is
+ * complicated, thus this doc is long and (hopefully) detailed enough to answer
+ * your questions.
+ *
+ * If you need to react to the mouse wheel in a predictable way, this code is
+ * like your bestest friend. * hugs *
+ *
+ * As of today, there are 4 DOM event types you can listen to:
+ *
+ *   'wheel'                -- Chrome(31+), FF(17+), IE(9+)
+ *   'mousewheel'           -- Chrome, IE(6+), Opera, Safari
+ *   'MozMousePixelScroll'  -- FF(3.5 only!) (2010-2013) -- don't bother!
+ *   'DOMMouseScroll'       -- FF(0.9.7+) since 2003
+ *
+ * So what to do?  The is the best:
+ *
+ *   normalizeWheel.getEventType();
+ *
+ * In your event callback, use this code to get sane interpretation of the
+ * deltas.  This code will return an object with properties:
+ *
+ *   spinX   -- normalized spin speed (use for zoom) - x plane
+ *   spinY   -- " - y plane
+ *   pixelX  -- normalized distance (to pixels) - x plane
+ *   pixelY  -- " - y plane
+ *
+ * Wheel values are provided by the browser assuming you are using the wheel to
+ * scroll a web page by a number of lines or pixels (or pages).  Values can vary
+ * significantly on different platforms and browsers, forgetting that you can
+ * scroll at different speeds.  Some devices (like trackpads) emit more events
+ * at smaller increments with fine granularity, and some emit massive jumps with
+ * linear speed or acceleration.
+ *
+ * This code does its best to normalize the deltas for you:
+ *
+ *   - spin is trying to normalize how far the wheel was spun (or trackpad
+ *     dragged).  This is super useful for zoom support where you want to
+ *     throw away the chunky scroll steps on the PC and make those equal to
+ *     the slow and smooth tiny steps on the Mac. Key data: This code tries to
+ *     resolve a single slow step on a wheel to 1.
+ *
+ *   - pixel is normalizing the desired scroll delta in pixel units.  You'll
+ *     get the crazy differences between browsers, but at least it'll be in
+ *     pixels!
+ *
+ *   - positive value indicates scrolling DOWN/RIGHT, negative UP/LEFT.  This
+ *     should translate to positive value zooming IN, negative zooming OUT.
+ *     This matches the newer 'wheel' event.
+ *
+ * Why are there spinX, spinY (or pixels)?
+ *
+ *   - spinX is a 2-finger side drag on the trackpad, and a shift + wheel turn
+ *     with a mouse.  It results in side-scrolling in the browser by default.
+ *
+ *   - spinY is what you expect -- it's the classic axis of a mouse wheel.
+ *
+ *   - I dropped spinZ/pixelZ.  It is supported by the DOM 3 'wheel' event and
+ *     probably is by browsers in conjunction with fancy 3D controllers .. but
+ *     you know.
+ *
+ * Implementation info:
+ *
+ * Examples of 'wheel' event if you scroll slowly (down) by one step with an
+ * average mouse:
+ *
+ *   OS X + Chrome  (mouse)     -    4   pixel delta  (wheelDelta -120)
+ *   OS X + Safari  (mouse)     -  N/A   pixel delta  (wheelDelta  -12)
+ *   OS X + Firefox (mouse)     -    0.1 line  delta  (wheelDelta  N/A)
+ *   Win8 + Chrome  (mouse)     -  100   pixel delta  (wheelDelta -120)
+ *   Win8 + Firefox (mouse)     -    3   line  delta  (wheelDelta -120)
+ *
+ * On the trackpad:
+ *
+ *   OS X + Chrome  (trackpad)  -    2   pixel delta  (wheelDelta   -6)
+ *   OS X + Firefox (trackpad)  -    1   pixel delta  (wheelDelta  N/A)
+ *
+ * On other/older browsers.. it's more complicated as there can be multiple and
+ * also missing delta values.
+ *
+ * The 'wheel' event is more standard:
+ *
+ * http://www.w3.org/TR/DOM-Level-3-Events/#events-wheelevents
+ *
+ * The basics is that it includes a unit, deltaMode (pixels, lines, pages), and
+ * deltaX, deltaY and deltaZ.  Some browsers provide other values to maintain
+ * backward compatibility with older events.  Those other values help us
+ * better normalize spin speed.  Example of what the browsers provide:
+ *
+ *                          | event.wheelDelta | event.detail
+ *        ------------------+------------------+--------------
+ *          Safari v5/OS X  |       -120       |       0
+ *          Safari v5/Win7  |       -120       |       0
+ *         Chrome v17/OS X  |       -120       |       0
+ *         Chrome v17/Win7  |       -120       |       0
+ *                IE9/Win7  |       -120       |   undefined
+ *         Firefox v4/OS X  |     undefined    |       1
+ *         Firefox v4/Win7  |     undefined    |       3
+ *
+ */ function normalizeWheel(/*object*/ event) /*object*/ {
+    var sX = 0, sY = 0, pX = 0, pY = 0; // pixelX, pixelY
+    // Legacy
+    if ('detail' in event) {
+        sY = event.detail;
+    }
+    if ('wheelDelta' in event) {
+        sY = -event.wheelDelta / 120;
+    }
+    if ('wheelDeltaY' in event) {
+        sY = -event.wheelDeltaY / 120;
+    }
+    if ('wheelDeltaX' in event) {
+        sX = -event.wheelDeltaX / 120;
+    }
+    // side scrolling on FF with DOMMouseScroll
+    if ('axis' in event && event.axis === event.HORIZONTAL_AXIS) {
+        sX = sY;
+        sY = 0;
+    }
+    pX = sX * PIXEL_STEP;
+    pY = sY * PIXEL_STEP;
+    if ('deltaY' in event) {
+        pY = event.deltaY;
+    }
+    if ('deltaX' in event) {
+        pX = event.deltaX;
+    }
+    if ((pX || pY) && event.deltaMode) {
+        if (event.deltaMode == 1) {
+            pX *= LINE_HEIGHT;
+            pY *= LINE_HEIGHT;
+        } else {
+            pX *= PAGE_HEIGHT;
+            pY *= PAGE_HEIGHT;
+        }
+    }
+    // Fall-back if spin cannot be determined
+    if (pX && !sX) {
+        sX = pX < 1 ? -1 : 1;
+    }
+    if (pY && !sY) {
+        sY = pY < 1 ? -1 : 1;
+    }
+    return {
+        spinX: sX,
+        spinY: sY,
+        pixelX: pX,
+        pixelY: pY
+    };
+}
+/**
+ * The best combination if you prefer spinX + spinY normalization.  It favors
+ * the older DOMMouseScroll for Firefox, as FF does not include wheelDelta with
+ * 'wheel' event, making spin speed determination impossible.
+ */ normalizeWheel.getEventType = function() /*string*/ {
+    return UserAgent_DEPRECATED.firefox() ? 'DOMMouseScroll' : isEventSupported('wheel') ? 'wheel' : 'mousewheel';
+};
+module.exports = normalizeWheel;
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/index.js [app-ssr] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+module.exports = __turbopack_context__.r("[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/src/normalizeWheel.js [app-ssr] (ecmascript)");
+}),
+"[project]/Desktop/Inventory/my-app/node_modules/react-easy-crop/index.module.mjs [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>Cropper,
+    "getInitialCropFromCroppedAreaPercentages",
+    ()=>getInitialCropFromCroppedAreaPercentages,
+    "getInitialCropFromCroppedAreaPixels",
+    ()=>getInitialCropFromCroppedAreaPixels
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/tslib/tslib.es6.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$normalize$2d$wheel$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Desktop/Inventory/my-app/node_modules/normalize-wheel/index.js [app-ssr] (ecmascript)");
+;
+;
+;
+/**
+ * Compute the dimension of the crop area based on media size,
+ * aspect ratio and optionally rotation
+ */ function getCropSize(mediaWidth, mediaHeight, containerWidth, containerHeight, aspect, rotation) {
+    if (rotation === void 0) {
+        rotation = 0;
+    }
+    var _a = rotateSize(mediaWidth, mediaHeight, rotation), width = _a.width, height = _a.height;
+    var fittingWidth = Math.min(width, containerWidth);
+    var fittingHeight = Math.min(height, containerHeight);
+    if (fittingWidth > fittingHeight * aspect) {
+        return {
+            width: fittingHeight * aspect,
+            height: fittingHeight
+        };
+    }
+    return {
+        width: fittingWidth,
+        height: fittingWidth / aspect
+    };
+}
+/**
+ * Compute media zoom.
+ * We fit the media into the container with "max-width: 100%; max-height: 100%;"
+ */ function getMediaZoom(mediaSize) {
+    // Take the axis with more pixels to improve accuracy
+    return mediaSize.width > mediaSize.height ? mediaSize.width / mediaSize.naturalWidth : mediaSize.height / mediaSize.naturalHeight;
+}
+/**
+ * Ensure a new media position stays in the crop area.
+ */ function restrictPosition(position, mediaSize, cropSize, zoom, rotation) {
+    if (rotation === void 0) {
+        rotation = 0;
+    }
+    var _a = rotateSize(mediaSize.width, mediaSize.height, rotation), width = _a.width, height = _a.height;
+    return {
+        x: restrictPositionCoord(position.x, width, cropSize.width, zoom),
+        y: restrictPositionCoord(position.y, height, cropSize.height, zoom)
+    };
+}
+function restrictPositionCoord(position, mediaSize, cropSize, zoom) {
+    var maxPosition = mediaSize * zoom / 2 - cropSize / 2;
+    return clamp(position, -maxPosition, maxPosition);
+}
+function getDistanceBetweenPoints(pointA, pointB) {
+    return Math.sqrt(Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2));
+}
+function getRotationBetweenPoints(pointA, pointB) {
+    return Math.atan2(pointB.y - pointA.y, pointB.x - pointA.x) * 180 / Math.PI;
+}
+/**
+ * Compute the output cropped area of the media in percentages and pixels.
+ * x/y are the top-left coordinates on the src media
+ */ function computeCroppedArea(crop, mediaSize, cropSize, aspect, zoom, rotation, restrictPosition) {
+    if (rotation === void 0) {
+        rotation = 0;
+    }
+    if (restrictPosition === void 0) {
+        restrictPosition = true;
+    }
+    // if the media is rotated by the user, we cannot limit the position anymore
+    // as it might need to be negative.
+    var limitAreaFn = restrictPosition ? limitArea : noOp;
+    var mediaBBoxSize = rotateSize(mediaSize.width, mediaSize.height, rotation);
+    var mediaNaturalBBoxSize = rotateSize(mediaSize.naturalWidth, mediaSize.naturalHeight, rotation);
+    // calculate the crop area in percentages
+    // in the rotated space
+    var croppedAreaPercentages = {
+        x: limitAreaFn(100, ((mediaBBoxSize.width - cropSize.width / zoom) / 2 - crop.x / zoom) / mediaBBoxSize.width * 100),
+        y: limitAreaFn(100, ((mediaBBoxSize.height - cropSize.height / zoom) / 2 - crop.y / zoom) / mediaBBoxSize.height * 100),
+        width: limitAreaFn(100, cropSize.width / mediaBBoxSize.width * 100 / zoom),
+        height: limitAreaFn(100, cropSize.height / mediaBBoxSize.height * 100 / zoom)
+    };
+    // we compute the pixels size naively
+    var widthInPixels = Math.round(limitAreaFn(mediaNaturalBBoxSize.width, croppedAreaPercentages.width * mediaNaturalBBoxSize.width / 100));
+    var heightInPixels = Math.round(limitAreaFn(mediaNaturalBBoxSize.height, croppedAreaPercentages.height * mediaNaturalBBoxSize.height / 100));
+    var isImgWiderThanHigh = mediaNaturalBBoxSize.width >= mediaNaturalBBoxSize.height * aspect;
+    // then we ensure the width and height exactly match the aspect (to avoid rounding approximations)
+    // if the media is wider than high, when zoom is 0, the crop height will be equals to image height
+    // thus we want to compute the width from the height and aspect for accuracy.
+    // Otherwise, we compute the height from width and aspect.
+    var sizePixels = isImgWiderThanHigh ? {
+        width: Math.round(heightInPixels * aspect),
+        height: heightInPixels
+    } : {
+        width: widthInPixels,
+        height: Math.round(widthInPixels / aspect)
+    };
+    var croppedAreaPixels = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, sizePixels), {
+        x: Math.round(limitAreaFn(mediaNaturalBBoxSize.width - sizePixels.width, croppedAreaPercentages.x * mediaNaturalBBoxSize.width / 100)),
+        y: Math.round(limitAreaFn(mediaNaturalBBoxSize.height - sizePixels.height, croppedAreaPercentages.y * mediaNaturalBBoxSize.height / 100))
+    });
+    return {
+        croppedAreaPercentages: croppedAreaPercentages,
+        croppedAreaPixels: croppedAreaPixels
+    };
+}
+/**
+ * Ensure the returned value is between 0 and max
+ */ function limitArea(max, value) {
+    return Math.min(max, Math.max(0, value));
+}
+function noOp(_max, value) {
+    return value;
+}
+/**
+ * Compute crop and zoom from the croppedAreaPercentages.
+ */ function getInitialCropFromCroppedAreaPercentages(croppedAreaPercentages, mediaSize, rotation, cropSize, minZoom, maxZoom) {
+    var mediaBBoxSize = rotateSize(mediaSize.width, mediaSize.height, rotation);
+    // This is the inverse process of computeCroppedArea
+    var zoom = clamp(cropSize.width / mediaBBoxSize.width * (100 / croppedAreaPercentages.width), minZoom, maxZoom);
+    var crop = {
+        x: zoom * mediaBBoxSize.width / 2 - cropSize.width / 2 - mediaBBoxSize.width * zoom * (croppedAreaPercentages.x / 100),
+        y: zoom * mediaBBoxSize.height / 2 - cropSize.height / 2 - mediaBBoxSize.height * zoom * (croppedAreaPercentages.y / 100)
+    };
+    return {
+        crop: crop,
+        zoom: zoom
+    };
+}
+/**
+ * Compute zoom from the croppedAreaPixels
+ */ function getZoomFromCroppedAreaPixels(croppedAreaPixels, mediaSize, cropSize) {
+    var mediaZoom = getMediaZoom(mediaSize);
+    return cropSize.height > cropSize.width ? cropSize.height / (croppedAreaPixels.height * mediaZoom) : cropSize.width / (croppedAreaPixels.width * mediaZoom);
+}
+/**
+ * Compute crop and zoom from the croppedAreaPixels
+ */ function getInitialCropFromCroppedAreaPixels(croppedAreaPixels, mediaSize, rotation, cropSize, minZoom, maxZoom) {
+    if (rotation === void 0) {
+        rotation = 0;
+    }
+    var mediaNaturalBBoxSize = rotateSize(mediaSize.naturalWidth, mediaSize.naturalHeight, rotation);
+    var zoom = clamp(getZoomFromCroppedAreaPixels(croppedAreaPixels, mediaSize, cropSize), minZoom, maxZoom);
+    var cropZoom = cropSize.height > cropSize.width ? cropSize.height / croppedAreaPixels.height : cropSize.width / croppedAreaPixels.width;
+    var crop = {
+        x: ((mediaNaturalBBoxSize.width - croppedAreaPixels.width) / 2 - croppedAreaPixels.x) * cropZoom,
+        y: ((mediaNaturalBBoxSize.height - croppedAreaPixels.height) / 2 - croppedAreaPixels.y) * cropZoom
+    };
+    return {
+        crop: crop,
+        zoom: zoom
+    };
+}
+/**
+ * Return the point that is the center of point a and b
+ */ function getCenter(a, b) {
+    return {
+        x: (b.x + a.x) / 2,
+        y: (b.y + a.y) / 2
+    };
+}
+function getRadianAngle(degreeValue) {
+    return degreeValue * Math.PI / 180;
+}
+/**
+ * Returns the new bounding area of a rotated rectangle.
+ */ function rotateSize(width, height, rotation) {
+    var rotRad = getRadianAngle(rotation);
+    return {
+        width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height)
+    };
+}
+/**
+ * Clamp value between min and max
+ */ function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+/**
+ * Combine multiple class names into a single string.
+ */ function classNames() {
+    var args = [];
+    for(var _i = 0; _i < arguments.length; _i++){
+        args[_i] = arguments[_i];
+    }
+    return args.filter(function(value) {
+        if (typeof value === 'string' && value.length > 0) {
+            return true;
+        }
+        return false;
+    }).join(' ').trim();
+}
+var css_248z = ".reactEasyCrop_Container {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  overflow: hidden;\n  user-select: none;\n  touch-action: none;\n  cursor: move;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}\n\n.reactEasyCrop_Image,\n.reactEasyCrop_Video {\n  will-change: transform; /* this improves performances and prevent painting issues on iOS Chrome */\n}\n\n.reactEasyCrop_Contain {\n  max-width: 100%;\n  max-height: 100%;\n  margin: auto;\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n}\n.reactEasyCrop_Cover_Horizontal {\n  width: 100%;\n  height: auto;\n}\n.reactEasyCrop_Cover_Vertical {\n  width: auto;\n  height: 100%;\n}\n\n.reactEasyCrop_CropArea {\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  border: 1px solid rgba(255, 255, 255, 0.5);\n  box-sizing: border-box;\n  box-shadow: 0 0 0 9999em;\n  color: rgba(0, 0, 0, 0.5);\n  overflow: hidden;\n}\n\n.reactEasyCrop_CropAreaRound {\n  border-radius: 50%;\n}\n\n.reactEasyCrop_CropAreaGrid::before {\n  content: ' ';\n  box-sizing: border-box;\n  position: absolute;\n  border: 1px solid rgba(255, 255, 255, 0.5);\n  top: 0;\n  bottom: 0;\n  left: 33.33%;\n  right: 33.33%;\n  border-top: 0;\n  border-bottom: 0;\n}\n\n.reactEasyCrop_CropAreaGrid::after {\n  content: ' ';\n  box-sizing: border-box;\n  position: absolute;\n  border: 1px solid rgba(255, 255, 255, 0.5);\n  top: 33.33%;\n  bottom: 33.33%;\n  left: 0;\n  right: 0;\n  border-left: 0;\n  border-right: 0;\n}\n";
+var MIN_ZOOM = 1;
+var MAX_ZOOM = 3;
+var KEYBOARD_STEP = 1;
+var Cropper = /** @class */ function(_super) {
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__extends"])(Cropper, _super);
+    function Cropper() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.cropperRef = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createRef"]();
+        _this.imageRef = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createRef"]();
+        _this.videoRef = __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createRef"]();
+        _this.containerPosition = {
+            x: 0,
+            y: 0
+        };
+        _this.containerRef = null;
+        _this.styleRef = null;
+        _this.containerRect = null;
+        _this.mediaSize = {
+            width: 0,
+            height: 0,
+            naturalWidth: 0,
+            naturalHeight: 0
+        };
+        _this.dragStartPosition = {
+            x: 0,
+            y: 0
+        };
+        _this.dragStartCrop = {
+            x: 0,
+            y: 0
+        };
+        _this.gestureZoomStart = 0;
+        _this.gestureRotationStart = 0;
+        _this.isTouching = false;
+        _this.lastPinchDistance = 0;
+        _this.lastPinchRotation = 0;
+        _this.rafDragTimeout = null;
+        _this.rafPinchTimeout = null;
+        _this.wheelTimer = null;
+        _this.currentDoc = typeof document !== 'undefined' ? document : null;
+        _this.currentWindow = ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : null;
+        _this.resizeObserver = null;
+        _this.previousCropSize = null;
+        _this.isInitialized = false;
+        _this.state = {
+            cropSize: null,
+            hasWheelJustStarted: false,
+            mediaObjectFit: undefined
+        };
+        _this.initResizeObserver = function() {
+            if (typeof window.ResizeObserver === 'undefined' || !_this.containerRef) {
+                return;
+            }
+            var isFirstResize = true;
+            _this.resizeObserver = new window.ResizeObserver(function(entries) {
+                if (isFirstResize) {
+                    isFirstResize = false; // observe() is called on mount, we don't want to trigger a recompute on mount
+                    return;
+                }
+                _this.computeSizes();
+            });
+            _this.resizeObserver.observe(_this.containerRef);
+        };
+        // this is to prevent Safari on iOS >= 10 to zoom the page
+        _this.preventZoomSafari = function(e) {
+            return e.preventDefault();
+        };
+        _this.cleanEvents = function() {
+            if (!_this.currentDoc) return;
+            _this.currentDoc.removeEventListener('mousemove', _this.onMouseMove);
+            _this.currentDoc.removeEventListener('mouseup', _this.onDragStopped);
+            _this.currentDoc.removeEventListener('touchmove', _this.onTouchMove);
+            _this.currentDoc.removeEventListener('touchend', _this.onDragStopped);
+            _this.currentDoc.removeEventListener('gesturechange', _this.onGestureChange);
+            _this.currentDoc.removeEventListener('gestureend', _this.onGestureEnd);
+            _this.currentDoc.removeEventListener('scroll', _this.onScroll);
+        };
+        _this.clearScrollEvent = function() {
+            if (_this.containerRef) _this.containerRef.removeEventListener('wheel', _this.onWheel);
+            if (_this.wheelTimer) {
+                clearTimeout(_this.wheelTimer);
+            }
+        };
+        _this.onMediaLoad = function() {
+            var cropSize = _this.computeSizes();
+            if (cropSize) {
+                _this.previousCropSize = cropSize;
+                _this.emitCropData();
+                _this.setInitialCrop(cropSize);
+                _this.isInitialized = true;
+            }
+            if (_this.props.onMediaLoaded) {
+                _this.props.onMediaLoaded(_this.mediaSize);
+            }
+        };
+        _this.setInitialCrop = function(cropSize) {
+            if (_this.props.initialCroppedAreaPercentages) {
+                var _a = getInitialCropFromCroppedAreaPercentages(_this.props.initialCroppedAreaPercentages, _this.mediaSize, _this.props.rotation, cropSize, _this.props.minZoom, _this.props.maxZoom), crop = _a.crop, zoom = _a.zoom;
+                _this.props.onCropChange(crop);
+                _this.props.onZoomChange && _this.props.onZoomChange(zoom);
+            } else if (_this.props.initialCroppedAreaPixels) {
+                var _b = getInitialCropFromCroppedAreaPixels(_this.props.initialCroppedAreaPixels, _this.mediaSize, _this.props.rotation, cropSize, _this.props.minZoom, _this.props.maxZoom), crop = _b.crop, zoom = _b.zoom;
+                _this.props.onCropChange(crop);
+                _this.props.onZoomChange && _this.props.onZoomChange(zoom);
+            }
+        };
+        _this.computeSizes = function() {
+            var _a, _b, _c, _d, _e, _f;
+            var mediaRef = _this.imageRef.current || _this.videoRef.current;
+            if (mediaRef && _this.containerRef) {
+                _this.containerRect = _this.containerRef.getBoundingClientRect();
+                _this.saveContainerPosition();
+                var containerAspect = _this.containerRect.width / _this.containerRect.height;
+                var naturalWidth = ((_a = _this.imageRef.current) === null || _a === void 0 ? void 0 : _a.naturalWidth) || ((_b = _this.videoRef.current) === null || _b === void 0 ? void 0 : _b.videoWidth) || 0;
+                var naturalHeight = ((_c = _this.imageRef.current) === null || _c === void 0 ? void 0 : _c.naturalHeight) || ((_d = _this.videoRef.current) === null || _d === void 0 ? void 0 : _d.videoHeight) || 0;
+                var isMediaScaledDown = mediaRef.offsetWidth < naturalWidth || mediaRef.offsetHeight < naturalHeight;
+                var mediaAspect = naturalWidth / naturalHeight;
+                // We do not rely on the offsetWidth/offsetHeight if the media is scaled down
+                // as the values they report are rounded. That will result in precision losses
+                // when calculating zoom. We use the fact that the media is positionned relative
+                // to the container. That allows us to use the container's dimensions
+                // and natural aspect ratio of the media to calculate accurate media size.
+                // However, for this to work, the container should not be rotated
+                var renderedMediaSize = void 0;
+                if (isMediaScaledDown) {
+                    switch(_this.state.mediaObjectFit){
+                        default:
+                        case 'contain':
+                            renderedMediaSize = containerAspect > mediaAspect ? {
+                                width: _this.containerRect.height * mediaAspect,
+                                height: _this.containerRect.height
+                            } : {
+                                width: _this.containerRect.width,
+                                height: _this.containerRect.width / mediaAspect
+                            };
+                            break;
+                        case 'horizontal-cover':
+                            renderedMediaSize = {
+                                width: _this.containerRect.width,
+                                height: _this.containerRect.width / mediaAspect
+                            };
+                            break;
+                        case 'vertical-cover':
+                            renderedMediaSize = {
+                                width: _this.containerRect.height * mediaAspect,
+                                height: _this.containerRect.height
+                            };
+                            break;
+                    }
+                } else {
+                    renderedMediaSize = {
+                        width: mediaRef.offsetWidth,
+                        height: mediaRef.offsetHeight
+                    };
+                }
+                _this.mediaSize = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, renderedMediaSize), {
+                    naturalWidth: naturalWidth,
+                    naturalHeight: naturalHeight
+                });
+                // set media size in the parent
+                if (_this.props.setMediaSize) {
+                    _this.props.setMediaSize(_this.mediaSize);
+                }
+                var cropSize = _this.props.cropSize ? _this.props.cropSize : getCropSize(_this.mediaSize.width, _this.mediaSize.height, _this.containerRect.width, _this.containerRect.height, _this.props.aspect, _this.props.rotation);
+                if (((_e = _this.state.cropSize) === null || _e === void 0 ? void 0 : _e.height) !== cropSize.height || ((_f = _this.state.cropSize) === null || _f === void 0 ? void 0 : _f.width) !== cropSize.width) {
+                    _this.props.onCropSizeChange && _this.props.onCropSizeChange(cropSize);
+                }
+                _this.setState({
+                    cropSize: cropSize
+                }, _this.recomputeCropPosition);
+                // pass crop size to parent
+                if (_this.props.setCropSize) {
+                    _this.props.setCropSize(cropSize);
+                }
+                return cropSize;
+            }
+        };
+        _this.saveContainerPosition = function() {
+            if (_this.containerRef) {
+                var bounds = _this.containerRef.getBoundingClientRect();
+                _this.containerPosition = {
+                    x: bounds.left,
+                    y: bounds.top
+                };
+            }
+        };
+        _this.onMouseDown = function(e) {
+            if (!_this.currentDoc) return;
+            e.preventDefault();
+            _this.currentDoc.addEventListener('mousemove', _this.onMouseMove);
+            _this.currentDoc.addEventListener('mouseup', _this.onDragStopped);
+            _this.saveContainerPosition();
+            _this.onDragStart(Cropper.getMousePoint(e));
+        };
+        _this.onMouseMove = function(e) {
+            return _this.onDrag(Cropper.getMousePoint(e));
+        };
+        _this.onScroll = function(e) {
+            if (!_this.currentDoc) return;
+            e.preventDefault();
+            _this.saveContainerPosition();
+        };
+        _this.onTouchStart = function(e) {
+            if (!_this.currentDoc) return;
+            _this.isTouching = true;
+            if (_this.props.onTouchRequest && !_this.props.onTouchRequest(e)) {
+                return;
+            }
+            _this.currentDoc.addEventListener('touchmove', _this.onTouchMove, {
+                passive: false
+            }); // iOS 11 now defaults to passive: true
+            _this.currentDoc.addEventListener('touchend', _this.onDragStopped);
+            _this.saveContainerPosition();
+            if (e.touches.length === 2) {
+                _this.onPinchStart(e);
+            } else if (e.touches.length === 1) {
+                _this.onDragStart(Cropper.getTouchPoint(e.touches[0]));
+            }
+        };
+        _this.onTouchMove = function(e) {
+            // Prevent whole page from scrolling on iOS.
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                _this.onPinchMove(e);
+            } else if (e.touches.length === 1) {
+                _this.onDrag(Cropper.getTouchPoint(e.touches[0]));
+            }
+        };
+        _this.onGestureStart = function(e) {
+            if (!_this.currentDoc) return;
+            e.preventDefault();
+            _this.currentDoc.addEventListener('gesturechange', _this.onGestureChange);
+            _this.currentDoc.addEventListener('gestureend', _this.onGestureEnd);
+            _this.gestureZoomStart = _this.props.zoom;
+            _this.gestureRotationStart = _this.props.rotation;
+        };
+        _this.onGestureChange = function(e) {
+            e.preventDefault();
+            if (_this.isTouching) {
+                // this is to avoid conflict between gesture and touch events
+                return;
+            }
+            var point = Cropper.getMousePoint(e);
+            var newZoom = _this.gestureZoomStart - 1 + e.scale;
+            _this.setNewZoom(newZoom, point, {
+                shouldUpdatePosition: true
+            });
+            if (_this.props.onRotationChange) {
+                var newRotation = _this.gestureRotationStart + e.rotation;
+                _this.props.onRotationChange(newRotation);
+            }
+        };
+        _this.onGestureEnd = function(e) {
+            _this.cleanEvents();
+        };
+        _this.onDragStart = function(_a) {
+            var _b, _c;
+            var x = _a.x, y = _a.y;
+            _this.dragStartPosition = {
+                x: x,
+                y: y
+            };
+            _this.dragStartCrop = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, _this.props.crop);
+            (_c = (_b = _this.props).onInteractionStart) === null || _c === void 0 ? void 0 : _c.call(_b);
+        };
+        _this.onDrag = function(_a) {
+            var x = _a.x, y = _a.y;
+            if (!_this.currentWindow) return;
+            if (_this.rafDragTimeout) _this.currentWindow.cancelAnimationFrame(_this.rafDragTimeout);
+            _this.rafDragTimeout = _this.currentWindow.requestAnimationFrame(function() {
+                if (!_this.state.cropSize) return;
+                if (x === undefined || y === undefined) return;
+                var offsetX = x - _this.dragStartPosition.x;
+                var offsetY = y - _this.dragStartPosition.y;
+                var requestedPosition = {
+                    x: _this.dragStartCrop.x + offsetX,
+                    y: _this.dragStartCrop.y + offsetY
+                };
+                var newPosition = _this.props.restrictPosition ? restrictPosition(requestedPosition, _this.mediaSize, _this.state.cropSize, _this.props.zoom, _this.props.rotation) : requestedPosition;
+                _this.props.onCropChange(newPosition);
+            });
+        };
+        _this.onDragStopped = function() {
+            var _a, _b;
+            _this.isTouching = false;
+            _this.cleanEvents();
+            _this.emitCropData();
+            (_b = (_a = _this.props).onInteractionEnd) === null || _b === void 0 ? void 0 : _b.call(_a);
+        };
+        _this.onWheel = function(e) {
+            if (!_this.currentWindow) return;
+            if (_this.props.onWheelRequest && !_this.props.onWheelRequest(e)) {
+                return;
+            }
+            e.preventDefault();
+            var point = Cropper.getMousePoint(e);
+            var pixelY = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$normalize$2d$wheel$2f$index$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])(e).pixelY;
+            var newZoom = _this.props.zoom - pixelY * _this.props.zoomSpeed / 200;
+            _this.setNewZoom(newZoom, point, {
+                shouldUpdatePosition: true
+            });
+            if (!_this.state.hasWheelJustStarted) {
+                _this.setState({
+                    hasWheelJustStarted: true
+                }, function() {
+                    var _a, _b;
+                    return (_b = (_a = _this.props).onInteractionStart) === null || _b === void 0 ? void 0 : _b.call(_a);
+                });
+            }
+            if (_this.wheelTimer) {
+                clearTimeout(_this.wheelTimer);
+            }
+            _this.wheelTimer = _this.currentWindow.setTimeout(function() {
+                return _this.setState({
+                    hasWheelJustStarted: false
+                }, function() {
+                    var _a, _b;
+                    return (_b = (_a = _this.props).onInteractionEnd) === null || _b === void 0 ? void 0 : _b.call(_a);
+                });
+            }, 250);
+        };
+        _this.getPointOnContainer = function(_a, containerTopLeft) {
+            var x = _a.x, y = _a.y;
+            if (!_this.containerRect) {
+                throw new Error('The Cropper is not mounted');
+            }
+            return {
+                x: _this.containerRect.width / 2 - (x - containerTopLeft.x),
+                y: _this.containerRect.height / 2 - (y - containerTopLeft.y)
+            };
+        };
+        _this.getPointOnMedia = function(_a) {
+            var x = _a.x, y = _a.y;
+            var _b = _this.props, crop = _b.crop, zoom = _b.zoom;
+            return {
+                x: (x + crop.x) / zoom,
+                y: (y + crop.y) / zoom
+            };
+        };
+        _this.setNewZoom = function(zoom, point, _a) {
+            var _b = _a === void 0 ? {} : _a, _c = _b.shouldUpdatePosition, shouldUpdatePosition = _c === void 0 ? true : _c;
+            if (!_this.state.cropSize || !_this.props.onZoomChange) return;
+            var newZoom = clamp(zoom, _this.props.minZoom, _this.props.maxZoom);
+            if (shouldUpdatePosition) {
+                var zoomPoint = _this.getPointOnContainer(point, _this.containerPosition);
+                var zoomTarget = _this.getPointOnMedia(zoomPoint);
+                var requestedPosition = {
+                    x: zoomTarget.x * newZoom - zoomPoint.x,
+                    y: zoomTarget.y * newZoom - zoomPoint.y
+                };
+                var newPosition = _this.props.restrictPosition ? restrictPosition(requestedPosition, _this.mediaSize, _this.state.cropSize, newZoom, _this.props.rotation) : requestedPosition;
+                _this.props.onCropChange(newPosition);
+            }
+            _this.props.onZoomChange(newZoom);
+        };
+        _this.getCropData = function() {
+            if (!_this.state.cropSize) {
+                return null;
+            }
+            // this is to ensure the crop is correctly restricted after a zoom back (https://github.com/ValentinH/react-easy-crop/issues/6)
+            var restrictedPosition = _this.props.restrictPosition ? restrictPosition(_this.props.crop, _this.mediaSize, _this.state.cropSize, _this.props.zoom, _this.props.rotation) : _this.props.crop;
+            return computeCroppedArea(restrictedPosition, _this.mediaSize, _this.state.cropSize, _this.getAspect(), _this.props.zoom, _this.props.rotation, _this.props.restrictPosition);
+        };
+        _this.emitCropData = function() {
+            var cropData = _this.getCropData();
+            if (!cropData) return;
+            var croppedAreaPercentages = cropData.croppedAreaPercentages, croppedAreaPixels = cropData.croppedAreaPixels;
+            if (_this.props.onCropComplete) {
+                _this.props.onCropComplete(croppedAreaPercentages, croppedAreaPixels);
+            }
+            if (_this.props.onCropAreaChange) {
+                _this.props.onCropAreaChange(croppedAreaPercentages, croppedAreaPixels);
+            }
+        };
+        _this.emitCropAreaChange = function() {
+            var cropData = _this.getCropData();
+            if (!cropData) return;
+            var croppedAreaPercentages = cropData.croppedAreaPercentages, croppedAreaPixels = cropData.croppedAreaPixels;
+            if (_this.props.onCropAreaChange) {
+                _this.props.onCropAreaChange(croppedAreaPercentages, croppedAreaPixels);
+            }
+        };
+        _this.recomputeCropPosition = function() {
+            var _a, _b;
+            if (!_this.state.cropSize) return;
+            var adjustedCrop = _this.props.crop;
+            // Only scale if we're initialized and this is a legitimate resize
+            if (_this.isInitialized && ((_a = _this.previousCropSize) === null || _a === void 0 ? void 0 : _a.width) && ((_b = _this.previousCropSize) === null || _b === void 0 ? void 0 : _b.height)) {
+                var sizeChanged = Math.abs(_this.previousCropSize.width - _this.state.cropSize.width) > 1e-6 || Math.abs(_this.previousCropSize.height - _this.state.cropSize.height) > 1e-6;
+                if (sizeChanged) {
+                    var scaleX = _this.state.cropSize.width / _this.previousCropSize.width;
+                    var scaleY = _this.state.cropSize.height / _this.previousCropSize.height;
+                    adjustedCrop = {
+                        x: _this.props.crop.x * scaleX,
+                        y: _this.props.crop.y * scaleY
+                    };
+                }
+            }
+            var newPosition = _this.props.restrictPosition ? restrictPosition(adjustedCrop, _this.mediaSize, _this.state.cropSize, _this.props.zoom, _this.props.rotation) : adjustedCrop;
+            _this.previousCropSize = _this.state.cropSize;
+            _this.props.onCropChange(newPosition);
+            _this.emitCropData();
+        };
+        _this.onKeyDown = function(event) {
+            var _a, _b;
+            var _c = _this.props, crop = _c.crop, onCropChange = _c.onCropChange, keyboardStep = _c.keyboardStep, zoom = _c.zoom, rotation = _c.rotation;
+            var step = keyboardStep;
+            if (!_this.state.cropSize) return;
+            // if the shift key is pressed, reduce the step to allow finer control
+            if (event.shiftKey) {
+                step *= 0.2;
+            }
+            var newCrop = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, crop);
+            switch(event.key){
+                case 'ArrowUp':
+                    newCrop.y -= step;
+                    event.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    newCrop.y += step;
+                    event.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    newCrop.x -= step;
+                    event.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    newCrop.x += step;
+                    event.preventDefault();
+                    break;
+                default:
+                    return;
+            }
+            if (_this.props.restrictPosition) {
+                newCrop = restrictPosition(newCrop, _this.mediaSize, _this.state.cropSize, zoom, rotation);
+            }
+            if (!event.repeat) {
+                (_b = (_a = _this.props).onInteractionStart) === null || _b === void 0 ? void 0 : _b.call(_a);
+            }
+            onCropChange(newCrop);
+        };
+        _this.onKeyUp = function(event) {
+            var _a, _b;
+            switch(event.key){
+                case 'ArrowUp':
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    event.preventDefault();
+                    break;
+                default:
+                    return;
+            }
+            _this.emitCropData();
+            (_b = (_a = _this.props).onInteractionEnd) === null || _b === void 0 ? void 0 : _b.call(_a);
+        };
+        return _this;
+    }
+    Cropper.prototype.componentDidMount = function() {
+        if (!this.currentDoc || !this.currentWindow) return;
+        if (this.containerRef) {
+            if (this.containerRef.ownerDocument) {
+                this.currentDoc = this.containerRef.ownerDocument;
+            }
+            if (this.currentDoc.defaultView) {
+                this.currentWindow = this.currentDoc.defaultView;
+            }
+            this.initResizeObserver();
+            // only add window resize listener if ResizeObserver is not supported. Otherwise, it would be redundant
+            if (typeof window.ResizeObserver === 'undefined') {
+                this.currentWindow.addEventListener('resize', this.computeSizes);
+            }
+            this.props.zoomWithScroll && this.containerRef.addEventListener('wheel', this.onWheel, {
+                passive: false
+            });
+            this.containerRef.addEventListener('gesturestart', this.onGestureStart);
+        }
+        this.currentDoc.addEventListener('scroll', this.onScroll);
+        if (!this.props.disableAutomaticStylesInjection) {
+            this.styleRef = this.currentDoc.createElement('style');
+            this.styleRef.setAttribute('type', 'text/css');
+            if (this.props.nonce) {
+                this.styleRef.setAttribute('nonce', this.props.nonce);
+            }
+            this.styleRef.innerHTML = css_248z;
+            this.currentDoc.head.appendChild(this.styleRef);
+        }
+        // when rendered via SSR, the image can already be loaded and its onLoad callback will never be called
+        if (this.imageRef.current && this.imageRef.current.complete) {
+            this.onMediaLoad();
+        }
+        // set image and video refs in the parent if the callbacks exist
+        if (this.props.setImageRef) {
+            this.props.setImageRef(this.imageRef);
+        }
+        if (this.props.setVideoRef) {
+            this.props.setVideoRef(this.videoRef);
+        }
+        if (this.props.setCropperRef) {
+            this.props.setCropperRef(this.cropperRef);
+        }
+    };
+    Cropper.prototype.componentWillUnmount = function() {
+        var _a, _b;
+        if (!this.currentDoc || !this.currentWindow) return;
+        if (typeof window.ResizeObserver === 'undefined') {
+            this.currentWindow.removeEventListener('resize', this.computeSizes);
+        }
+        (_a = this.resizeObserver) === null || _a === void 0 ? void 0 : _a.disconnect();
+        if (this.containerRef) {
+            this.containerRef.removeEventListener('gesturestart', this.preventZoomSafari);
+        }
+        if (this.styleRef) {
+            (_b = this.styleRef.parentNode) === null || _b === void 0 ? void 0 : _b.removeChild(this.styleRef);
+        }
+        this.cleanEvents();
+        this.props.zoomWithScroll && this.clearScrollEvent();
+    };
+    Cropper.prototype.componentDidUpdate = function(prevProps) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        if (prevProps.rotation !== this.props.rotation) {
+            this.computeSizes();
+            this.recomputeCropPosition();
+        } else if (prevProps.aspect !== this.props.aspect) {
+            this.computeSizes();
+        } else if (prevProps.objectFit !== this.props.objectFit) {
+            this.computeSizes();
+        } else if (prevProps.zoom !== this.props.zoom) {
+            this.recomputeCropPosition();
+        } else if (((_a = prevProps.cropSize) === null || _a === void 0 ? void 0 : _a.height) !== ((_b = this.props.cropSize) === null || _b === void 0 ? void 0 : _b.height) || ((_c = prevProps.cropSize) === null || _c === void 0 ? void 0 : _c.width) !== ((_d = this.props.cropSize) === null || _d === void 0 ? void 0 : _d.width)) {
+            this.computeSizes();
+        } else if (((_e = prevProps.crop) === null || _e === void 0 ? void 0 : _e.x) !== ((_f = this.props.crop) === null || _f === void 0 ? void 0 : _f.x) || ((_g = prevProps.crop) === null || _g === void 0 ? void 0 : _g.y) !== ((_h = this.props.crop) === null || _h === void 0 ? void 0 : _h.y)) {
+            this.emitCropAreaChange();
+        }
+        if (prevProps.zoomWithScroll !== this.props.zoomWithScroll && this.containerRef) {
+            this.props.zoomWithScroll ? this.containerRef.addEventListener('wheel', this.onWheel, {
+                passive: false
+            }) : this.clearScrollEvent();
+        }
+        if (prevProps.video !== this.props.video) {
+            (_j = this.videoRef.current) === null || _j === void 0 ? void 0 : _j.load();
+        }
+        var objectFit = this.getObjectFit();
+        if (objectFit !== this.state.mediaObjectFit) {
+            this.setState({
+                mediaObjectFit: objectFit
+            }, this.computeSizes);
+        }
+    };
+    Cropper.prototype.getAspect = function() {
+        var _a = this.props, cropSize = _a.cropSize, aspect = _a.aspect;
+        if (cropSize) {
+            return cropSize.width / cropSize.height;
+        }
+        return aspect;
+    };
+    Cropper.prototype.getObjectFit = function() {
+        var _a, _b, _c, _d;
+        if (this.props.objectFit === 'cover') {
+            var mediaRef = this.imageRef.current || this.videoRef.current;
+            if (mediaRef && this.containerRef) {
+                this.containerRect = this.containerRef.getBoundingClientRect();
+                var containerAspect = this.containerRect.width / this.containerRect.height;
+                var naturalWidth = ((_a = this.imageRef.current) === null || _a === void 0 ? void 0 : _a.naturalWidth) || ((_b = this.videoRef.current) === null || _b === void 0 ? void 0 : _b.videoWidth) || 0;
+                var naturalHeight = ((_c = this.imageRef.current) === null || _c === void 0 ? void 0 : _c.naturalHeight) || ((_d = this.videoRef.current) === null || _d === void 0 ? void 0 : _d.videoHeight) || 0;
+                var mediaAspect = naturalWidth / naturalHeight;
+                return mediaAspect < containerAspect ? 'horizontal-cover' : 'vertical-cover';
+            }
+            return 'horizontal-cover';
+        }
+        return this.props.objectFit;
+    };
+    Cropper.prototype.onPinchStart = function(e) {
+        var pointA = Cropper.getTouchPoint(e.touches[0]);
+        var pointB = Cropper.getTouchPoint(e.touches[1]);
+        this.lastPinchDistance = getDistanceBetweenPoints(pointA, pointB);
+        this.lastPinchRotation = getRotationBetweenPoints(pointA, pointB);
+        this.onDragStart(getCenter(pointA, pointB));
+    };
+    Cropper.prototype.onPinchMove = function(e) {
+        var _this = this;
+        if (!this.currentDoc || !this.currentWindow) return;
+        var pointA = Cropper.getTouchPoint(e.touches[0]);
+        var pointB = Cropper.getTouchPoint(e.touches[1]);
+        var center = getCenter(pointA, pointB);
+        this.onDrag(center);
+        if (this.rafPinchTimeout) this.currentWindow.cancelAnimationFrame(this.rafPinchTimeout);
+        this.rafPinchTimeout = this.currentWindow.requestAnimationFrame(function() {
+            var distance = getDistanceBetweenPoints(pointA, pointB);
+            var newZoom = _this.props.zoom * (distance / _this.lastPinchDistance);
+            _this.setNewZoom(newZoom, center, {
+                shouldUpdatePosition: false
+            });
+            _this.lastPinchDistance = distance;
+            var rotation = getRotationBetweenPoints(pointA, pointB);
+            var newRotation = _this.props.rotation + (rotation - _this.lastPinchRotation);
+            _this.props.onRotationChange && _this.props.onRotationChange(newRotation);
+            _this.lastPinchRotation = rotation;
+        });
+    };
+    Cropper.prototype.render = function() {
+        var _this = this;
+        var _a;
+        var _b = this.props, image = _b.image, video = _b.video, mediaProps = _b.mediaProps, cropperProps = _b.cropperProps, transform = _b.transform, _c = _b.crop, x = _c.x, y = _c.y, rotation = _b.rotation, zoom = _b.zoom, cropShape = _b.cropShape, showGrid = _b.showGrid, roundCropAreaPixels = _b.roundCropAreaPixels, _d = _b.style, containerStyle = _d.containerStyle, cropAreaStyle = _d.cropAreaStyle, mediaStyle = _d.mediaStyle, _e = _b.classes, containerClassName = _e.containerClassName, cropAreaClassName = _e.cropAreaClassName, mediaClassName = _e.mediaClassName;
+        var objectFit = (_a = this.state.mediaObjectFit) !== null && _a !== void 0 ? _a : this.getObjectFit();
+        return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", {
+            onMouseDown: this.onMouseDown,
+            onTouchStart: this.onTouchStart,
+            ref: function ref(el) {
+                return _this.containerRef = el;
+            },
+            "data-testid": "container",
+            style: containerStyle,
+            className: classNames('reactEasyCrop_Container', containerClassName)
+        }, image ? __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("img", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({
+            alt: "",
+            className: classNames('reactEasyCrop_Image', objectFit === 'contain' && 'reactEasyCrop_Contain', objectFit === 'horizontal-cover' && 'reactEasyCrop_Cover_Horizontal', objectFit === 'vertical-cover' && 'reactEasyCrop_Cover_Vertical', mediaClassName)
+        }, mediaProps, {
+            src: image,
+            ref: this.imageRef,
+            style: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, mediaStyle), {
+                transform: transform || "translate(".concat(x, "px, ").concat(y, "px) rotate(").concat(rotation, "deg) scale(").concat(zoom, ")")
+            }),
+            onLoad: this.onMediaLoad
+        })) : video && __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("video", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({
+            autoPlay: true,
+            playsInline: true,
+            loop: true,
+            muted: true,
+            className: classNames('reactEasyCrop_Video', objectFit === 'contain' && 'reactEasyCrop_Contain', objectFit === 'horizontal-cover' && 'reactEasyCrop_Cover_Horizontal', objectFit === 'vertical-cover' && 'reactEasyCrop_Cover_Vertical', mediaClassName)
+        }, mediaProps, {
+            ref: this.videoRef,
+            onLoadedMetadata: this.onMediaLoad,
+            style: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, mediaStyle), {
+                transform: transform || "translate(".concat(x, "px, ").concat(y, "px) rotate(").concat(rotation, "deg) scale(").concat(zoom, ")")
+            }),
+            controls: false
+        }), (Array.isArray(video) ? video : [
+            {
+                src: video
+            }
+        ]).map(function(item) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("source", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({
+                key: item.src
+            }, item));
+        })), this.state.cropSize && __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createElement"]("div", (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({
+            ref: this.cropperRef,
+            style: (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$tslib$2f$tslib$2e$es6$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["__assign"])({}, cropAreaStyle), {
+                width: roundCropAreaPixels ? Math.round(this.state.cropSize.width) : this.state.cropSize.width,
+                height: roundCropAreaPixels ? Math.round(this.state.cropSize.height) : this.state.cropSize.height
+            }),
+            tabIndex: 0,
+            onKeyDown: this.onKeyDown,
+            onKeyUp: this.onKeyUp,
+            "data-testid": "cropper",
+            className: classNames('reactEasyCrop_CropArea', cropShape === 'round' && 'reactEasyCrop_CropAreaRound', showGrid && 'reactEasyCrop_CropAreaGrid', cropAreaClassName)
+        }, cropperProps)));
+    };
+    Cropper.defaultProps = {
+        zoom: 1,
+        rotation: 0,
+        aspect: 4 / 3,
+        maxZoom: MAX_ZOOM,
+        minZoom: MIN_ZOOM,
+        cropShape: 'rect',
+        objectFit: 'contain',
+        showGrid: true,
+        style: {},
+        classes: {},
+        mediaProps: {},
+        cropperProps: {},
+        zoomSpeed: 1,
+        restrictPosition: true,
+        zoomWithScroll: true,
+        keyboardStep: KEYBOARD_STEP
+    };
+    Cropper.getMousePoint = function(e) {
+        return {
+            x: Number(e.clientX),
+            y: Number(e.clientY)
+        };
+    };
+    Cropper.getTouchPoint = function(touch) {
+        return {
+            x: Number(touch.clientX),
+            y: Number(touch.clientY)
+        };
+    };
+    return Cropper;
+}(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$Inventory$2f$my$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Component"]);
+;
+ //# sourceMappingURL=index.module.mjs.map
+}),
+];
+
+//# sourceMappingURL=65e54_9e354a18._.js.map

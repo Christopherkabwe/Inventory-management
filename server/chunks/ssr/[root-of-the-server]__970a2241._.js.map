@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/CHRISTOPHER%20KABWE/Desktop/Inventory/my-app/src/app/dashboard/sales/page.tsx"],"sourcesContent":["import Sidebar from \"@/components/sidebar2\"\r\n\r\nexport default function SalesDashboard() {\r\n    return (\r\n        <div>Sales Dashboard</div>\r\n    );\r\n}"],"names":[],"mappings":";;;;;;AAEe,SAAS;IACpB,qBACI,mRAAC;kBAAI;;;;;;AAEb"}}]
+}

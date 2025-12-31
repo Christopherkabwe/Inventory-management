@@ -1,588 +1,401 @@
-"use client";
-import { useState, useEffect, use } from "react";
-import { useStackApp } from "@stackframe/stack";
 import Sidebar from "@/components/sidebar2";
-import { useToaster } from '@/components/Toaster';
-import { motion } from 'framer-motion';
-import Pagination from "@/components/pagination";
-import { useRouter } from 'next/navigation';
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { DollarSign, TrendingUp, Users, ShoppingBag, Calendar, MapPin } from "lucide-react";
+import SalesTrendChart from "@/components/SalesTrendChart";
+import TopProducts from "@/components/TopProducts";
+import LeastProducts from "@/components/LeastProducts";
+import RecentSales from "@/components/RecentSales";
+import TopCustomers from "@/components/TopCustomers";
+import LeastCustomers from "@/components/LeastCustomers";
+import SalesByLocation from "@/components/SalesByLocation";
+import { DashboardSale } from "@/components/DashboardSale";
+import SalesByCustomer from "@/components/SalesByCustomer";
+import SalesByProduct from "@/components/SalesByProduct";
+import SalesTable from "@/components/SalesTable";
+import DateFiltersExports from "@/components/DateFiltersExports";
+import DashboardLayout from "@/components/DashboardLayout";
 
-interface Sale {
-    id: string;
-    product: { id?: string; name: string };
-    customer: { id?: string; name: string };
+interface ChartDataPoint {
+    date: string;
+    value: number;
     quantity: number;
-    salePrice: number;
-    totalAmount: number;
-    createdAt: string;
-    location: { name: string };
+    tonnage: number;
 }
 
-interface Product {
-    id: string;
-    name: string;
-    sku: string;
-    price: number;
-    quantity: number;
+interface Props {
+    currentPath?: string;
 }
 
-export default function SalesPage({
-    searchParams,
-}: {
-    searchParams: Promise<{ q?: string; page?: string }>;
-}) {
-    const stackApp = useStackApp();
-    const user = stackApp.useUser();
-    const { addToast } = useToaster();
-    const router = useRouter();
+interface CategoryTrendDataPoint {
+    date: string;
+    [category: string]: number | string;
+}
 
-    const userId = user?.id;
-    const params = use(searchParams);
-    const q = (params.q ?? "").trim();
-    const page = Math.max(1, Number(params.page ?? 1));
-    const pageSize = 10;
+export default async function SalesDashboardPage() {
+    const user = await getCurrentUser();
+    if (!user) return <div>Please log in.</div>;
+    const userId = user.id;
 
-    const [products, setProducts] = useState<Product[]>([]);
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loadingSales, setLoadingSales] = useState(true);
-
-    const [pagination, setPagination] = useState({
-        totalPages: 1,
-        page: 1,
-        totalSales: 0,
-        limit: pageSize,
+    // Metrics
+    const sales: DashboardSale[] = await prisma.sale.findMany({
+        where: { createdBy: userId },
+        include: {
+            product: {
+                select: {
+                    name: true,
+                    price: true,
+                    category: true,
+                    weightValue: true,
+                    packSize: true
+                },
+            },
+            location: { select: { name: true } }
+        },
     });
 
-    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    // 1. Get product sales with quantities
+    const productSales = await prisma.sale.groupBy({
+        by: ['productId'],
+        where: {
+            createdBy: userId,
+            saleDate: {
+                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
+            },
+        },
+        _sum: {
+            quantity: true,
+        },
+    });
 
-    const [selectedProductId, setSelectedProductId] = useState("");
-    const [selectedCustomerId, setSelectedCustomerId] = useState("");
-    const [selectedLocation, setSelectedLocation] = useState("");
-    const [quantity, setQuantity] = useState(1);
-    const [salePrice, setSalePrice] = useState<number | null>(null);
+    // 2. Fetch product details for the IDs
+    const productIds = productSales.map((sale) => sale.productId);
+    const products = await prisma.productList.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true, price: true },
+    });
 
-    /* ---------------- PRODUCTS ---------------- */
+    // 3. Merge sales data with product info
+    const salesByProduct = productSales
+        .map((sale) => {
+            const product = products.find((p) => p.id === sale.productId);
+            if (!product) return null;
+            return {
+                id: product.id,
+                name: product.name,
+                totalValue: product.price * (sale._sum.quantity || 0),
+                qty: sale._sum.quantity || 0,
+            };
+        })
+        .filter(Boolean) // Remove nulls
+        .sort((a, b) => b.totalValue - a.totalValue);
 
-    const fetchProducts = async () => {
-        if (!userId) return;
-        setIsLoadingProducts(true);
+    const topSellingProducts = salesByProduct.slice(0, 5);
+    const leastSellingProducts = salesByProduct.slice(-5).reverse();
 
-        try {
-            const res = await fetch(`/api/products?userId=${userId}`);
-            const data = await res.json();
-            setProducts(data.products || []);
-        } catch {
-            addToast("Error loading products.", "error");
-        } finally {
-            setIsLoadingProducts(false);
-        }
-    };
+    // Total Sales, Total Orders, Average Order Value
+    const totalSales = sales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+    const totalOrders = sales.length;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
 
-    /* ---------------- SALES (CRITICAL FIX) ---------------- */
-
-    const fetchSales = async () => {
-        if (!userId) return;
-
-        try {
-            setLoadingSales(true);
-
-            const res = await fetch(
-                `/api/sales?userId=${userId}&page=${page}&limit=${pageSize}`
-            );
-            const data = await res.json();
-
-            setSales(data.data || []);
-            setPagination(
-                data.pagination || {
-                    totalPages: 1,
-                    page: 1,
-                    totalSales: 0,
-                    limit: pageSize,
-                }
-            );
-        } catch {
-            addToast("Error loading sales.", "error");
-        } finally {
-            setLoadingSales(false);
-        }
-    };
-
-    /* ---------------- CUSTOMERS ---------------- */
-
-    const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
-    const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
-
-    const fetchCustomers = async () => {
-        if (!userId) return;
-        setIsLoadingCustomers(true);
-
-        try {
-            const res = await fetch(`/api/customers?userId=${userId}`);
-            const data = await res.json();
-            setCustomers(data.customers || []);
-        } catch {
-            addToast("Error loading customers.", "error");
-        } finally {
-            setIsLoadingCustomers(false);
-        }
-    };
-
-    /* ---------------- LOCATIONS (FIXED) ---------------- */
-
-    const [uniqueLocations, setUniqueLocations] = useState<any[]>([]);
-
-    const fetchLocations = async () => {
-        if (!userId) return;
-        try {
-            const res = await fetch(`/api/locations?userId=${userId}`);
-            const data = await res.json();
-            setUniqueLocations(data.locations || []);
-        } catch {
-            addToast("Error loading locations.", "error");
-        }
-    };
-
-    /* ---------------- EFFECTS ---------------- */
-
-    useEffect(() => {
-        fetchProducts();
-        fetchCustomers();
-        fetchLocations();
-    }, [userId]);
-
-    useEffect(() => {
-        fetchSales();
-    }, [userId, page, pageSize]);
-
-    useEffect(() => {
-        if (pagination.page > pagination.totalPages) {
-            router.push(`/sales?page=${pagination.totalPages}`);
-        }
-    }, [pagination]);
-
-    useEffect(() => {
-        if (selectedProductId) {
-            const p = products.find(p => p.id === selectedProductId);
-            setSalePrice(p ? p.price : null);
-        } else {
-            setSalePrice(null);
-        }
-    }, [selectedProductId, products]);
-
-    /* ---------------- CREATE SALE ---------------- */
-
-    const handleCreateSale = async (formData: FormData) => {
-        const productId = formData.get("productId") as string;
-        const quantity = Number(formData.get("quantity"));
-        const salePrice = Number(formData.get("salePrice"));
-        const totalAmount = quantity * salePrice;
-
-        if (!productId || !selectedCustomerId || !selectedLocation) {
-            addToast("Please fill all required fields.", "error");
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            const res = await fetch("/api/sales", {
-                method: "POST",
-                body: JSON.stringify({
-                    productId,
-                    quantity,
-                    salePrice,
-                    totalAmount,
-                    customerId: selectedCustomerId,
-                    locationId: selectedLocation,
-                    userId,
-                }),
-            });
-
-            if (res.ok) {
-                addToast("Sale created!", "success");
-
-                await fetchSales();     // 🔥 FIX
-                await fetchProducts();  // update stock
-
-                setSelectedProductId("");
-                setSelectedCustomerId("");
-                setSelectedLocation("");
-                setQuantity(1);
-                setSalePrice(null);
-            } else {
-                const error = await res.json();
-                addToast(error.error || "Failed to create sale.", "error");
+    const customers = await prisma.customer.findMany({
+        where: { createdBy: userId },
+        include: {
+            sales: {
+                include: { product: true }
             }
-        } catch {
-            addToast("Something went wrong.", "error");
-        } finally {
-            setIsSubmitting(false);
+        },
+    });
+
+
+    const totalCustomers = customers.length;
+
+    // 1. Total Revenue Growth (vs. Last Month)
+    const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+    const lastMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
+    const prevMonthSales = await prisma.sale.findMany({
+        where: {
+            createdBy: userId,
+            saleDate: { gte: lastMonthStart, lte: lastMonthEnd },
+        },
+    });
+    const prevMonthTotal = prevMonthSales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+    const growth = prevMonthTotal ? ((totalSales - prevMonthTotal) / prevMonthTotal * 100).toFixed(1) : "0";
+
+    // 2. Conversion Rate
+    const conversionRate = totalCustomers > 0 ? (totalOrders / totalCustomers * 100).toFixed(1) : "0";
+
+    // 3. Sales per Product Category
+    const salesByCategory = sales.reduce((acc, sale) => {
+        const category = sale.product.category || 'Uncategorized';
+        if (!acc[category]) {
+            acc[category] = { totalValue: 0, qty: 0 };
         }
-    };
+        acc[category].totalValue += sale.quantity * sale.salePrice;
+        acc[category].qty += sale.quantity;
+        return acc;
+    }, {} as Record<string, { totalValue: number; qty: number }>);
 
-    /* ---------------- DELETE SALE ---------------- */
+    // 4. Average Items per Order
+    const totalItemsSold = sales.reduce((sum, sale) => sum + sale.quantity, 0);
+    const avgItemsPerOrder = totalOrders > 0 ? (totalItemsSold / totalOrders).toFixed(1) : "0";
 
-    const handleDeleteSale = async (saleId: string) => {
-        if (!confirm("Are you sure?")) return;
+    // 5. Top Selling Location
+    const salesByLocation = sales.reduce((acc, sale) => {
+        const loc = sale.location?.name || 'Unknown';
+        acc[loc] = (acc[loc] || 0) + sale.quantity * sale.salePrice;
+        return acc;
+    }, {} as Record<string, number>);
+    const topLocation = Object.entries(salesByLocation).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
 
-        const res = await fetch(`/api/sales/${saleId}`, { method: "DELETE" });
-        if (res.ok) {
-            addToast("Sale deleted!", "success");
-            await fetchSales(); // 🔥 FIX
+    // YTD and MTD Sales
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const salesYTD = await prisma.sale.findMany({
+        where: { createdBy: userId, saleDate: { gte: startOfYear } },
+        include: { product: { select: { price: true } } },
+    });
+    const totalSalesYTD = salesYTD.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    const salesMTD = await prisma.sale.findMany({
+        where: { createdBy: userId, saleDate: { gte: startOfMonth } },
+        include: { product: { select: { price: true } } },
+    });
+    const totalSalesMTD = salesMTD.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    // Current year
+    const startOfCurrentYear = new Date(new Date().getFullYear(), 0, 1);
+    const endOfCurrentYear = new Date();
+
+    // Previous year
+    const startOfLastYear = new Date(new Date().getFullYear() - 1, 0, 1);
+    const endOfLastYear = new Date(new Date().getFullYear() - 1, 11, 31);
+
+    // Total sales this year
+    const salesThisYear = sales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    // Total sales last year
+    const lastYearSales = await prisma.sale.findMany({
+        where: {
+            createdBy: userId,
+            saleDate: { gte: startOfLastYear, lte: endOfLastYear },
+        },
+    });
+    const salesLastYear = lastYearSales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    // YoY growth %
+    const yoyGrowth = salesLastYear
+        ? ((salesThisYear - salesLastYear) / salesLastYear) * 100
+        : 0;
+
+    // Recent sales (last 7 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentSales = sales
+        .filter(sale => sale.saleDate >= thirtyDaysAgo)
+        .sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime())
+        .slice(0, 10);
+
+    // Top products (by quantity sold)
+    const topProducts = sales
+        .reduce((acc, sale) => {
+            const name = sale.product.name;
+            acc[name] = (acc[name] || 0) + sale.quantity;
+            return acc;
+        }, {} as Record<string, number>)
+    const topProductsArray = Object.entries(topProducts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, qty]) => ({ name, qty }));
+
+    // Sales trend data (preparing data for charts)
+    const productList = await prisma.productList.findMany({
+        select: { id: true, weightValue: true, packSize: true },
+    });
+
+    if (productList.length === 0) {
+        console.warn("No products found for tonnage calculation.");
+    }
+
+    const salesTrendData = sales
+        .reduce((acc, sale) => {
+            const date = new Date(sale.saleDate).toISOString().split('T')[0];
+            const product = productList.find(p => p.id === sale.productId);
+            const weightInTons = product ? (product.weightValue * sale.quantity * product.packSize) / 1000 : 0;
+
+            const existing = acc.find(d => d.date === date);
+            if (existing) {
+                existing.value += sale.salePrice * sale.quantity;
+                existing.quantity += sale.quantity;
+                existing.tonnage += weightInTons;
+            } else {
+                acc.push({
+                    date,
+                    value: sale.salePrice * sale.quantity,
+                    quantity: sale.quantity,
+                    tonnage: weightInTons,
+                });
+            }
+            return acc;
+        }, [] as ChartDataPoint[])
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Sales Category trend data
+    const salesCategoryTrendData = (sales || []).reduce((acc, sale) => {
+        const date = new Date(sale.saleDate).toISOString().split('T')[0];
+        const category = sale.product?.category || 'Uncategorized'; // Optional chaining for safety
+        const existing = acc.find(d => d.date === date);
+
+        if (existing) {
+            existing[category] = (existing[category] || 0) + sale.quantity;
         } else {
-            addToast("Failed to delete sale.", "error");
+            acc.push({
+                date,
+                [category]: sale.quantity,
+            });
         }
-    };
+        return acc;
+    }, [] as CategoryTrendDataPoint[]).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    /* ---------------- EDIT SALE ---------------- */
+    // Top Customers and Least Customers
+    const topCustomers = [...customers]
+        .sort((a, b) => (b.sales?.length || 0) - (a.sales?.length || 0))
+        .slice(0, 5);
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingSale, setEditingSale] = useState<Sale | null>(null);
+    const leastCustomers = [...customers]
+        .sort((a, b) => (a.sales?.length || 0) - (b.sales?.length || 0))
+        .slice(0, 5);
 
-    const handleEditSale = (sale: Sale) => {
-        setEditingSale(sale);
-        setIsEditModalOpen(true);
-    };
 
-    const handleSaveEdit = async () => {
-        if (!editingSale) return;
-
-        const res = await fetch(`/api/sales/${editingSale.id}`, {
-            method: "PUT",
-            body: JSON.stringify({ ...editingSale, userId }),
-        });
-
-        if (res.ok) {
-            addToast("Sale updated!", "success");
-            await fetchSales();     // 🔥 FIX
-            await fetchProducts();
-            setIsEditModalOpen(false);
-        } else {
-            addToast("Failed to update sale.", "error");
-        }
-    };
-
-    /* ---------------- RENDER ---------------- */
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Sidebar currentPath="/sales" />
-            <main className="ml-64 p-8">
+            <DashboardLayout>
+
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">Sales</h1>
-                            <p className="text-sm text-gray-500">Track and manage your product sales. Select a product, enter quantity, and record a sale.</p>
-                        </div>
+                <div>
+                    <h1 className="text-3xl font-bold">Sales Dashboard</h1>
+                    <p className="text-gray-500 mt-1">Track your sales performance and trends</p>
+                </div>
+                {/* KPIs */}
+                <div className="grid grid-cols-2 xl:grid-cols-8 gap-2">
+                    <KPI title="Total Sales" value={`K${totalSales.toFixed(0)}`} icon={<DollarSign />} color="blue" />
+                    <KPI title="Sales YTD" value={`K${totalSalesYTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
+                    <KPI title="Sales MTD" value={`K${totalSalesMTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
+                    <KPI
+                        title="YoY Growth"
+                        value={`${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth.toFixed(1)}%`}
+                        icon={<TrendingUp />}
+                        color={yoyGrowth >= 0 ? "green" : "red"}
+                    />
+                    <KPI title="Monthly Growth" value={`${growth}%`} icon={<TrendingUp />} color="blue" />
+                    <KPI title="Customers" value={totalCustomers} icon={<Users />} color="yellow" />
+                    <KPI title="Orders" value={totalOrders} icon={<ShoppingBag />} color="blue" />
+                    <KPI title="Avg. Order Value" value={`K${avgOrderValue.toFixed(0)}`} icon={<TrendingUp />} color="blue" />
+                    {/*<KPI title="Items per Order" value={avgItemsPerOrder} icon={<ShoppingBag />} color="green" />*/}
+                    {/*<KPI title="Conversion Rate" value={`${conversionRate}%`} icon={<Users />} color="purple" />*/}
+                </div>
+
+                {/* Main Grid */}
+                <div>
+                    <SalesTrendChart
+                        salesTrendData={salesTrendData || []}
+                        sales={sales || []}
+                        productList={productList || []}
+                    />
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
+                    <TopProducts
+                        products={topSellingProducts}
+                        title="Top Selling Products (Last 30 Days)"
+                        iconColor="text-yellow-500"
+                    />
+                    <LeastProducts products={leastSellingProducts} />
+
+                    {/* Sales by Category */}
+                    <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-blue-500" /> Sales by Category
+                        </h3>
+                        {Object.entries(salesByCategory).length === 0 ? (
+                            <p className="text-sm text-gray-500">No sales data.</p>
+                        ) : (
+                            <ul className="space-y-3 text-sm overflow-y-auto">
+                                {Object.entries(salesByCategory).map(([category, data]) => (
+                                    <li key={category} className="flex justify-between items-center">
+                                        <span className="font-medium">{category}</span>
+                                        <span>{data.qty} units</span>
+                                        <span className="font-bold text-purple-600">K{data.totalValue.toFixed(0)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
-                <div className="space-y-6">
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleCreateSale(new FormData(e.currentTarget));
-                    }} className="bg-white rounded-lg border-gray-200 p-6">
-                        <div className="grid grid-cols-6 gap-4 items-end">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                                {isLoadingCustomers ? (
-                                    <div className="flex items-center justify-center py-2 text-sm text-gray-500">
-                                        <svg className="animate-spin h-5 w-5 text-purple-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Loading customers...
-                                    </div>
-                                ) : (
-                                    <select
-                                        name="customerId"
-                                        value={selectedCustomerId}
-                                        onChange={(e) => setSelectedCustomerId(e.target.value)}
-                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                        required
-                                    >
-                                        <option value="">Select Customer</option>
-                                        {customers.map(customer => (
-                                            <option key={customer.id} value={customer.id}>
-                                                {customer.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                <select
-                                    name="locationId"
-                                    value={selectedLocation}
-                                    onChange={(e) => setSelectedLocation(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                    required
-                                >
-                                    <option value="">Select Location</option>
-                                    {uniqueLocations.map((loc) => (
-                                        <option key={loc.id} value={loc.id}>
-                                            {loc.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                                {isLoadingProducts ? (
-                                    <div className="flex items-center justify-center py-2 text-sm text-gray-500">
-                                        <svg className="animate-spin h-5 w-5 text-purple-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Loading Products...
-                                    </div>
-                                ) : (<select
-                                    name="productId"
-                                    value={selectedProductId}
-                                    onChange={(e) => {
-                                        const id = e.target.value;
-                                        setSelectedProductId(id);
-                                        const product = products.find(p => p.id === id);
-                                        setSalePrice(product ? product.price : null);
-                                    }}
-                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg"
-                                    required
-                                >
-                                    <option value="">Select Product</option>
-                                    {products.length ? (
-                                        products.map(p => (
-                                            <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                                                {p.name} | K{p.price} | ({p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'})
-                                            </option>
-                                        ))
-                                    ) : (
-                                        <option disabled>No products available</option>
-                                    )}
-                                </select>)}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                    onBlur={() => {
-                                        // Convert to number only on blur (or submit)
-                                        setQuantity(prev => Number(prev) || 0);
-                                    }}
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                    placeholder="Enter quantity"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Price (K)</label>
-                                <input
-                                    type="number"
-                                    name="salePrice"
-                                    value={salePrice || ''}
-                                    onChange={(e) => setSalePrice(Number(e.target.value))}
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    className="w-full px-2 py-2 border border-gray-600 rounded-lg focus:border-transparent"
-                                    placeholder="K100.00"
-                                />
-                            </div>
-                            <div>
-                                <SubmitButton isSubmitting={isSubmitting} />
-                            </div>
-                        </div>
-                    </form>
 
-                    <table className="min-w-full table-auto mt-4 border-collapse border border-gray-200">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Customer Name</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Product Name</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Quantity</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Price (K)</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Revenue (K)</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Date Created</th>
-                                <th className="px-6 py-3 border-b border-r border-gray-400 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {loadingSales ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-3 text-center text-sm text-gray-500">
-                                        <div className="flex flex-col items-center justify-center gap-5 mt-10 mb-10">
-                                            <svg className="animate-spin h-10 w-10 text-purple-600 items-center" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading sales...
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : !Array.isArray(sales) || sales.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-3 text-center text-sm text-gray-500">No sales recorded yet.</td>
-                                </tr>
-                            ) : (
-                                sales.map((sale, key) => (
-                                    <tr key={sale.id} className={`hover:bg-gray-50 ${key % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
-                                            {sale.customer?.name || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
-                                            {sale.product?.name || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-left text-sm text-gray-500">
-                                            {sale.location?.name || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
-                                            {sale.quantity}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
-                                            K{sale.salePrice}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
-                                            K{sale.totalAmount}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-r border-gray-400 text-center text-sm text-gray-500">
-                                            {new Date(sale.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-gray-400 text-center text-sm text-gray-500">
-                                            <button
-                                                onClick={() => handleEditSale(sale)}
-                                                className="text-blue-600 hover:text-blue-800 mr-3"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteSale(sale.id)}
-                                                className="text-red-600 hover:text-red-800"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-
-
+                {/* Top Customers and Location */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-5">
+                    <TopCustomers
+                        customers={topCustomers}
+                        title="Top Customers (Last 30 Days)"
+                        iconColor="text-green-500"
+                    />
+                    <LeastCustomers customers={leastCustomers} />
                 </div>
-                {isEditModalOpen && editingSale && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg w-96">
-                            <h2 className="text-lg font-semibold mb-4">Edit Sale</h2>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                                    <select
-                                        name="customerId"
-                                        value={editForm.customerId}
-                                        onChange={handleEditChange}
-                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
-                                        required
-                                    >
-                                        <option value="">Select Customer</option>
-                                        {customers.map((customer) => (
-                                            <option key={customer.id} value={customer.id}>
-                                                {customer.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
-                                    <select
-                                        name="productId"
-                                        value={editForm.productId}
-                                        onChange={handleEditChange}
-                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
-                                        required
-                                    >
-                                        <option value="">Select Product</option>
-                                        {products.map((p) => (
-                                            <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                                                {p.name} | K{p.price} | ({p.quantity > 0 ? `${p.quantity} in stock` : 'Out of stock'})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                                    <input
-                                        type="number"
-                                        name="quantity"
-                                        value={editForm.quantity}
-                                        onChange={handleEditChange}
-                                        min="0"
-                                        step="0.01"
-                                        required
-                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (K)</label>
-                                    <input
-                                        type="number"
-                                        name="salePrice"
-                                        value={editForm.salePrice}
-                                        onChange={handleEditChange}
-                                        min="0"
-                                        step="0.01"
-                                        required
-                                        className="w-full px-2 py-2 border border-gray-600 rounded-lg"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button
-                                    onClick={() => setIsEditModalOpen(false)}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSaveEdit}
-                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                                >
-                                    Save Changes
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {/* PAGINATION */}
-                {sales.length > 0 && (
-                    <div className="bg-white rounded-lg border p-6 mt-6">
-                        <Pagination
-                            currentPage={pagination.page}
-                            totalPages={pagination.totalPages}
-                            baseUrl="/sales"
-                            SearchParams={{ q }}
-                        />
-                    </div>
-                )}
-            </main >
+                {/* Sales by Location */}
+                <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-5">
+                    <SalesTable sales={sales} />
+                </div>
+                <RecentSales sales={recentSales} />
+
+            </DashboardLayout >
         </div >
     );
 }
 
-function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
+/* -----------------------------
+   REUSABLE COMPONENTS
+----------------------------- */
+const iconColors = {
+    purple: "text-purple-600",
+    green: "text-green-600",
+    yellow: "text-yellow-500",
+    red: "text-red-600",
+    blue: "text-blue-600",
+};
+
+const bgColors = {
+    purple: "bg-purple-500",
+    green: "bg-green-500",
+    yellow: "bg-yellow-400",
+    red: "bg-red-500",
+    blue: "bg-blue-500",
+};
+
+type Color = keyof typeof iconColors;
+
+interface Props {
+    title: string;
+    value: string;
+    icon: React.ReactNode;
+    color: Color;
+}
+
+function KPI({ title, value, icon, color }: Props) {
     return (
-        <button
-            type="submit"
-            className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            disabled={isSubmitting}
-        >
-            {isSubmitting ? 'Creating Sale...' : 'Create Sale'}
-        </button>
+        <div className="bg-white p-6 rounded-xl border flex justify-between items-center">
+            <div>
+                <p className="text-sm text-gray-500">{title}</p>
+                <h2 className="text-2xl font-bold">{value}</h2>
+            </div>
+
+            {/* Icon */}
+            <div
+                className={`${iconColors[color]}`}
+            >
+                {icon}
+            </div>
+        </div>
     );
 }

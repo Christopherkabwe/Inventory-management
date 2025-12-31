@@ -14,6 +14,7 @@ import SalesByCustomer from "@/components/SalesByCustomer";
 import SalesByProduct from "@/components/SalesByProduct";
 import SalesTable from "@/components/SalesTable";
 import DateFiltersExports from "@/components/DateFiltersExports";
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface ChartDataPoint {
     date: string;
@@ -270,16 +271,15 @@ export default async function SalesDashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Sidebar currentPath="/sales" />
-            <main className="ml-64 p-8 space-y-10">
+            <DashboardLayout>
+
                 {/* Header */}
                 <div>
                     <h1 className="text-3xl font-bold">Sales Dashboard</h1>
                     <p className="text-gray-500 mt-1">Track your sales performance and trends</p>
                 </div>
-
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-8 gap-2">
+                <div className="grid grid-cols-2 xl:grid-cols-8 gap-2">
                     <KPI title="Total Sales" value={`K${totalSales.toFixed(0)}`} icon={<DollarSign />} color="blue" />
                     <KPI title="Sales YTD" value={`K${totalSalesYTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
                     <KPI title="Sales MTD" value={`K${totalSalesMTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
@@ -305,7 +305,7 @@ export default async function SalesDashboardPage() {
                         productList={productList || []}
                     />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
                     <TopProducts
                         products={topSellingProducts}
                         title="Top Selling Products (Last 30 Days)"
@@ -335,7 +335,7 @@ export default async function SalesDashboardPage() {
                 </div>
 
                 {/* Top Customers and Location */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-5">
                     <TopCustomers
                         customers={topCustomers}
                         title="Top Customers (Last 30 Days)"
@@ -344,11 +344,12 @@ export default async function SalesDashboardPage() {
                     <LeastCustomers customers={leastCustomers} />
                 </div>
                 {/* Sales by Location */}
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-5">
                     <SalesTable sales={sales} />
                 </div>
                 <RecentSales sales={recentSales} />
-            </main >
+
+            </DashboardLayout >
         </div >
     );
 }
@@ -381,30 +382,19 @@ interface Props {
     color: Color;
 }
 
-function KPI({ title, value, icon, color }: {
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: Color;
-}) {
+function KPI({ title, value, icon, color }: Props) {
     return (
-        <div className="relative bg-white p-2 rounded-xl border hover:shadow-md transition-all duration-200">
-            {/* Top Accent Bar */}
-            <div className={`absolute top-0 left-0 w-full h-1 rounded-t-xl ${bgColors[color]}`} />
+        <div className="bg-white p-6 rounded-xl border flex justify-between items-center">
+            <div>
+                <p className="text-sm text-gray-500">{title}</p>
+                <h2 className="text-2xl font-bold">{value}</h2>
+            </div>
 
-            <div className="flex items-center justify-between">
-                {/* Text */}
-                <div>
-                    <p className="text-sm text-gray-500">{title}</p>
-                    <h2 className="text-2xl font-bold mt-1">{value}</h2>
-                </div>
-
-                {/* Icon */}
-                <div
-                    className={`p-2 ${iconColors[color]}`}
-                >
-                    {icon}
-                </div>
+            {/* Icon */}
+            <div
+                className={`${iconColors[color]}`}
+            >
+                {icon}
             </div>
         </div>
     );
