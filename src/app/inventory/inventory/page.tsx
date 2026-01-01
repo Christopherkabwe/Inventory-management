@@ -45,7 +45,7 @@ export default async function InventoryPage({
         prisma.inventory.count({ where }),
         prisma.inventory.findMany({
             where,
-            include: { product: true, location: true }, // Include location details
+            include: { product: true, location: true },
             orderBy: { createdAt: "desc" },
             skip: (page - 1) * pageSize,
             take: pageSize,
@@ -80,8 +80,12 @@ export default async function InventoryPage({
                 },
             },
             include: {
-                product: {
-                    select: { price: true },
+                items: {
+                    include: {
+                        product: {
+                            select: { price: true },
+                        },
+                    },
                 },
             },
         }),
@@ -103,7 +107,7 @@ export default async function InventoryPage({
     const processedSales = sales.map((sale) => ({
         ...sale,
         product: {
-            ...sale.product,
+            ...sale.items,
             // Add any additional processing here
         },
     }));

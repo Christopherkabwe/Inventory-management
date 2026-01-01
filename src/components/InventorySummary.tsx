@@ -35,10 +35,18 @@ interface InventoryItem {
 }
 
 interface Sale {
-    productId: string;
-    quantity: number;
+    id: string;
+    createdBy: string;
     saleDate: Date;
+    items: {
+        product: {
+            id: string;
+            price: number;
+        };
+        quantity: number;
+    }[];
 }
+
 
 interface Props {
     inventory: InventoryItem[];
@@ -78,7 +86,7 @@ export default function InventorySummary({
         () =>
             Array.from(
                 new Set(
-                    inventory.map((i) => i.product.category)
+                    inventory.map((i) => i.product.category?.name || "Uncategorized")
                 )
             ),
         [inventory]
@@ -130,8 +138,10 @@ export default function InventorySummary({
     /* ---------------- SALES MAP ---------------- */
     const salesMap = useMemo(() => {
         const map: Record<string, number> = {};
-        sales.forEach((s) => {
-            map[s.productId] = (map[s.productId] || 0) + s.quantity;
+        sales.forEach((sale) => {
+            sale.items.forEach((item) => {
+                map[item.product.id] = (map[item.product.id] || 0) + item.quantity;
+            });
         });
         return map;
     }, [sales]);
@@ -155,16 +165,18 @@ export default function InventorySummary({
                     value: 0,
                     tonnage: 0,
                     lowStockAt: item.lowStockAt,
+                    soldQuantity: 0, // <- new
                 };
             }
 
             map[p.id].quantity += item.quantity;
             map[p.id].value += item.quantity * p.price;
             map[p.id].tonnage += (item.quantity * p.packSize * unitToKg(item.product.weightValue, item.product.weightUnit)) / 1000;
+            map[p.id].soldQuantity += salesMap[p.id] || 0; // <- populate from sales
         });
 
         return Object.values(map);
-    }, [filteredInventory]);
+    }, [filteredInventory, salesMap]);
 
     /* ---------------- SORT ---------------- */
     const sortedData = useMemo(() => {

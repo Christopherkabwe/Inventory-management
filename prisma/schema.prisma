@@ -1,18 +1,19 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
   output          = "../src/generated/prisma"
   engineType      = "binary"
-  previewFeatures = ["clientExtensions"] // ← enable JS output mode
+  previewFeatures = ["clientExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// -------------------- GLOBAL SEQUENCE --------------------
+model Sequence {
+  id        String   @id   // "INV", "IBT", "PROD", "ADJ"
+  value     Int
+  updatedAt DateTime @updatedAt
 }
 
 // -------------------- PRODUCTS --------------------
@@ -30,12 +31,29 @@ model ProductList {
   updatedAt   DateTime    @updatedAt
 
   inventories Inventory[]
-  sales       Sale[]
-  transfers   Transfer[]
-  productions Production[]
-  adjustments Adjustment[]
+  saleItems   SaleItem[]
+  transferItems TransferItem[]
+  productionItems ProductionItem[]
+  adjustmentItems AdjustmentItem[]
 
   @@index([sku])
+}
+
+// -------------------- LOCATIONS --------------------
+model Location {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  address   String?
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventories Inventory[]
+  sales       Sale[]
+  transfersFrom Transfer[] @relation("TransfersFrom")
+  transfersTo   Transfer[] @relation("TransfersTo")
+  adjustments   Adjustment[]
+  productions   Production[]
 }
 
 // -------------------- INVENTORY --------------------
@@ -56,22 +74,6 @@ model Inventory {
   @@index([productId])
 }
 
-// -------------------- LOCATIONS --------------------
-model Location {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  address   String?
-  createdBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  inventories Inventory[]
-  sales       Sale[]
-  transfersFrom Transfer[] @relation("TransfersFrom")
-  transfersTo   Transfer[] @relation("TransfersTo")
-  adjustments   Adjustment[]
-}
-
 // -------------------- CUSTOMERS --------------------
 model Customer {
   id        String   @id @default(cuid())
@@ -87,67 +89,140 @@ model Customer {
   sales Sale[]
 }
 
-// -------------------- SALES --------------------
-model Sale {
-  id String @id @default(cuid())
-  customerId String
-  customerName String
-  customer Customer @relation(fields: [customerId], references: [id])
-  productId String
-  product ProductList @relation(fields: [productId], references: [id], onDelete: Cascade)
-  locationId String
-  location Location @relation(fields: [locationId], references: [id])
-  quantity Int
-  salePrice Float
-  totalAmount Float
-  saleDate DateTime @default(now())
-  isReturn Boolean @default(false) // track returns
-  createdBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// -------------------- TRANSPORTERS --------------------
+model Transporter {
+  id           String   @id @default(cuid())
+  name         String
+  vehicleNumber String?
+  driverName   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  @@index([customerId])
-  @@index([productId])
+  sales     Sale[]
+  transfers Transfer[]
 }
 
-// -------------------- TRANSFERS (IBT) --------------------
+// -------------------- SALES --------------------
+model Sale {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  deliveryNote  String?
+
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id])
+
+  transporterId String?
+  transporter   Transporter? @relation(fields: [transporterId], references: [id])
+
+  saleDate      DateTime @default(now())
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id        String      @id @default(cuid())
+  saleId    String
+  sale      Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   ProductList @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  price     Float
+  total     Float
+}
+
+// -------------------- TRANSFERS --------------------
 model Transfer {
-  id             String      @id @default(cuid())
-  productId      String
-  product        ProductList @relation(fields: [productId], references: [id])
-  fromLocationId String?
-  fromLocation   Location?   @relation("TransfersFrom", fields: [fromLocationId], references: [id])
-  toLocationId   String?
-  toLocation     Location?   @relation("TransfersTo", fields: [toLocationId], references: [id])
-  quantity       Int
-  transferDate   DateTime    @default(now())
+  id             String   @id @default(cuid())
+  ibtNumber      String   @unique
+
+  fromLocationId String
+  fromLocation   Location @relation("TransfersFrom", fields: [fromLocationId], references: [id])
+
+  toLocationId   String
+  toLocation     Location @relation("TransfersTo", fields: [toLocationId], references: [id])
+
+  transporterId  String?
+  transporter    Transporter? @relation(fields: [transporterId], references: [id])
+
+  transferDate   DateTime @default(now())
   createdBy      String
-  createdAt      DateTime    @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items          TransferItem[]
+}
+
+model TransferItem {
+  id          String      @id @default(cuid())
+  transferId  String
+  transfer    Transfer    @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  productId   String
+  product     ProductList @relation(fields: [productId], references: [id])
+
+  quantity    Int
 }
 
 // -------------------- PRODUCTION --------------------
 model Production {
-  id          String      @id @default(cuid())
-  productId   String
-  product     ProductList @relation(fields: [productId], references: [id])
-  quantity    Int
-  createdBy   String
-  createdAt   DateTime    @default(now())
+  id            String   @id @default(cuid())
+  productionNo  String   @unique
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id])
+  batchNumber   String
+  notes         String?
+
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         ProductionItem[]
+}
+
+model ProductionItem {
+  id           String      @id @default(cuid())
+  productionId String
+  production   Production  @relation(fields: [productionId], references: [id], onDelete: Cascade)
+
+  productId    String
+  product      ProductList @relation(fields: [productId], references: [id])
+
+  quantity     Int
 }
 
 // -------------------- ADJUSTMENTS --------------------
 model Adjustment {
-  id          String      @id @default(cuid())
-  productId   String
-  product     ProductList @relation(fields: [productId], references: [id])
-  locationId  String
-  location    Location    @relation(fields: [locationId], references: [id])
-  type        String      // 'REBAG_GAIN', 'REBAG_LOSS', 'DAMAGED', 'EXPIRED', etc.
-  quantity    Int
-  reason      String?     // optional note
-  createdBy   String
-  createdAt   DateTime    @default(now())
+  id           String   @id @default(cuid())
+  adjustmentNo String   @unique
+
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+
+  type         String
+  reason       String?
+
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        AdjustmentItem[]
 }
 
+model AdjustmentItem {
+  id            String      @id @default(cuid())
+  adjustmentId  String
+  adjustment    Adjustment  @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
 
+  productId     String
+  product       ProductList @relation(fields: [productId], references: [id])
 
+  quantity      Int
+}

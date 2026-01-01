@@ -9,17 +9,14 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Cell
+    Cell,
 } from "recharts";
 import CustomTooltip from "./CustomTooltip";
 import { MapPin } from "lucide-react";
 
 interface SaleItem {
     quantity: number;
-    product: {
-        weightValue: number;
-        packSize: number;
-    };
+    price: number;
 }
 
 interface Sale {
@@ -30,14 +27,14 @@ interface Sale {
     } | null;
 }
 
-interface LocationData {
+interface LocationValueData {
     location: string;
-    tonnage: number;
+    value: number;
 }
 
-// -----------------------------
-// DATE RANGE SELECTOR
-// -----------------------------
+/* -----------------------------
+   DATE RANGE SELECTOR
+----------------------------- */
 const SimpleDateRangeSelector = ({
     start,
     end,
@@ -71,19 +68,19 @@ const SimpleDateRangeSelector = ({
     </div>
 );
 
-export default function SalesByLocation() {
+export default function SalesValueByLocation() {
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [startDate, setStartDate] = useState<string>("");
-    const [endDate, setEndDate] = useState<string>("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [oldestDate, setOldestDate] = useState("");
 
-    const [oldestDate, setOldestDate] = useState<string>("");
     const today = new Date().toISOString().split("T")[0];
 
-    // -----------------------------
-    // FETCH SALES
-    // -----------------------------
+    /* -----------------------------
+       FETCH SALES
+    ----------------------------- */
     useEffect(() => {
         const fetchSales = async () => {
             try {
@@ -91,11 +88,12 @@ export default function SalesByLocation() {
                 const res = await fetch("/api/sales");
                 const json = await res.json();
                 const data: Sale[] = json.data || [];
+
                 setSales(data);
 
-                if (data.length > 0) {
+                if (data.length) {
                     const oldest = new Date(
-                        Math.min(...data.map((s) => new Date(s.saleDate).getTime()))
+                        Math.min(...data.map(s => new Date(s.saleDate).getTime()))
                     );
                     setOldestDate(oldest.toISOString().split("T")[0]);
                     setStartDate(oldest.toISOString().split("T")[0]);
@@ -111,61 +109,58 @@ export default function SalesByLocation() {
                 setLoading(false);
             }
         };
+
         fetchSales();
     }, [today]);
 
-    // -----------------------------
-    // COMPUTE TONNAGE BY LOCATION
-    // -----------------------------
-    const locationData: LocationData[] = useMemo(() => {
+    /* -----------------------------
+       COMPUTE SALES VALUE BY LOCATION
+    ----------------------------- */
+    const locationValueData: LocationValueData[] = useMemo(() => {
         if (!sales.length) return [];
 
-        const start = startDate ? new Date(startDate) : new Date(oldestDate);
-        const end = endDate ? new Date(endDate) : new Date(today);
+        const start = new Date(startDate || oldestDate);
+        const end = new Date(endDate || today);
         end.setHours(23, 59, 59, 999);
 
-        const filtered = sales.filter((sale) => {
-            const saleDate = new Date(sale.saleDate);
-            return saleDate >= start && saleDate <= end;
+        const filtered = sales.filter(s => {
+            const d = new Date(s.saleDate);
+            return d >= start && d <= end;
         });
 
         const locations = Array.from(
-            new Set(filtered.map((s) => s.location?.name || "Unknown"))
+            new Set(filtered.map(s => s.location?.name || "Unknown"))
         );
 
         return locations
-            .map((loc) => {
-                const locSales = filtered.filter(
-                    (s) => (s.location?.name || "Unknown") === loc
-                );
-                const tonnage = locSales.reduce((sum, sale) => {
-                    const saleTonnage =
-                        sale.items?.reduce((itemSum, item) => {
-                            if (!item.product) return itemSum;
-                            return (
-                                itemSum +
-                                (item.product.weightValue * item.quantity * item.product.packSize) /
-                                1000
-                            );
-                        }, 0) || 0;
-                    return sum + saleTonnage;
-                }, 0);
-                return { location: loc, tonnage: Number(tonnage.toFixed(2)) };
+            .map(location => {
+                const value = filtered
+                    .filter(s => (s.location?.name || "Unknown") === location)
+                    .reduce((sum, sale) => {
+                        return sum + sale.items.reduce(
+                            (itemSum, item) => itemSum + item.quantity * item.price,
+                            0
+                        );
+                    }, 0);
+
+                return {
+                    location,
+                    value: Number(value.toFixed(2)),
+                };
             })
-            .sort((a, b) => b.tonnage - a.tonnage);
+            .sort((a, b) => b.value - a.value);
     }, [sales, startDate, endDate, oldestDate, today]);
 
-    // -----------------------------
-    // RENDER
-    // -----------------------------
+    /* -----------------------------
+       RENDER
+    ----------------------------- */
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
-            {/* Header */}
+        <div className="bg-white py-6 px-2 rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
             <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-green-600" /> Sales by Location (Tonnage)
+                <MapPin className="h-5 w-5 text-blue-600" />
+                Sales Value by Location
             </h3>
 
-            {/* Date Selector */}
             <SimpleDateRangeSelector
                 start={startDate}
                 end={endDate}
@@ -175,32 +170,49 @@ export default function SalesByLocation() {
                 today={today}
             />
 
-            {/* Chart */}
-            <div className="relative flex-1 flex flex-col">
+            <div className="relative flex-1">
                 {loading ? (
                     <div className="flex justify-center items-center h-[250px]">
                         Loading...
                     </div>
-                ) : locationData.length === 0 ? (
+                ) : locationValueData.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">
                         No sales data for selected range
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={locationData} barCategoryGap={18}>
+                        <BarChart data={locationValueData} barCategoryGap={18}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="location" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="tonnage" radius={[6, 6, 0, 0]} fill="#16a34a">
-                                {locationData.map((_, idx) => (
-                                    <Cell key={`cell-${idx}`} />
+                            <YAxis
+                                tick={{ fontSize: 11 }}
+                                tickFormatter={(v) => `K${v}`}
+                            />
+                            <Tooltip
+                                content={
+                                    <CustomTooltip
+                                        labels={{
+                                            titleKey: "location",
+                                            metrics: [
+                                                {
+                                                    key: "value",
+                                                    label: "Sales Value",
+                                                    format: (v) => `K${v.toFixed(2)}`,
+                                                },
+                                            ],
+                                        }}
+                                    />
+                                }
+                            />
+                            <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#2563eb">
+                                {locationValueData.map((_, i) => (
+                                    <Cell key={i} />
                                 ))}
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

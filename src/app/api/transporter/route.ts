@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// -------------------- GET TRANSFERS --------------------
-export async function GET(req: NextRequest) {
+// -------------------- GET /api/transfers --------------------
+export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const page = Number(searchParams.get("page") || 1);
@@ -40,69 +40,78 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: true, data: transfers, total });
     } catch (error) {
         console.error("Fetch transfers failed:", error);
-        return NextResponse.json({ error: "Failed to fetch transfers", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json({ error: "Failed to fetch transfers" }, { status: 500 });
     }
 }
 
-// -------------------- CREATE TRANSFER --------------------
-export async function POST(req: NextRequest) {
+// -------------------- POST /api/transfers --------------------
+export async function POST(req: Request) {
     try {
         const { fromLocationId, toLocationId, transporterId, items, createdBy } = await req.json();
 
-        if (!fromLocationId || !toLocationId || !items?.length || !createdBy) {
+        if (!fromLocationId || !toLocationId || !items?.length) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const transfer = await prisma.$transaction(async (tx) => {
-            // 1️⃣ Generate IBT number
+        const result = await prisma.$transaction(async (tx) => {
+            // Generate IBT number
             const seq = await tx.sequence.upsert({
                 where: { id: "IBT" },
                 update: { value: { increment: 1 } },
                 create: { id: "IBT", value: 1 },
             });
-            const ibtNumber = `IBT${seq.value.toString().padStart(6, "0")}`;
+            const ibtNumber = `IBT${seq.value.toString().padStart(8, "0")}`;
 
-            // 2️⃣ Create transfer
-            const newTransfer = await tx.transfer.create({
-                data: { fromLocationId, toLocationId, transporterId, ibtNumber, createdBy },
+            // Create transfer
+            const transfer = await tx.transfer.create({
+                data: {
+                    ibtNumber,
+                    fromLocationId,
+                    toLocationId,
+                    transporterId,
+                    createdBy,
+                },
             });
 
-            // 3️⃣ Process items
             for (const item of items) {
                 const { productId, quantity } = item;
                 if (!productId || quantity <= 0) throw new Error("Invalid item");
 
-                const sourceInventory = await tx.inventory.findFirst({ where: { productId, locationId: fromLocationId } });
-                if (!sourceInventory || sourceInventory.quantity < quantity) {
-                    throw new Error(`Insufficient stock for product ${productId} at source`);
+                // Check inventory in source location
+                const inventory = await tx.inventory.findFirst({ where: { productId, locationId: fromLocationId } });
+                if (!inventory || inventory.quantity < quantity) {
+                    throw new Error(`Insufficient stock for product ${productId} at source location`);
                 }
 
+                // Create TransferItem
+                await tx.transferItem.create({
+                    data: {
+                        transferId: transfer.id,
+                        productId,
+                        quantity,
+                    },
+                });
+
+                // Decrement source inventory
                 await tx.inventory.update({
-                    where: { id: sourceInventory.id },
+                    where: { id: inventory.id },
                     data: { quantity: { decrement: quantity } },
                 });
 
+                // Increment destination inventory
                 await tx.inventory.upsert({
                     where: { productId_locationId: { productId, locationId: toLocationId } },
                     update: { quantity: { increment: quantity } },
                     create: { productId, locationId: toLocationId, quantity, lowStockAt: 0, createdBy },
                 });
-
-                await tx.transferItem.create({
-                    data: { transferId: newTransfer.id, productId, quantity },
-                });
             }
 
-            return tx.transfer.findUnique({
-                where: { id: newTransfer.id },
-                include: { items: { include: { product: true } }, fromLocation: true, toLocation: true, transporter: true },
-            });
+            return transfer;
         });
 
-        return NextResponse.json(transfer, { status: 201 });
+        return NextResponse.json(result, { status: 201 });
     } catch (error) {
         console.error("Create transfer failed:", error);
-        return NextResponse.json({ error: "Failed to create transfer", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json({ error: "Failed to create transfer" }, { status: 500 });
     }
 }
-

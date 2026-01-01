@@ -15,7 +15,7 @@ interface Props {
     setSelectedProducts: (products: string[]) => void;
     locationOptions: { value: string; label: string }[];
     categoryOptions: { value: string; label: string }[];
-    sales: Sale[];
+    productOptions: { id: string; name: string; category: string | null }[];
     exportCSV: () => void;
     exportPDF: () => void;
 }
@@ -33,74 +33,45 @@ const DateFiltersExports = ({
     setSelectedProducts,
     locationOptions,
     categoryOptions,
-    sales,
+    productOptions,
     exportCSV,
     exportPDF,
 }: Props) => {
     const [showLocations, setShowLocations] = useState(false);
     const [showCategories, setShowCategories] = useState(false);
     const [showProducts, setShowProducts] = useState(false);
-
     const locationRef = useRef<HTMLDivElement>(null);
     const categoryRef = useRef<HTMLDivElement>(null);
     const productRef = useRef<HTMLDivElement>(null);
 
-
-    // ---------------- PRODUCT OPTIONS ----------------
-    const products = useMemo(() => {
-        if (!sales || sales.length === 0) return [];
-        const productMap = new Map<string, { id: string; name: string; category: string | null }>();
-        sales.forEach((sale) => {
-            if (sale.product && !productMap.has(sale.productId)) {
-                productMap.set(sale.productId, {
-                    id: sale.productId,
-                    name: sale.product.name,
-                    category: sale.product.category ?? null,
-                });
-            }
-        });
-        return Array.from(productMap.values());
-    }, [sales]);
-
-
     // Filter products based on selected categories
-    useEffect(() => {
+    const filteredProducts = useMemo(() => {
         if (selectedCategories.length > 0) {
-            setFilteredProducts(
-                products.filter((p) =>
-                    selectedCategories.includes(p.category ?? "")
-                )
+            return productOptions.filter((p) =>
+                selectedCategories.includes(p.category ?? "")
             );
         } else {
-            setFilteredProducts(products);
+            return productOptions;
         }
-    }, [products, selectedCategories]);
-
-
-    // ---------------- FILTERED STATE ----------------
-    const [filteredCategories, setFilteredCategories] = useState(categoryOptions);
-    const [filteredProducts, setFilteredProducts] = useState(products);
-
-    // Filter products based on selected categories
-    useEffect(() => {
-        setFilteredProducts(products);
-    }, [products]);
+    }, [productOptions, selectedCategories]);
 
     // Filter categories based on selected products
-    useEffect(() => {
+    const filteredCategories = useMemo(() => {
         if (selectedProducts.length > 0) {
             const categories = Array.from(
                 new Set(
                     selectedProducts
-                        .map((id) => products.find((p) => p.id === id)?.category)
+                        .map((id) =>
+                            productOptions.find((p) => p.id === id)?.category
+                        )
                         .filter(Boolean)
                 )
             ) as string[];
-            setFilteredCategories(categoryOptions.filter((c) => categories.includes(c.value)));
+            return categoryOptions.filter((c) => categories.includes(c.value));
         } else {
-            setFilteredCategories(categoryOptions);
+            return categoryOptions;
         }
-    }, [selectedProducts, products, categoryOptions]);
+    }, [selectedProducts, productOptions, categoryOptions]);
 
     // ---------------- CLOSE DROPDOWNS ON OUTSIDE CLICK ----------------
     useEffect(() => {

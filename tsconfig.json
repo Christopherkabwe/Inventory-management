@@ -36,9 +36,10 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    "src/components/StockTonnageTrendChart.tsx",
+    "src/components/SalesTonnageByLocation.tsx",
     "src/app/api/[sales]/route.js",
-    "src/app/api/customers/route.ts"
+    "src/app/api/customers/route.ts",
+    "src/components/RecentSales.Clienttsx"
   ],
   "exclude": [
     "node_modules"

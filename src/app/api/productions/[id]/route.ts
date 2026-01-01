@@ -3,141 +3,110 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: { id: string } };
 
-/* ===========================
-   PUT /api/productions/:id
-   Adjust inventory by DELTA
-=========================== */
+/* PUT /api/productions/:id */
 export async function PUT(req: Request, { params }: Params) {
-    try {
-        const { id } = params;
-        const body = await req.json();
-        const { productId, quantity } = body;
+    const { id } = params;
 
-        if (!productId || quantity <= 0) {
-            return NextResponse.json(
-                { error: "Invalid payload" },
-                { status: 400 }
-            );
+    try {
+        const body = await req.json();
+        const { batchNumber, items } = body;
+
+        if (!batchNumber || !Array.isArray(items)) {
+            return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
         }
 
-        const result = await prisma.$transaction(async (tx) => {
-            // 1️⃣ Fetch existing production
-            const existing = await tx.production.findUnique({
+        const updatedProduction = await prisma.$transaction(async (tx) => {
+            // Update batch number
+            await tx.production.update({
                 where: { id },
+                data: { batchNumber },
             });
 
-            if (!existing) {
-                throw new Error("Production not found");
+            // Upsert items
+            for (const item of items) {
+                if (item.id && item.id.startsWith("new-")) {
+                    // Add new item
+                    await tx.productionItem.create({
+                        data: {
+                            productionId: id,
+                            productId: item.productId,
+                            quantity: item.quantity,
+                        },
+                    });
+                } else if (item.id) {
+                    // Upsert existing item
+                    await tx.productionItem.upsert({
+                        where: { id: item.id },
+                        update: { quantity: item.quantity },
+                        create: { productionId: id, productId: item.productId, quantity: item.quantity },
+                    });
+                }
             }
 
-            // 2️⃣ Calculate delta
-            const delta = quantity - existing.quantity;
 
-            // 3️⃣ Find inventory for this product
-            const inventory = await tx.inventory.findFirst({
-                where: { productId: existing.productId },
-                orderBy: { createdAt: "desc" },
-            });
+            // Remove items that are no longer present
+            const existingItemIds = (
+                await tx.productionItem.findMany({ where: { productionId: id }, select: { id: true } })
+            ).map(i => i.id);
 
-            if (!inventory) {
-                throw new Error("Inventory record not found");
+            const incomingItemIds = items.filter(i => i.id && !i.id.startsWith("new-")).map(i => i.id);
+
+            const itemsToDelete = existingItemIds.filter(id => !incomingItemIds.includes(id));
+            if (itemsToDelete.length > 0) {
+                await tx.productionItem.deleteMany({ where: { id: { in: itemsToDelete } } });
             }
 
-            // 4️⃣ Prevent negative stock
-            if (inventory.quantity + delta < 0) {
-                throw new Error("Insufficient inventory for update");
-            }
-
-            // 5️⃣ Update inventory
-            await tx.inventory.update({
-                where: { id: inventory.id },
-                data: {
-                    quantity: {
-                        increment: delta,
-                    },
-                },
-            });
-
-            // 6️⃣ Update production
-            const production = await tx.production.update({
+            // Return updated production with items and product info
+            return tx.production.findUnique({
                 where: { id },
-                data: {
-                    productId,
-                    quantity,
-                },
-                include: {
-                    product: true,
-                },
+                include: { items: { include: { product: true } } },
             });
-
-            return production;
         });
 
-        return NextResponse.json({ production: result });
-    } catch (error) {
-        console.error("Update production failed:", error);
-        return NextResponse.json(
-            { error: "Failed to update production" },
-            { status: 500 }
-        );
+        return NextResponse.json({ production: updatedProduction });
+    } catch (err) {
+        console.error("Update production failed:", err);
+        return NextResponse.json({ error: "Failed to update production" }, { status: 500 });
     }
 }
 
-/* ===========================
-   DELETE /api/productions/:id
-   Rollback inventory
-=========================== */
+/* DELETE /api/productions/:id */
 export async function DELETE(_: Request, { params }: Params) {
-    try {
-        const { id } = params;
+    const { id } = params;
 
+    try {
         await prisma.$transaction(async (tx) => {
-            // 1️⃣ Fetch production
             const production = await tx.production.findUnique({
                 where: { id },
+                include: { items: true },
             });
 
-            if (!production) {
-                throw new Error("Production not found");
+            if (!production) throw new Error("Production not found");
+
+            // Rollback inventory for each item
+            for (const item of production.items) {
+                const inventory = await tx.inventory.findFirst({
+                    where: { productId: item.productId },
+                    orderBy: { createdAt: "desc" },
+                });
+
+                if (!inventory) throw new Error(`Inventory not found for product ${item.productId}`);
+                if (inventory.quantity < item.quantity) throw new Error("Insufficient inventory to rollback");
+
+                await tx.inventory.update({
+                    where: { id: inventory.id },
+                    data: { quantity: { decrement: item.quantity } },
+                });
             }
 
-            // 2️⃣ Find inventory
-            const inventory = await tx.inventory.findFirst({
-                where: { productId: production.productId },
-                orderBy: { createdAt: "desc" },
-            });
-
-            if (!inventory) {
-                throw new Error("Inventory record not found");
-            }
-
-            // 3️⃣ Prevent negative inventory
-            if (inventory.quantity < production.quantity) {
-                throw new Error("Insufficient inventory to rollback");
-            }
-
-            // 4️⃣ Rollback inventory
-            await tx.inventory.update({
-                where: { id: inventory.id },
-                data: {
-                    quantity: {
-                        decrement: production.quantity,
-                    },
-                },
-            });
-
-            // 5️⃣ Delete production
-            await tx.production.delete({
-                where: { id },
-            });
+            // Delete production items and production
+            await tx.productionItem.deleteMany({ where: { productionId: id } });
+            await tx.production.delete({ where: { id } });
         });
 
         return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error("Delete production failed:", error);
-        return NextResponse.json(
-            { error: "Failed to delete production" },
-            { status: 500 }
-        );
+    } catch (err) {
+        console.error("Delete production failed:", err);
+        return NextResponse.json({ error: "Failed to delete production" }, { status: 500 });
     }
 }

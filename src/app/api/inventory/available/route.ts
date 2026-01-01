@@ -14,14 +14,9 @@ export async function GET(req: Request) {
     }
 
     try {
-        const inventory = await prisma.inventory.findFirst({
-            where: {
-                productId,
-                locationId,
-            },
-            select: {
-                quantity: true,
-            },
+        const inventory = await prisma.inventory.findUnique({
+            where: { productId_locationId: { productId, locationId } },
+            select: { quantity: true },
         });
 
         return NextResponse.json({

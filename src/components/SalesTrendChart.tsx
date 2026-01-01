@@ -9,6 +9,12 @@ import SalesByCategoryPie from "./SalesByCategoryPie";
 import { MapPin, BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TrendingUp, Package, Package2Icon } from 'lucide-react';
+import SalesTrend from "./SalesTrend"
+import SalesByLocation from "./SalesByLocation";
+import SalesGrowthByLocation from "./SalesGrowthByLocation";
+import TopProductsByLocation from "./TopProductsByLocation";
+import SalesValueByLocation from "./SalesValueByLocation";
+import SalesContributionByLocation from "./SalesContributionByLocation";
 
 interface ChartDataPoint {
     date: string;
@@ -457,310 +463,38 @@ export default function SalesTrendChart({ sales, productList }: Props) {
     return (
         <div className="space-y-6">
             {/* ================= LINE CHARTS ================= */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
 
                 {/* Sales Value Trend */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5 text-blue-600" />
-                            Sales Value Trend
-                        </h3>
-                    </div>
-                    <div>
-                        <DateRangeSelector
-                            start={valueStartDate} end={valueEndDate} setStart={setValueStartDate} setEnd={setValueEndDate}
-                            view={valueView} setView={setValueView}
-                        />
-                    </div>
 
-                    <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={valueTrendData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip labels={{
-                                titleKey: "date",
-                                metrics: [
-                                    { key: "value", label: "Sales Value", format: v => `K${v.toFixed(2)}` },
-                                    { key: "tonnage", label: "Tonnage", format: v => `${v.toFixed(2)} tons` },
-                                    { key: "quantity", label: "Quantity", format: v => `${v} units` },
-                                ],
-                            }} />} />
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#2563eb"
-                                strokeWidth={2.5}
-                                dot={false}
-                                activeDot={{ r: 4 }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-
-                {/* Sales Tonnage Trend */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5 text-blue-600" />
-                            Sales Tonnage Trend
-                        </h3>
-                    </div>
-                    <div>
-                        <DateRangeSelector
-                            start={tonnageStartDate} end={tonnageEndDate} setStart={setTonnageStartDate} setEnd={setTonnageEndDate}
-                            view={tonnageView} setView={setTonnageView}
-                        />
-                    </div>
-
-                    <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={tonnageTrendData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip labels={{
-                                titleKey: "date",
-                                metrics: [
-                                    { key: "tonnage", label: "Tonnage", format: v => `${v.toFixed(2)} tons` },
-                                    { key: "value", label: "Sales Value", format: v => `K${v.toFixed(2)}` },
-                                ],
-                            }} />} />
-                            <Line
-                                type="monotone"
-                                dataKey="tonnage"
-                                stroke="#16a34a"
-                                strokeWidth={2.5}
-                                dot={false}
-                                activeDot={{ r: 4 }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                <div>
+                    <SalesTrend />
                 </div>
             </div>
 
             {/* ================= BARS & PIE ================= */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Category Pie */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <Package className="h-5 w-5 text-green-600" />
-                        Sales by Category</h3>
-                    <SimpleDateRangeSelector
-                        start={categoryStartDate}
-                        end={categoryEndDate}
-                        setStart={setCategoryStartDate}
-                        setEnd={setCategoryEndDate}
-                    />
-                    <SalesByCategoryPie categoryData={categoryData} />
+                <div>
+                    <SalesByCategoryPie />
                 </div>
                 {/* Sales Tonnage by Location */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-green-600" />
-                        Sales by Location (Tonnage)
-                    </h3>
-                    <SimpleDateRangeSelector
-                        start={locationStartDate}
-                        end={locationEndDate}
-                        setStart={setLocationStartDate}
-                        setEnd={setLocationEndDate}
-                    />
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={locationData} barCategoryGap={18}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="location" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="tonnage" radius={[6, 6, 0, 0]} fill="#16a34a" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div>
+                    <SalesByLocation />
                 </div>
                 {/* Sales Growth by Location */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-emerald-600" />
-                        Sales Growth by Location (%)
-                    </h3>
-
-                    <SimpleDateRangeSelector
-                        start={locationStartDate}
-                        end={locationEndDate}
-                        setStart={setLocationStartDate}
-                        setEnd={setLocationEndDate}
-                    />
-
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={growthByLocation} barCategoryGap={18}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="location" tick={{ fontSize: 11 }} />
-                            <YAxis tickFormatter={v => `${v}%`} />
-
-                            {/* Use CustomTooltip */}
-                            <Tooltip
-                                content={
-                                    <CustomTooltip
-                                        labels={{
-                                            titleKey: "location",
-                                            metrics: [
-                                                {
-                                                    key: "growthPercent",
-                                                    label: "Growth",
-                                                    format: v => `${v && v >= 0 ? "+" : ""}${v?.toFixed(1)}%`,
-                                                    color: v => (v !== undefined && v < 0 ? "#ef4444" : "#16a34a"),
-                                                },
-                                            ],
-                                        }}
-                                    />
-                                }
-                            />
-
-                            <Bar dataKey="growthPercent" radius={[6, 6, 0, 0]}>
-                                {growthByLocation.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={entry.growthPercent < 0 ? "#ef4444" : "#16a34a"}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <SalesGrowthByLocation />
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
                 {/* Top Products per Location */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-blue-600" />
-                        Top Products by Location
-                    </h3>
-                    <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 flex-1 overflow-y-auto max-h-[320px]">
-                        {topProductsByLocation.map(loc => (
-                            <div key={loc.location} className="border rounded-lg p-3">
-                                <h4 className="font-semibold text-sm mb-2">{loc.location}</h4>
-                                <div className="space-y-1">
-                                    {loc.products.map(p => (
-                                        <div key={p.name} className="flex justify-between text-sm">
-                                            <span>{p.name}</span>
-                                            <span className="">{p.tonnage.toFixed(2)} Tons</span>
-                                            <span className="">K{p.value.toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div >
+                    <TopProductsByLocation />
                 </div>
 
                 {/* Sales Value by Location */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-blue-600" />
-                        Sales Value by Location
-                    </h3>
-                    <SimpleDateRangeSelector
-                        start={locationStartDate}
-                        end={locationEndDate}
-                        setStart={setLocationStartDate}
-                        setEnd={setLocationEndDate}
-                    />
-
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={locationData} barCategoryGap={18}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="location" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="salesValue" radius={[6, 6, 0, 0]} fill="#3b82f6" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <SalesValueByLocation />
                 {/* Contribution to Total Sales (Donut) */}
-                <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-indigo-600" />
-                        Contribution to Total Sales (%)
-                    </h3>
-
-                    <SimpleDateRangeSelector
-                        start={locationStartDate}
-                        end={locationEndDate}
-                        setStart={setLocationStartDate}
-                        setEnd={setLocationEndDate}
-                    />
-
-                    <ResponsiveContainer width="100%" height={260}>
-                        <PieChart>
-                            <Pie
-                                data={locationContributionData}
-                                dataKey="contribution"
-                                nameKey="location"
-                                innerRadius={60}
-                                outerRadius={90}
-                                paddingAngle={3}
-                                label={false} // hide labels on slices
-                            >
-                                {locationContributionData.map((_, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={[
-                                            "#6366f1",
-                                            "#22c55e",
-                                            "#f59e0b",
-                                            "#ef4444",
-                                            "#06b6d4",
-                                            "#8b5cf6",
-                                        ][index % 6]}
-                                    />
-                                ))}
-                            </Pie>
-
-                            <Tooltip
-                                content={
-                                    <CustomTooltip
-                                        labels={{
-                                            titleKey: "location",
-                                            metrics: [
-                                                {
-                                                    key: "contribution",
-                                                    label: "Contribution",
-                                                    format: v => `${v?.toFixed(1)}%`,
-                                                },
-                                                {
-                                                    key: "salesValue",
-                                                    label: "Sales Value",
-                                                    format: v => `K${v?.toFixed(2)}`,
-                                                },
-                                            ],
-                                        }}
-                                    />
-                                }
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
-
-                    {/* Custom Legend Below Donut */}
-                    <div className="flex justify-center gap-4 text-xs">
-                        {locationContributionData.map((entry, index) => (
-                            <div key={entry.location} className="flex items-center gap-2">
-                                <span
-                                    className="w-3 h-3 rounded-full"
-                                    style={{
-                                        backgroundColor: [
-                                            "#6366f1",
-                                            "#22c55e",
-                                            "#f59e0b",
-                                            "#ef4444",
-                                            "#06b6d4",
-                                            "#8b5cf6",
-                                        ][index % 6],
-                                    }}
-                                />
-                                <span>{`${entry.location} (${entry.contribution.toFixed(1)}%)`}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <SalesContributionByLocation />
             </div>
         </div >
     );

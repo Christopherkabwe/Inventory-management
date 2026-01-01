@@ -107,18 +107,24 @@ export default async function DashboardPage() {
     const sales = await prisma.sale.findMany({
         where: {
             createdBy: userId,
-            saleDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // last 30 days
+            saleDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         },
         include: {
-            product: {
-                select: { price: true },
+            items: {
+                include: {
+                    product: {
+                        select: { price: true },
+                    },
+                },
             },
         },
     });
 
     const costOfGoodsSold = sales.reduce((sum, sale) => {
-        const productPrice = sale.product?.price || 0;
-        return sum + (productPrice * sale.quantity);
+        const saleTotal = sale.items.reduce((itemSum, item) => {
+            return itemSum + (item.quantity * (item.product?.price || 0));
+        }, 0);
+        return sum + saleTotal;
     }, 0);
 
     const avgInventoryValue = totalValue; // Use your existing totalValue
@@ -252,7 +258,7 @@ export default async function DashboardPage() {
                 {/* KPIs */}
                 <div className="grid grid-cols-2 xl:grid-cols-5 gap-6 mb-5">
                     <KPI title="Total Products" value={totalProducts} icon={<Package />} color="purple" />
-                    <KPI title="Total Tonnage" value={totalTonnageKg} icon={<WeightIcon />} color="yellow" />
+                    <KPI title="Total Tonnage" value={totalTonnageKg.toFixed(2)} icon={<WeightIcon />} color="yellow" />
                     <KPI title="Inventory Value" value={`K${totalValue.toFixed(0)}`} icon={<DollarSign />} color="green" />
                     <KPI title="Low Stock" value={lowStock} icon={<AlertTriangle />} color="yellow" />
                     <KPI title="Out of Stock" value={outOfStock} icon={<XCircle />} color="red" />

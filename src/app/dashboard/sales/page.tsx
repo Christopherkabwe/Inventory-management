@@ -8,13 +8,10 @@ import LeastProducts from "@/components/LeastProducts";
 import RecentSales from "@/components/RecentSales";
 import TopCustomers from "@/components/TopCustomers";
 import LeastCustomers from "@/components/LeastCustomers";
-import SalesByLocation from "@/components/SalesByLocation";
 import { DashboardSale } from "@/components/DashboardSale";
-import SalesByCustomer from "@/components/SalesByCustomer";
-import SalesByProduct from "@/components/SalesByProduct";
 import SalesTable from "@/components/SalesTable";
-import DateFiltersExports from "@/components/DateFiltersExports";
 import DashboardLayout from "@/components/DashboardLayout";
+import SalesByCategory from "@/components/SalesByCategory";
 
 interface ChartDataPoint {
     date: string;
@@ -41,30 +38,71 @@ export default async function SalesDashboardPage() {
     const sales: DashboardSale[] = await prisma.sale.findMany({
         where: { createdBy: userId },
         include: {
-            product: {
-                select: {
-                    name: true,
-                    price: true,
-                    category: true,
-                    weightValue: true,
-                    packSize: true
+            customer: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true, address: true } },
+            items: {
+                include: {
+                    product: {
+                        select: {
+                            id: true,
+                            name: true,
+                            price: true,
+                            category: true,
+                            weightValue: true,
+                            packSize: true,
+                            weightUnit: true,
+                        },
+                    },
                 },
             },
-            location: { select: { name: true } }
         },
-    });
+    }).then(data => data.flatMap(sale =>
+        sale.items.map(item => ({
+            id: sale.id,
+            customerId: sale.customerId,
+            customerName: sale.customer?.name,
+            address: { name: sale.location?.name },
+            productId: item.product.id,
+            quantity: item.quantity,
+            salePrice: item.product.price,
+            totalAmount: item.product.price * item.quantity,
+            saleDate: sale.saleDate,
+            createdBy: sale.createdBy,
+            createdAt: sale.createdAt,
+            updatedAt: sale.updatedAt,
+            location: { name: sale.location?.name, address: sale.location?.address },
+            locationId: sale.locationId,
+            product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+                category: item.product.category,
+                packSize: item.product.packSize,
+                weightValue: item.product.weightValue,
+                weightUnit: item.product.weightUnit,
+            },
+        }))
+    ));
 
     // 1. Get product sales with quantities
-    const productSales = await prisma.sale.groupBy({
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const productSales = await prisma.saleItem.groupBy({
         by: ['productId'],
         where: {
-            createdBy: userId,
-            saleDate: {
-                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
+            sale: {
+                createdBy: userId,
+                saleDate: { gte: thirtyDaysAgo },
             },
         },
         _sum: {
             quantity: true,
+            total: true, // optional, total sales per product
+        },
+        orderBy: {
+            _sum: {
+                total: 'desc',
+            },
         },
     });
 
@@ -72,7 +110,14 @@ export default async function SalesDashboardPage() {
     const productIds = productSales.map((sale) => sale.productId);
     const products = await prisma.productList.findMany({
         where: { id: { in: productIds } },
-        select: { id: true, name: true, price: true },
+        select: {
+            id: true,
+            name: true,
+            price: true,
+            category: true,
+            weightValue: true,
+            packSize: true,
+        },
     });
 
     // 3. Merge sales data with product info
@@ -87,11 +132,8 @@ export default async function SalesDashboardPage() {
                 qty: sale._sum.quantity || 0,
             };
         })
-        .filter(Boolean) // Remove nulls
+        .filter(Boolean)
         .sort((a, b) => b.totalValue - a.totalValue);
-
-    const topSellingProducts = salesByProduct.slice(0, 5);
-    const leastSellingProducts = salesByProduct.slice(-5).reverse();
 
     // Total Sales, Total Orders, Average Order Value
     const totalSales = sales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
@@ -102,11 +144,14 @@ export default async function SalesDashboardPage() {
         where: { createdBy: userId },
         include: {
             sales: {
-                include: { product: true }
+                include: {
+                    items: {
+                        include: { product: true }
+                    }
+                }
             }
         },
     });
-
 
     const totalCustomers = customers.length;
 
@@ -116,14 +161,28 @@ export default async function SalesDashboardPage() {
     const prevMonthSales = await prisma.sale.findMany({
         where: {
             createdBy: userId,
-            saleDate: { gte: lastMonthStart, lte: lastMonthEnd },
+            saleDate: {
+                gte: lastMonthStart,
+                lte: lastMonthEnd
+            }
+        },
+        include: {
+            items: {
+                include: {
+                    product: true
+                }
+            }
         },
     });
-    const prevMonthTotal = prevMonthSales.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    const prevMonthTotal = prevMonthSales.reduce((sum, sale) => {
+        return sum + sale.items.reduce((itemSum, item) => {
+            return itemSum + item.quantity * item.product.price;
+        }, 0);
+    }, 0);
+
     const growth = prevMonthTotal ? ((totalSales - prevMonthTotal) / prevMonthTotal * 100).toFixed(1) : "0";
 
-    // 2. Conversion Rate
-    const conversionRate = totalCustomers > 0 ? (totalOrders / totalCustomers * 100).toFixed(1) : "0";
 
     // 3. Sales per Product Category
     const salesByCategory = sales.reduce((acc, sale) => {
@@ -131,7 +190,7 @@ export default async function SalesDashboardPage() {
         if (!acc[category]) {
             acc[category] = { totalValue: 0, qty: 0 };
         }
-        acc[category].totalValue += sale.quantity * sale.salePrice;
+        acc[category].totalValue += sale.salePrice * sale.quantity;
         acc[category].qty += sale.quantity;
         return acc;
     }, {} as Record<string, { totalValue: number; qty: number }>);
@@ -153,20 +212,52 @@ export default async function SalesDashboardPage() {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const salesYTD = await prisma.sale.findMany({
-        where: { createdBy: userId, saleDate: { gte: startOfYear } },
-        include: { product: { select: { price: true } } },
+        where: {
+            createdBy: userId,
+            saleDate: {
+                gte: startOfYear
+            }
+        },
+        include: {
+            items: {
+                include: {
+                    product: {
+                        select: {
+                            price: true
+                        }
+                    }
+                }
+            }
+        },
     });
-    const totalSalesYTD = salesYTD.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
+
+    const totalSalesYTD = salesYTD.reduce((sum, sale) => {
+        return sum + sale.items.reduce((itemSum, item) => {
+            return itemSum + item.quantity * item.product.price;
+        }, 0);
+    }, 0);
 
     const salesMTD = await prisma.sale.findMany({
-        where: { createdBy: userId, saleDate: { gte: startOfMonth } },
-        include: { product: { select: { price: true } } },
+        where: {
+            createdBy: userId,
+            saleDate: {
+                gte: startOfMonth
+            }
+        },
+        include: {
+            items: {
+                include: {
+                    product: true
+                }
+            }
+        },
     });
-    const totalSalesMTD = salesMTD.reduce((sum, sale) => sum + sale.quantity * sale.salePrice, 0);
 
-    // Current year
-    const startOfCurrentYear = new Date(new Date().getFullYear(), 0, 1);
-    const endOfCurrentYear = new Date();
+    const totalSalesMTD = salesMTD.reduce((sum, sale) => {
+        return sum + sale.items.reduce((itemSum, item) => {
+            return itemSum + item.quantity * item.product.price;
+        }, 0);
+    }, 0);
 
     // Previous year
     const startOfLastYear = new Date(new Date().getFullYear() - 1, 0, 1);
@@ -189,14 +280,11 @@ export default async function SalesDashboardPage() {
         ? ((salesThisYear - salesLastYear) / salesLastYear) * 100
         : 0;
 
-    // Recent sales (last 7 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Recent sales (last 30 days)
     const recentSales = sales
-        .filter(sale => sale.saleDate >= thirtyDaysAgo)
-        .sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime())
+        .filter(sale => new Date(sale.saleDate) >= thirtyDaysAgo)
+        .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
         .slice(0, 10);
-
     // Top products (by quantity sold)
     const topProducts = sales
         .reduce((acc, sale) => {
@@ -241,33 +329,33 @@ export default async function SalesDashboardPage() {
         }, [] as ChartDataPoint[])
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Sales Category trend data
-    const salesCategoryTrendData = (sales || []).reduce((acc, sale) => {
-        const date = new Date(sale.saleDate).toISOString().split('T')[0];
-        const category = sale.product?.category || 'Uncategorized'; // Optional chaining for safety
-        const existing = acc.find(d => d.date === date);
-
-        if (existing) {
-            existing[category] = (existing[category] || 0) + sale.quantity;
-        } else {
-            acc.push({
-                date,
-                [category]: sale.quantity,
-            });
-        }
-        return acc;
-    }, [] as CategoryTrendDataPoint[]).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
     // Top Customers and Least Customers
-    const topCustomers = [...customers]
-        .sort((a, b) => (b.sales?.length || 0) - (a.sales?.length || 0))
-        .slice(0, 5);
+    const sortCustomers = (a: any, b: any) => {
+        const recentSalesA = a.sales?.filter(sale => new Date(sale.saleDate) >= thirtyDaysAgo) || [];
+        const recentSalesB = b.sales?.filter(sale => new Date(sale.saleDate) >= thirtyDaysAgo) || [];
 
-    const leastCustomers = [...customers]
-        .sort((a, b) => (a.sales?.length || 0) - (b.sales?.length || 0))
-        .slice(0, 5);
+        const totalTonnageA = recentSalesA.reduce((sum, sale) => {
+            return sum + sale.items.reduce((itemSum, item) => {
+                const productWeight = item.product?.weightValue || 0;
+                const packSize = item.product?.packSize || 1;
+                return itemSum + (productWeight * item.quantity * packSize) / 1000; // convert to tons
+            }, 0);
+        }, 0);
 
+        const totalTonnageB = recentSalesB.reduce((sum, sale) => {
+            return sum + sale.items.reduce((itemSum, item) => {
+                const productWeight = item.product?.weightValue || 0;
+                const packSize = item.product?.packSize || 1;
+                return itemSum + (productWeight * item.quantity * packSize) / 1000; // convert to tons
+            }, 0);
+        }, 0);
 
+        return totalTonnageB - totalTonnageA; // Sort in descending order
+    };
+
+    const sortedCustomers = [...customers].sort(sortCustomers);
+    const topCustomers = sortedCustomers.slice(0, 5);
+    const leastCustomers = sortedCustomers.slice(-5).reverse();
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -276,10 +364,10 @@ export default async function SalesDashboardPage() {
                 {/* Header */}
                 <div>
                     <h1 className="text-3xl font-bold">Sales Dashboard</h1>
-                    <p className="text-gray-500 mt-1">Track your sales performance and trends</p>
+                    <p className="text-gray-500 mt-1 mb-2">Track your sales performance and trends</p>
                 </div>
                 {/* KPIs */}
-                <div className="grid grid-cols-2 xl:grid-cols-8 gap-2">
+                <div className="grid grid-cols-2 xl:grid-cols-8 gap-2 mb-5">
                     <KPI title="Total Sales" value={`K${totalSales.toFixed(0)}`} icon={<DollarSign />} color="blue" />
                     <KPI title="Sales YTD" value={`K${totalSalesYTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
                     <KPI title="Sales MTD" value={`K${totalSalesMTD.toFixed(0)}`} icon={<Calendar />} color="yellow" />
@@ -293,8 +381,6 @@ export default async function SalesDashboardPage() {
                     <KPI title="Customers" value={totalCustomers} icon={<Users />} color="yellow" />
                     <KPI title="Orders" value={totalOrders} icon={<ShoppingBag />} color="blue" />
                     <KPI title="Avg. Order Value" value={`K${avgOrderValue.toFixed(0)}`} icon={<TrendingUp />} color="blue" />
-                    {/*<KPI title="Items per Order" value={avgItemsPerOrder} icon={<ShoppingBag />} color="green" />*/}
-                    {/*<KPI title="Conversion Rate" value={`${conversionRate}%`} icon={<Users />} color="purple" />*/}
                 </div>
 
                 {/* Main Grid */}
@@ -306,49 +392,23 @@ export default async function SalesDashboardPage() {
                     />
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
-                    <TopProducts
-                        products={topSellingProducts}
-                        title="Top Selling Products (Last 30 Days)"
-                        iconColor="text-yellow-500"
-                    />
-                    <LeastProducts products={leastSellingProducts} />
+                    <TopProducts />
+                    <LeastProducts />
 
                     {/* Sales by Category */}
-                    <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Calendar className="h-5 w-5 text-blue-500" /> Sales by Category
-                        </h3>
-                        {Object.entries(salesByCategory).length === 0 ? (
-                            <p className="text-sm text-gray-500">No sales data.</p>
-                        ) : (
-                            <ul className="space-y-3 text-sm overflow-y-auto">
-                                {Object.entries(salesByCategory).map(([category, data]) => (
-                                    <li key={category} className="flex justify-between items-center">
-                                        <span className="font-medium">{category}</span>
-                                        <span>{data.qty} units</span>
-                                        <span className="font-bold text-purple-600">K{data.totalValue.toFixed(0)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
+                    <SalesByCategory />
                 </div>
 
                 {/* Top Customers and Location */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-5">
-                    <TopCustomers
-                        customers={topCustomers}
-                        title="Top Customers (Last 30 Days)"
-                        iconColor="text-green-500"
-                    />
-                    <LeastCustomers customers={leastCustomers} />
+                    <TopCustomers />
+                    <LeastCustomers />
                 </div>
                 {/* Sales by Location */}
                 <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-5">
-                    <SalesTable sales={sales} />
+                    <SalesTable />
                 </div>
-                <RecentSales sales={recentSales} />
-
+                <RecentSales />
             </DashboardLayout >
         </div >
     );
@@ -384,10 +444,10 @@ interface Props {
 
 function KPI({ title, value, icon, color }: Props) {
     return (
-        <div className="bg-white p-6 rounded-xl border flex justify-between items-center">
+        <div className="bg-white p-2 rounded-xl border flex justify-between items-center">
             <div>
                 <p className="text-sm text-gray-500">{title}</p>
-                <h2 className="text-2xl font-bold">{value}</h2>
+                <h2 className="text-xl font-bold">{value}</h2>
             </div>
 
             {/* Icon */}
