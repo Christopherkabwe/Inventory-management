@@ -8,6 +8,9 @@ import Link from "next/link";
 import DeleteInventoryButton from "@/components/DeleteInventoryButton";
 import InventoryFilters from "@/components/InventoryFilters";
 
+export const metadata = {
+    title: "Inventory",
+};
 
 export default async function InventoryPage({
     searchParams,

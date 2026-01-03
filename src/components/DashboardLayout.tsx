@@ -7,10 +7,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen flex bg-gray-100">
+        <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
             {/* Sidebar (desktop) */}
-            <aside className="hidden md:block w-64 bg-gray-900 text-white">
+            <aside className="hidden md:block w-55 bg-gray-900 text-white">
                 <Sidebar sidebarOpen toggleSidebar={() => { }} />
             </aside>
 

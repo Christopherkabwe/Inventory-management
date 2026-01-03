@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Parser as Json2csvParser } from "json2csv";
 import DashboardLayout from "@/components/DashboardLayout";
 
@@ -71,24 +72,37 @@ export default function SalesDataPage() {
     }, [search, sales]);
 
     const exportCSV = () => {
-        const parser = new Json2csvParser({
-            fields: [
-                "customer.name",
-                "items.product.name",
-                "items.product.packSize",
-                "items.product.weightValue",
-                "items.product.weightUnit",
-                "location.name",
-                "items.quantity",
-                "items.price",
-                "items.total",
-                "saleDate",
-                "isReturn",
-                "invoiceNumber",
-                "deliveryNote",
-            ],
-        });
-        const csv = parser.parse(filteredSales);
+        // Flatten sales
+        const rows = filteredSales.flatMap((s) =>
+            s.items.map((item) => ({
+                transactionId: s.id,
+                customer: s.customer.name,
+                product: item.product.name,
+                packSize: item.product.packSize,
+                weightValue: item.product.weightValue,
+                weightUnit: item.product.weightUnit,
+                location: s.location.name,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.total,
+                tonnage:
+                    ((item.product.weightUnit === "kg"
+                        ? item.product.weightValue
+                        : item.product.weightValue / 1000) *
+                        item.quantity) /
+                    1000,
+                isReturn: s.isReturn ? "Yes" : "No",
+                invoiceNumber: s.invoiceNumber,
+                deliveryNote: s.deliveryNote,
+                transporterName: s.transporter?.name || "-",
+                vehicleNumber: s.transporter?.vehicleNumber || "-",
+                driverName: s.transporter?.driverName || "-",
+                saleDate: new Date(s.saleDate).toLocaleDateString(),
+            }))
+        );
+
+        const parser = new Json2csvParser({ fields: Object.keys(rows[0]) });
+        const csv = parser.parse(rows);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -98,103 +112,82 @@ export default function SalesDataPage() {
     };
 
     const exportPDF = () => {
-        const doc = new jsPDF();
-        doc.text("Sales Data", 14, 20);
-        let y = 30;
-        filteredSales.forEach((s, i) => {
-            doc.text(
-                `${i + 1}. Customer: ${s.customer.name}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Products: ${s.items.map((item) => item.product.name).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Pack Size: ${s.items.map((item) => item.product.packSize).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Weight: ${s.items.map((item) => `${item.product.weightValue.toFixed(2)} ${item.product.weightUnit}`).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Location: ${s.location.name}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Quantity: ${s.items.map((item) => item.quantity).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Price: ${s.items.map((item) => item.price.toFixed(2)).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Total: ${s.items.map((item) => item.total.toFixed(2)).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Tonnage: ${s.items.map((item) => {
-                    const weightInKg = item.product.weightUnit === 'kg' ? item.product.weightValue : item.product.weightValue / 1000;
-                    const tonnage = (weightInKg * item.quantity) / 1000;
-                    return tonnage.toFixed(2);
-                }).join(", ")}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Return: ${s.isReturn ? "Yes" : "No"}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Invoice No: ${s.invoiceNumber}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Delivery Note: ${s.deliveryNote}`,
-                14,
-                y
-            );
-            y += 10;
-            doc.text(
-                `Date: ${new Date(s.saleDate).toLocaleDateString()}`,
-                14,
-                y
-            );
-            y += 20;
+        // Landscape orientation, A4 size
+        const doc = new jsPDF({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4",
         });
+
+        // Flatten sales data for table
+        const rows = filteredSales.flatMap((s) =>
+            s.items.map((item) => [
+                s.customer.name,
+                item.product.name,
+                item.product.packSize,
+                `${item.product.weightValue} ${item.product.weightUnit}`,
+                s.location.name,
+                item.quantity,
+                item.price.toFixed(2),
+                item.total.toFixed(2),
+                (
+                    ((item.product.weightUnit === "kg"
+                        ? item.product.weightValue
+                        : item.product.weightValue / 1000) *
+                        item.quantity) /
+                    1000
+                ).toFixed(2),
+                s.isReturn ? "Yes" : "No",
+                s.invoiceNumber,
+                s.deliveryNote,
+                s.transporter?.name || "-",
+                s.transporter?.vehicleNumber || "-",
+                s.transporter?.driverName || "-",
+                new Date(s.saleDate).toLocaleDateString(),
+            ])
+        );
+
+        const headers = [
+            "Customer",
+            "Product",
+            "Pack Size",
+            "Weight",
+            "Location",
+            "Quantity",
+            "Price",
+            "Total",
+            "Tonnage",
+            "Return",
+            "Invoice No.",
+            "Delivery Note",
+            "Transporter",
+            "Vehicle No.",
+            "Driver",
+            "Date",
+        ];
+
+        doc.text("Sales Data", 14, 15);
+
+        autoTable(doc, {
+            startY: 20,
+            head: [headers],
+            body: rows,
+            styles: { fontSize: 8 },      // slightly larger since landscape has more space
+            headStyles: { fillColor: [30, 64, 175] },
+            theme: "grid",
+            margin: { left: 10, right: 10 },
+            pageBreak: "auto",
+        });
+
         doc.save("sales.pdf");
     };
 
-    if (loading) return <div>Loading Data...</div>;
-    if (error) return <div>Error: {error.message}</div>;
-
     return (
-        <div className="">
+        <div className="bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
             <DashboardLayout>
-                <h1 className="text-2xl font-semibold mb-4">Sales Data</h1>
+                <h1 className="text-3xl font-semibold mb-4 bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                    Sales Data
+                </h1>
                 {/* Controls */}
                 <div className="flex flex-wrap gap-2 mb-4">
                     <input
@@ -219,69 +212,69 @@ export default function SalesDataPage() {
 
                 </div>
                 {/* Sales Table */}
-                <div className="overflow-x-auto w-full">
-                    <table className="min-w-full bg-white border text-xs">
-                        <thead className="sticky top-0 bg-blue-300">
+                <div className="overflow-auto w-full max-h-[550px] bg-white dark:bg-gray-800">
+                    <table className="min-w-full bg-white dark:bg-gray-800 border text-xs text-gray-900 dark:text-gray-200">
+                        <thead className="sticky top-0 bg-blue-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                             <tr>
-                                <th className="p-2 border">#</th>
-                                <th className="p-2 border hidden">Transax Id</th>
-                                <th className="p-2 border text-left">Customer Name</th>
-                                <th className="p-2 border text-left">Product Name</th>
-                                <th className="p-2 border text-left">Pack Size</th>
-                                <th className="p-2 border text-left">Weight</th>
-                                <th className="p-2 border text-left">Location</th>
-                                <th className="p-2 border text-left">Quantity</th>
-                                <th className="p-2 border text-left">Sale Price</th>
-                                <th className="p-2 border text-left">Total Amount</th>
-                                <th className="p-2 border text-left">Tonnage</th>
-                                <th className="p-2 border text-left">Return</th>
-                                <th className="p-2 border text-left">Invoice No.</th>
-                                <th className="p-2 border text-left">Delivery Note</th>
-                                <th className="p-2 border text-left">Transporter Name</th>
-                                <th className="p-2 border text-left">Vehicle Number</th>
-                                <th className="p-2 border text-left">Driver's Name</th>
-                                <th className="p-2 border text-left">Date</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600">#</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600">Transaction Id</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Customer Name</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Product Name</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Pack Size</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Weight</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Location</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Quantity</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Sale Price</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Total Amount</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Tonnage</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Return</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Invoice No.</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Delivery Note</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Transporter Name</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Vehicle Number</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Driver's Name</th>
+                                <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Date</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredSales.map((s, index) => (
-                                <tr key={s.id}>
-                                    <td className="p-2 border text-center">{index + 1}</td>
-                                    <td className="p-2 border hidden">{s.id}</td>
-                                    <td className="p-2 border">{s.customer.name}</td>
-                                    <td className="p-2 border">
+                                <tr key={s.id} className="even:bg-gray-100 dark:even:bg-gray-700">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600 text-center">{index + 1}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600 w-20 max-w-[80px] truncate">{s.id}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.customer.name}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => item.product.name).join(", ")}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => item.product.packSize).join(", ")}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => `${item.product.weightValue.toFixed(2)} ${item.product.weightUnit}`).join(", ")}
                                     </td>
-                                    <td className="p-2 border">{s.location.name}</td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.location.name}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => item.quantity).join(", ")}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => item.price.toFixed(2)).join(", ")}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => item.total.toFixed(2)).join(", ")}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {s.items.map((item) => {
                                             const weightInKg = item.product.weightUnit === 'kg' ? item.product.weightValue : item.product.weightValue / 1000;
                                             const tonnage = (weightInKg * item.quantity) / 1000;
                                             return tonnage.toFixed(2);
                                         }).join(", ")}
                                     </td>
-                                    <td className="p-2 border">{s.isReturn ? "Yes" : "No"}</td>
-                                    <td className="p-2 border">{s.invoiceNumber}</td>
-                                    <td className="p-2 border">{s.deliveryNote}</td>
-                                    <td className="p-2 border">{s.transporter.name}</td>
-                                    <td className="p-2 border">{s.transporter.vehicleNumber}</td>
-                                    <td className="p-2 border truncate">{s.transporter.driverName}</td>
-                                    <td className="p-2 border">
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.isReturn ? "Yes" : "No"}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.invoiceNumber}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.deliveryNote}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.transporter.name}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.transporter.vehicleNumber}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600 truncate">{s.transporter.driverName}</td>
+                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
                                         {new Date(s.saleDate).toLocaleDateString()}
                                     </td>
                                 </tr>

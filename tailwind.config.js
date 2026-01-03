@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: "class",
     content: [
         "./src/**/*.{js,ts,jsx,tsx,mdx}",
     ],
@@ -8,6 +9,9 @@ export default {
             screens: {
                 //sm: { max: '1200px' },
                 'xl': '1000px',
+            },
+            colors: {
+                primary: "#7c3aed",
             },
         },
     },

@@ -9,6 +9,9 @@ import InventoryFilters from "@/components/InventoryFilters";
 import InventorySummary from "@/components/InventorySummary";
 import { unitToKg } from "@/lib/UnitToKg";
 
+export const metadata = {
+    title: "Inventory Summary",
+};
 
 export default async function InventoryPage({
     searchParams,
@@ -133,7 +136,7 @@ export default async function InventoryPage({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Sidebar currentPath="/inventory/inventory" />
+            <Sidebar currentPath="/inventory/inventory-summary" />
             <main className="ml-64 p-8">
                 <div className="mb-5">
                     <div className="flex items-center justify-between">
@@ -143,14 +146,7 @@ export default async function InventoryPage({
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-5">
-                    <InventorySummary
-                        inventory={processedInventory}
-                        sales={processedSales}
-                        title="Inventory Summary"
-                        iconColor="text-green-600"
-                    />
-                </div>
+
                 <div id="inventory-table" className="space-y-4 bg-white p-4 rounded-xl border hover:shadow-md transition-shadow">
                     <div className="">
                         {/* Search and Filter */}
@@ -203,6 +199,14 @@ export default async function InventoryPage({
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-5">
+                        <InventorySummary
+                            inventory={processedInventory}
+                            sales={processedSales}
+                            title="Inventory Summary"
+                            iconColor="text-green-600"
+                        />
                     </div>
                 </div>
                 {totalPages > 1 && (

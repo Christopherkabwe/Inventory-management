@@ -22,6 +22,10 @@ type Transfer = {
     transferDate: string;
 };
 
+export const metadata = {
+    title: "Stock Transfer",
+};
+
 export default function TransfersPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);

@@ -17,6 +17,9 @@ import StockHealthPie from "@/components/StockHealthPie";
 import InventorySummary from "@/components/InventorySummary";
 import DashboardLayout from "@/components/DashboardLayout";
 
+export const metadata = {
+    title: "Inventory Dashboard",
+};
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();

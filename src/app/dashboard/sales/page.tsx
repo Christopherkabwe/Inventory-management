@@ -28,6 +28,9 @@ interface CategoryTrendDataPoint {
     date: string;
     [category: string]: number | string;
 }
+export const metadata = {
+    title: "Sales Dashboard",
+};
 
 export default async function SalesDashboardPage() {
     const user = await getCurrentUser();

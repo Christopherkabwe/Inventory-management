@@ -36,7 +36,7 @@ interface Props {
 
 /* ---------------- COMPONENT ---------------- */
 export default function TopProducts({
-    title = "Top Products (Last 30 Days)",
+    title = "Top Selling Products (Last 30 Days)",
     iconColor = "text-yellow-400",
     limit = 5,
 }: Props) {

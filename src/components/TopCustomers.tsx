@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function TopCustomers({
-    title = "Top Customers",
+    title = "Top Active Customers {Last 30 Days)",
     iconColor = "text-yellow-500",
     limit = 5,
 }: Partial<Props> = {}) {

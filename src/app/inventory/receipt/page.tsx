@@ -1,6 +1,10 @@
 // src/app/inventory/receipt/page.tsx (Server Component)
 import { logStockMovement } from '@/lib/stockMovement';
 
+export const metadata = {
+    title: "Stock Receipts",
+};
+
 export default async function ReceiveStock() {
     const movement = await logStockMovement({
         inventoryId: 'inv123',

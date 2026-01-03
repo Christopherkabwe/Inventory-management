@@ -66,7 +66,7 @@ export default function RecentSales({ userId }: { userId?: string }) {
             ) : (
                 <div className="overflow-auto max-h-[300px]">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-gray-200 border-b">
+                        <thead className="bg-gray-300 top-0 sticky border-b">
                             <tr>
                                 <th className="px-4 py-2 border text-left">#</th>
                                 <th className="px-4 py-2 border text-left">Customer</th>

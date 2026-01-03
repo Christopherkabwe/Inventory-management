@@ -1,6 +1,10 @@
 // app/reports/page.tsx
 import { getStockReport } from "./stockReport";
 
+export const metadata = {
+    title: "Stock Report",
+};
+
 export default async function StockReportPage() {
     const report = await getStockReport();
 

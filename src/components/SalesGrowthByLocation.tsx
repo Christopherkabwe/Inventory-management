@@ -118,11 +118,31 @@ export default function SalesGrowthByLocation() {
         fetchSales();
     }, [today]);
 
+    useEffect(() => {
+        if (sales.length > 0 && !locationStartDate && !locationEndDate) {
+            const now = new Date();
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+            const thisMonthStartStr = thisMonthStart.toISOString().split("T")[0];
+            const thisMonthEndStr = thisMonthEnd.toISOString().split("T")[0];
+            const lastMonthStartStr = lastMonthStart.toISOString().split("T")[0];
+            const lastMonthEndStr = lastMonthEnd.toISOString().split("T")[0];
+
+            setLocationStartDate(lastMonthStartStr);
+            setLocationEndDate(thisMonthEndStr);
+        }
+    }, [sales, locationStartDate, locationEndDate]);
+
+
+
     // -----------------------------
     // COMPUTE GROWTH BY LOCATION
     // -----------------------------
     const growthByLocation: GrowthData[] = useMemo(() => {
-        if (!sales.length) return [];
+        if (!sales.length || !locationStartDate || !locationEndDate) return [];
 
         const start = new Date(locationStartDate);
         const end = new Date(locationEndDate);
@@ -131,8 +151,8 @@ export default function SalesGrowthByLocation() {
         // Ensure previous period is at least 1 day
         //const diff = Math.max(end.getTime() - start.getTime(), 24 * 60 * 60 * 1000);
 
-        const prevStart = new Date(start.getTime() - diff);
-        const prevEnd = new Date(start.getTime());
+        const prevStart = new Date(start.getTime() - diff - 1);
+        const prevEnd = new Date(start.getTime() - 1);
 
         const current = sales.filter((s) => {
             const d = new Date(s.saleDate);
@@ -172,7 +192,9 @@ export default function SalesGrowthByLocation() {
                     }, 0);
 
                 const growthPercent =
-                    prevValue === 0 ? (currValue === 0 ? 0 : 100) : ((currValue - prevValue) / prevValue) * 100;
+                    prevValue === 0
+                        ? (currValue === 0 ? 0 : 100) :
+                        ((currValue - prevValue) / prevValue) * 100;
 
                 return {
                     location: locName,

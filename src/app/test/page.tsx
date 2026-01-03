@@ -17,7 +17,8 @@ import {
 } from "recharts";
 import TopCustomers from "@/components/TopCustomers";
 import LeastCustomers from "@/components/LeastCustomers";
-import SalesTableTest from "@/components/SalesTable";
+import SalesTable from "@/components/SalesTable";
+import SalesPersonSummary from "@/components/SalesPersonSummary"
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -166,7 +167,8 @@ export default function Page() {
                 <TopCustomers />
                 <LeastCustomers />
             </div>
-            <SalesTableTest sales={sales} />
+            <SalesTable />
+            <SalesPersonSummary />
         </div>
     );
 }

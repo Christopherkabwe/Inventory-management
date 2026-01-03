@@ -1,20 +1,22 @@
-// app/sign-in/page.tsx
 import { redirect } from "next/navigation";
 import { stackServerApp } from "@/stack/server";
-import { SignIn } from "@stackframe/stack";
+import { SignUp } from "@stackframe/stack";
+
 export const metadata = {
-    title: "Sign In",
+    title: "Sign Up",
 };
+
 export default async function SignInPage() {
     const user = await stackServerApp.getUser();
 
+    // Redirect logged-in users to dashboard
     if (user) {
         redirect("/dashboard");
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center">
-            <SignIn />
+            <SignUp />
         </div>
     );
-}
+};

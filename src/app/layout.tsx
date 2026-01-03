@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { ToasterProvider } from '@/components/Toaster';
+import ThemeProviderWrapper from "@/components/ThemeProviderWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,29 +18,46 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory Management App",
-  description: "Manage your stock products and track inventory levels",
+  title: {
+    default: "Biz360°",
+    template: "%s | Biz360°",
+  },
+  description:
+    "An all-in-one business operating system that unifies sales, inventory, finance, and HR—giving growing businesses real-time insights and complete operational visibility.",
+  applicationName: "Biz360°",
+  keywords: [
+    "Business Management",
+    "ERP",
+    "Business OS",
+    "Inventory Management",
+    "Sales Tracking",
+    "HR Management",
+    "SME Software",
+  ],
+  authors: [{ name: "Biz360" }],
+  creator: "Biz360",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <StackProvider app={stackClientApp}>
-          <StackTheme>
-            <ToasterProvider>
-              {children}
-              {/* Only one Toaster instance */}
-              <Toaster position="bottom-right" />
-            </ToasterProvider>
-          </StackTheme>
-        </StackProvider>
+      ><ThemeProviderWrapper>
+          <StackProvider app={stackClientApp}>
+            <StackTheme>
+              <ToasterProvider>
+
+                {children}
+                {/* Only one Toaster instance */}
+                <Toaster position="bottom-right" />
+              </ToasterProvider>
+            </StackTheme>
+          </StackProvider>
+        </ThemeProviderWrapper>
       </body>
     </html>
   );

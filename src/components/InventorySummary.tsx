@@ -345,7 +345,7 @@ export default function InventorySummary({
                 <Package className={`h-5 w-5 ${iconColor}`} />
                 {title}
             </h3>
-            <div className="flex justify-end items-center mb-2 mt-2">
+            <div className="flex justify-start items-center mb-2 mt-2">
 
                 <button
                     onClick={() => setShowFilters(!showFilters)}

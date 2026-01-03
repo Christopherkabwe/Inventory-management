@@ -1,6 +1,10 @@
 import { getProducts } from "@/lib/actions/products";
 import AddProductClient from "./AddProductClient";
 
+export const metadata = {
+    title: "Add Product",
+};
+
 export default async function Page() {
     const products = await getProducts();
 

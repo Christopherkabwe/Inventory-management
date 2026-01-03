@@ -9,6 +9,10 @@ type InventoryItem = Inventory & {
     location: Location;
 };
 
+export const metadata = {
+    title: "Inventory Data",
+};
+
 export default function InventoryPage() {
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);

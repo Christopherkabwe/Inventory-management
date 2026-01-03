@@ -1,9 +1,14 @@
 "use client";
 import { UserButton } from "@stackframe/stack";
-import { BarChart3, Package, Plus, Settings, Info, ShoppingCart, ChevronDown, Menu, X, User, User2Icon, MapPin } from "lucide-react";
+import {
+    BarChart3, Package, Plus, Settings, Info,
+    ShoppingCart, ChevronDown, Menu, X, User, MapPin,
+    RotateCw,
+} from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
 
 interface Props {
     sidebarOpen: boolean;
@@ -47,55 +52,20 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                 { name: "Sales Data", href: "/sales/sales-data" },
             ],
         },
-        {
-            name: "Users",
-            icon: User,
-            subItems: [
-                { name: "Create New Account", href: "/users/create-user" },
-                { name: "Delete Account", href: "/users/delete-user" },
-                { name: "Edit Account", href: "/users/edit-user" },
-            ],
-        },
-        {
-            name: "Customers",
-            icon: User,
-            subItems: [
-                { name: "Customer Management", href: "/customers/customer-management" },
-            ],
-        },
-        {
-            name: "Locations",
-            icon: MapPin,
-            subItems: [
-                { name: "Create New Location", href: "/location/create-location" },
-                { name: "Delete Location", href: "/location/delete-location" },
-                { name: "Edit Location", href: "/location/edit-location" },
-            ],
-        },
-        {
-            name: "Products",
-            icon: Package,
-            subItems: [
-                { name: "Create New Product", href: "/product/create-product" },
-                { name: "Delete Product", href: "/product/delete-product" },
-                { name: "Edit Product", href: "/product/edit-product" },
-            ],
-        },
         { name: "Settings", href: "/settings", icon: Settings },
-        { name: "About", href: "/about", icon: Info },
+        { name: "About Us", href: "/about-us", icon: Info },
     ];
 
-
     useEffect(() => {
-        const activeItem = NAV_ITEMS.find((item) => item.subItems && item.subItems.some((sub) => currentPath === sub.href));
-        if (activeItem) {
-            setOpenItems([activeItem.name]);
-        }
+        const activeItem = NAV_ITEMS.find((item) =>
+            item.subItems?.some((sub) => currentPath === sub.href)
+        );
+        if (activeItem) setOpenItems([activeItem.name]);
     }, [currentPath]);
 
     const toggleItem = (name: string) => {
         if (openItems.includes(name)) {
-            setOpenItems(openItems.filter((item) => item !== name));
+            setOpenItems(openItems.filter((i) => i !== name));
         } else {
             setOpenItems([...openItems, name]);
         }
@@ -108,30 +78,41 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
 
     return (
         <>
-            {/* Hamburger button for small screens */}
-            <div className="md:hidden fixed top-4 left-4 z-20 mb-2">
+            {/* Hamburger button */}
+            <div className="md:hidden fixed top-4 left-4 z-20">
                 <button
                     aria-label="Toggle sidebar"
                     onClick={toggleSidebar}
-                    className="p-2 rounded-md text-white hover:bg-gray-200"
+                    className="p-2 rounded-md text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                     {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
             </div>
+
             {/* Sidebar */}
             <div
-                className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-white p-6 z-10 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                    } md:translate-x-0`}
+                className={`fixed top-0 left-0 h-full w-55 p-2 z-10 transform transition-transform duration-300 ease-in-out
+                bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} xl:translate-x-0 border-r border-gray-700`}
             >
-                <div className="mb-5 mt-5">
-                    <div className="flex items-center space-x-2 mb-4">
-                        <BarChart3 className="w-10 h-10" />
-                        <span className="text-md font-semibold">Inventory Management App</span>
+                <div className="mb-5 mt-5 flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                        <RotateCw className="w-10 h-10" />
+                        <div>
+                            <span className="text-xl font-semibold">Biz360°</span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                Business Management
+                            </p>
+                        </div>
                     </div>
+
+                    {/* Theme toggle */}
+                    <ThemeToggle />
                 </div>
 
+                <hr className="border-gray-300 dark:border-gray-700 mb-4" />
+
                 <nav className="space-y-1">
-                    <div className="text-sm font-semibold text-gray-400 uppercase">Inventory</div>
                     {NAV_ITEMS.map((item, key) => {
                         const IconComponent = item.icon;
                         const parentActive = isParentActive(item.subItems);
@@ -142,8 +123,8 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                                 <div key={key}>
                                     <button
                                         onClick={() => toggleItem(item.name)}
-                                        className={`flex items-center justify-between w-full py-1 px-2 rounded-lg ${parentActive ? "bg-gray-700 text-white" : "hover:bg-gray-500 text-gray-300"
-                                            }`}
+                                        className={`flex items-center justify-between w-full py-1 px-2 rounded-lg
+                                        ${parentActive ? "font-bold text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"}`}
                                     >
                                         <div className="flex items-center space-x-3">
                                             <IconComponent className="w-5 h-5" />
@@ -152,13 +133,13 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                                         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen(item.name) ? "rotate-180" : ""}`} />
                                     </button>
                                     {isOpen(item.name) && (
-                                        <ul className="ml-3">
+                                        <ul className="ml-3 mt-1 space-y-1">
                                             {item.subItems.map((subItem, subKey) => (
                                                 <li key={subKey}>
                                                     <Link
                                                         href={subItem.href}
-                                                        className={`flex items-center py-1 px-2 rounded-lg text-sm ${isActive(subItem.href) ? "text-white" : "hover:underline text-gray-300"
-                                                            }`}
+                                                        className={`block py-1 px-2 rounded-lg text-sm
+                                                        ${isActive(subItem.href) ? "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300 hover:underline"}`}
                                                     >
                                                         {subItem.name}
                                                     </Link>
@@ -172,10 +153,10 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
 
                         return (
                             <Link
-                                href={item.href}
+                                href={item.href!}
                                 key={key}
-                                className={`flex items-center space-x-3 py-2 px-3 rounded-lg ${itemActive ? "bg-gray-700 text-gray-800" : "hover:bg-gray-800 text-gray-300"
-                                    }`}
+                                className={`flex items-center gap-3 py-2 px-3 rounded-lg
+                                ${itemActive ? "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"}`}
                             >
                                 <IconComponent className="w-5 h-5" />
                                 <span className="text-sm">{item.name}</span>
@@ -184,16 +165,17 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                     })}
                 </nav>
 
-                <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-700">
-                    <div className="flex items-center justify-between">
-                        <UserButton showUserInfo />
-                    </div>
+                <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-300 dark:border-gray-700">
+                    <UserButton showUserInfo />
                 </div>
             </div>
 
-            {/* Overlay for small screens when sidebar is open */}
+            {/* Overlay for small screens */}
             {sidebarOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-5 md:hidden" onClick={toggleSidebar} />
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-5 md:hidden"
+                    onClick={toggleSidebar}
+                />
             )}
         </>
     );

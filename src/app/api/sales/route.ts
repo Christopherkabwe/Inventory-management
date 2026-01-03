@@ -95,36 +95,75 @@ export async function GET(req: NextRequest) {
 // -------------------- CREATE SALE --------------------
 export async function POST(req: Request) {
     try {
-        const { customerId, locationId, transporterId, items, createdBy } = await req.json();
+        const {
+            customerId,
+            locationId,
+            transporterName,
+            driverName,      // always manual per sale
+            vehicleNumber,
+            items,
+            createdBy,
+        } = await req.json();
 
-        if (!customerId || !locationId || !items?.length) {
+        if (!customerId || !locationId || !items?.length || !driverName) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
         const sale = await prisma.$transaction(async (tx) => {
-            // 1️⃣ Generate invoice number
-            const seq = await tx.sequence.upsert({
+            // 1️⃣ Generate Invoice Number
+            const invSeq = await tx.sequence.upsert({
                 where: { id: "INV" },
                 update: { value: { increment: 1 } },
                 create: { id: "INV", value: 1 },
             });
-            const invoiceNumber = `INV${seq.value.toString().padStart(6, "0")}`;
+            const invoiceNumber = `INV${invSeq.value.toString().padStart(6, "0")}`;
 
-            // 2️⃣ Create sale
+            // 2️⃣ Generate Delivery Note Number
+            const dnSeq = await tx.sequence.upsert({
+                where: { id: "DN" },
+                update: { value: { increment: 1 } },
+                create: { id: "DN", value: 1 },
+            });
+            const deliveryNote = `DN${dnSeq.value.toString().padStart(6, "0")}`;
+
+            // 3️⃣ Find or create transporter (unique by name + vehicleNumber)
+            let transporterId: string | null = null;
+            if (transporterName && vehicleNumber) {
+                const existingTransporter = await tx.transporter.findFirst({
+                    where: { name: transporterName, vehicleNumber },
+                });
+
+                if (existingTransporter) {
+                    transporterId = existingTransporter.id;
+                } else {
+                    const newTransporter = await tx.transporter.create({
+                        data: { name: transporterName, vehicleNumber },
+                    });
+                    transporterId = newTransporter.id;
+                }
+            }
+
+            // 4️⃣ Create Sale
             const newSale = await tx.sale.create({
                 data: {
                     customerId,
                     locationId,
                     transporterId,
+                    driverName,       // manual per sale
+                    vehicleNumber,    // snapshot
                     invoiceNumber,
+                    deliveryNote,
                     createdBy,
                 },
             });
 
-            // 3️⃣ Process each sale item
+            // 5️⃣ Create SaleItems and update inventory
             for (const item of items) {
                 const { productId, quantity, price } = item;
-                if (!productId || quantity <= 0) throw new Error("Invalid item");
+
+                if (!productId || quantity <= 0 || price < 0) {
+                    throw new Error("Invalid sale item");
+                }
 
                 // Check inventory
                 const inventory = await tx.inventory.findFirst({
@@ -152,7 +191,7 @@ export async function POST(req: Request) {
                 });
             }
 
-            // Include relations in response
+            // 6️⃣ Return full sale with relations
             return tx.sale.findUnique({
                 where: { id: newSale.id },
                 include: {
@@ -168,7 +207,10 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error("Create sale failed:", error);
         return NextResponse.json(
-            { error: "Failed to create sale", details: error instanceof Error ? error.message : String(error) },
+            {
+                error: "Failed to create sale",
+                details: error instanceof Error ? error.message : String(error),
+            },
             { status: 500 }
         );
     }
