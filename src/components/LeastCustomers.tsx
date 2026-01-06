@@ -25,7 +25,7 @@ interface CustomerSale {
 }
 
 export default function LeastCustomers({
-    title = "Least Active Customers",
+    title = "Least Active Customers (Last 3 Months",
     iconColor = "text-red-500",
     limit = 5,
 }: { title?: string; iconColor?: string; limit?: number } = {}) {
@@ -38,7 +38,7 @@ export default function LeastCustomers({
                 setLoading(true);
                 const res = await fetch("/api/sales"); // adjust endpoint if needed
                 const data = await res.json();
-                setSales(data.data || []);
+                setSales(data.sales || []);
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
             } finally {
@@ -48,13 +48,13 @@ export default function LeastCustomers({
         fetchSales();
     }, []);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const L3Months = new Date();
+    L3Months.setDate(L3Months.getDate() - 90);
 
     // Aggregate sales by customer
     const customersWithStats = Object.values(
         sales
-            .filter((s) => new Date(s.saleDate) >= thirtyDaysAgo)
+            .filter((s) => new Date(s.saleDate) >= L3Months)
             .reduce((acc: Record<string, any>, sale) => {
                 const custId = sale.customer.id;
                 if (!acc[custId]) {
@@ -96,7 +96,7 @@ export default function LeastCustomers({
         <div className="bg-white p-2 rounded-xl border hover:shadow-md transition-shadow">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <AlertTriangle className={`h-5 w-5 ${iconColor}`} />
-                {title} (Last 30 Days)
+                {title}
             </h3>
 
             {loading ? (

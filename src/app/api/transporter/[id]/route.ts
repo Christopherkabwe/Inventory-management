@@ -1,94 +1,53 @@
+// app/api/transporters/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
-// -------------------- PUT /api/transfers/:id --------------------
+// -------------------- PUT /api/transporters/:id --------------------
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-    const { id } = params;
     try {
-        const { fromLocationId, toLocationId, transporterId, items, createdBy } = await req.json();
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        if (!fromLocationId || !toLocationId || !items?.length) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        // Only ADMIN or MANAGER can update transporters
+        if (!["ADMIN", "MANAGER"].includes(user.role)) {
+            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
         }
 
-        const result = await prisma.$transaction(async (tx) => {
-            const transfer = await tx.transfer.findUnique({ where: { id }, include: { items: true } });
-            if (!transfer) throw new Error("Transfer not found");
+        const { name, vehicleNumber, driverName } = await req.json();
+        if (!name) return NextResponse.json({ error: "Transporter name is required" }, { status: 400 });
 
-            // Map old vs new for inventory adjustment
-            const oldMap = new Map(transfer.items.map((i) => [i.productId, i.quantity]));
-            const newMap = new Map(items.map((i: any) => [i.productId, i.quantity]));
-            const allProductIds = new Set([...oldMap.keys(), ...newMap.keys()]);
-
-            for (const productId of allProductIds) {
-                const oldQty = oldMap.get(productId) || 0;
-                const newQty = newMap.get(productId) || 0;
-                const delta = newQty - oldQty;
-
-                // Adjust source inventory
-                const srcInventory = await tx.inventory.findFirst({ where: { productId, locationId: fromLocationId } });
-                if (!srcInventory || srcInventory.quantity < delta) throw new Error(`Insufficient stock for product ${productId}`);
-                await tx.inventory.update({ where: { id: srcInventory.id }, data: { quantity: { decrement: delta } } });
-
-                // Adjust destination inventory
-                await tx.inventory.upsert({
-                    where: { productId_locationId: { productId, locationId: toLocationId } },
-                    update: { quantity: { increment: delta } },
-                    create: { productId, locationId: toLocationId, quantity: delta, lowStockAt: 0, createdBy },
-                });
-            }
-
-            // Delete old TransferItems and create new ones
-            await tx.transferItem.deleteMany({ where: { transferId: id } });
-            for (const item of items) {
-                await tx.transferItem.create({
-                    data: { transferId: id, productId: item.productId, quantity: item.quantity },
-                });
-            }
-
-            return tx.transfer.update({
-                where: { id },
-                data: { fromLocationId, toLocationId, transporterId },
-                include: { items: true },
-            });
+        const updatedTransporter = await prisma.transporter.update({
+            where: { id: params.id },
+            data: { name, vehicleNumber: vehicleNumber || null, driverName: driverName || null },
         });
 
-        return NextResponse.json(result);
+        return NextResponse.json({ success: true, transporter: updatedTransporter });
     } catch (error) {
-        console.error("Update transfer failed:", error);
-        return NextResponse.json({ error: "Failed to update transfer" }, { status: 500 });
+        console.error("Update transporter failed:", error);
+        return NextResponse.json({ error: "Failed to update transporter", details: (error as Error).message }, { status: 500 });
     }
 }
 
-// -------------------- DELETE /api/transfers/:id --------------------
+// -------------------- DELETE /api/transporters/:id --------------------
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-    const { id } = params;
     try {
-        await prisma.$transaction(async (tx) => {
-            const transfer = await tx.transfer.findUnique({ where: { id }, include: { items: true } });
-            if (!transfer) throw new Error("Transfer not found");
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-            // Rollback inventories
-            for (const item of transfer.items) {
-                const srcInventory = await tx.inventory.findFirst({ where: { productId: item.productId, locationId: transfer.fromLocationId } });
-                const destInventory = await tx.inventory.findFirst({ where: { productId: item.productId, locationId: transfer.toLocationId } });
+        // Only ADMIN or MANAGER can delete transporters
+        if (!["ADMIN", "MANAGER"].includes(user.role)) {
+            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
+        }
 
-                if (!destInventory || destInventory.quantity < item.quantity) throw new Error(`Insufficient stock to rollback product ${item.productId}`);
+        const transporter = await prisma.transporter.findUnique({ where: { id: params.id } });
+        if (!transporter) return NextResponse.json({ error: "Transporter not found" }, { status: 404 });
 
-                // Restore source
-                await tx.inventory.update({ where: { id: srcInventory?.id }, data: { quantity: { increment: item.quantity } } });
+        await prisma.transporter.delete({ where: { id: params.id } });
 
-                // Reduce destination
-                await tx.inventory.update({ where: { id: destInventory.id }, data: { quantity: { decrement: item.quantity } } });
-            }
-
-            await tx.transferItem.deleteMany({ where: { transferId: id } });
-            await tx.transfer.delete({ where: { id } });
-        });
-
-        return NextResponse.json({ success: true, message: "Transfer deleted" });
+        return NextResponse.json({ success: true, message: "Transporter deleted" });
     } catch (error) {
-        console.error("Delete transfer failed:", error);
-        return NextResponse.json({ error: "Failed to delete transfer" }, { status: 500 });
+        console.error("Delete transporter failed:", error);
+        return NextResponse.json({ error: "Failed to delete transporter", details: (error as Error).message }, { status: 500 });
     }
 }

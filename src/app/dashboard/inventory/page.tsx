@@ -1,6 +1,6 @@
 
 
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 //import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
        INVENTORY
     ----------------------------- */
     const allProducts = await prisma.inventory.findMany({
-        where: { createdBy: userId },
+        where: { createdById: userId },
         include: {
             product:
             {
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
 
     const sales = await prisma.sale.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             saleDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         },
         include: {
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
 
     /* ----------------------------- STOCK VALUE TREND DATA ----------------------------- */
     const stockTrend = await prisma.inventory.findMany({
-        where: { createdBy: userId },
+        where: { createdById: userId },
         include: { product: { select: { price: true } } },
         orderBy: { updatedAt: 'asc' },
     });
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
     /* ----------------------------- STOCK TONNAGE TREND DATA ----------------------------- */
     const tonnageTrend = await prisma.inventory.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             updatedAt: {
                 gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
             },
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
       INVENTORY SUMMARY TABLE DATA
    ----------------------------- */
     const inventory = await prisma.inventory.findMany({
-        where: { createdBy: userId },
+        where: { createdById: userId },
         include: {
             product: {
                 select: {

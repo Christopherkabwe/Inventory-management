@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Package, Plus, Settings, Info, ShoppingCart } from "lucide-react";
+import { BarChart3, Package, Plus, Settings, Info, ShoppingCart, RotateCw } from "lucide-react";
 import { UserButton } from "@stackframe/stack";
 
 // Skeleton component for loading states
@@ -26,9 +26,14 @@ function LoadingSidebar() {
   return (
     <div className="fixed left-0 top-0 bg-gray-900 text-white w-64 min-h-screen p-6 z-10">
       <div className="mb-8">
-        <div className="flex items-center space-x-2 mb-4">
-          <BarChart3 className="w-7 h-7" />
-          <span className="text-lg font-semibold">Inventory Management App</span>
+        <div className="flex items-center gap-2">
+          <RotateCw className="w-10 h-10" />
+          <div>
+            <span className="text-xl font-semibold">Biz360°</span>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Business Management
+            </p>
+          </div>
         </div>
       </div>
 

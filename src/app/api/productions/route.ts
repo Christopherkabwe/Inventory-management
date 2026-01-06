@@ -1,112 +1,84 @@
+// app/api/productions/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { nextSequence } from "@/lib/sequence";
+import { UserRole, requireRole } from "@/lib/rbac";
 
-/* GET /api/productions*/
+// -------------------- GET PRODUCTIONS --------------------
 export async function GET(req: Request) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const limitParam = searchParams.get("limit");
-        const limit = limitParam ? Number(limitParam) : undefined;
+    const user = await getCurrentUser(); // ensure logged-in
+    const { searchParams } = new URL(req.url);
+    const limit = Number(searchParams.get("limit") || 0);
 
+    try {
         const productions = await prisma.production.findMany({
             ...(limit ? { take: limit } : {}),
             orderBy: { createdAt: "desc" },
-            include: {
-                items: {
-                    include: { product: true },
-                },
-                location: true,
-            },
+            include: { items: { include: { product: true } }, location: true },
         });
 
         return NextResponse.json({ productions });
-    } catch (error) {
-        console.error("Fetch productions failed:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch productions" },
-            { status: 500 }
-        );
+    } catch (err) {
+        console.error("Fetch productions failed:", err);
+        return NextResponse.json({ error: "Failed to fetch productions" }, { status: 500 });
     }
 }
 
-/* POST /api/productions */
+// -------------------- CREATE PRODUCTION --------------------
 export async function POST(req: Request) {
-    try {
-        const body = await req.json();
-        const { locationId, items, batchNumber, notes } = body;
+    const user = await getCurrentUser(); // ensure logged-in
+    requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]); // only admin/manager
 
-        if (!locationId || !Array.isArray(items) || items.length === 0) {
+    try {
+        const { locationId, items, batchNumber, notes } = await req.json();
+
+        // Basic validation
+        if (!locationId || !Array.isArray(items) || !items.length) {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
         }
 
-        const result = await prisma.$transaction(async (tx) => {
-            try {
-                const seq = await tx.sequence.upsert({
-                    where: { id: "PROD" },
-                    update: { value: { increment: 1 } },
-                    create: { id: "PROD", value: 1 },
+        // Optional: verify location exists
+        const locationExists = await prisma.location.findUnique({ where: { id: locationId } });
+        if (!locationExists) return NextResponse.json({ error: "Invalid locationId" }, { status: 400 });
+
+        const production = await prisma.$transaction(async (tx) => {
+            // Generate production number using nextSequence
+            const productionNo = await nextSequence(tx, "PROD");
+
+            // Create production record
+            const prod = await tx.production.create({
+                data: { productionNo, locationId, batchNumber, notes, createdById: user.id },
+            });
+
+            // Process production items
+            for (const item of items) {
+                const { productId, quantity } = item;
+
+                if (!productId || quantity <= 0) throw new Error("Invalid item");
+
+                // Create production item
+                await tx.productionItem.create({
+                    data: { productionId: prod.id, productId, quantity },
                 });
 
-                const productionNo = `PROD${seq.value.toString().padStart(6, "0")}`;
-
-                const production = await tx.production.create({
-                    data: {
-                        productionNo,
-                        locationId,
-                        batchNumber,
-                        notes,
-                        createdBy: "system",
-                    },
+                // Update inventory (increment or create)
+                await tx.inventory.upsert({
+                    where: { productId_locationId: { productId, locationId } },
+                    update: { quantity: { increment: quantity } },
+                    create: { productId, locationId, quantity, lowStockAt: 0, createdById: user.id },
                 });
-
-                for (const item of items) {
-                    const { productId, quantity } = item;
-
-                    if (!productId || quantity <= 0) {
-                        throw new Error("Invalid item");
-                    }
-
-                    await tx.productionItem.create({
-                        data: {
-                            productionId: production.id,
-                            productId,
-                            quantity,
-                        },
-                    });
-
-                    await tx.inventory.upsert({
-                        where: {
-                            productId_locationId: {
-                                productId,
-                                locationId,
-                            },
-                        },
-                        update: {
-                            quantity: { increment: quantity },
-                        },
-                        create: {
-                            productId,
-                            locationId,
-                            quantity,
-                            lowStockAt: 0,
-                            createdBy: "system",
-                        },
-                    });
-                }
-
-                return production;
-            } catch (error) {
-                await tx.$rollback();
-                throw error;
             }
+
+            return tx.production.findUnique({
+                where: { id: prod.id },
+                include: { items: { include: { product: true } }, location: true },
+            });
         });
 
-        return NextResponse.json(result, { status: 201 });
-    } catch (error) {
-        console.error("Create production failed:", error);
-        return NextResponse.json(
-            { error: "Failed to create production" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: true, production }, { status: 201 });
+    } catch (err) {
+        console.error("Create production failed:", err);
+        return NextResponse.json({ error: "Failed to create production", details: (err as Error).message }, { status: 500 });
     }
 }

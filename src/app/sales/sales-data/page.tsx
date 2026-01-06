@@ -4,16 +4,17 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Parser as Json2csvParser } from "json2csv";
 import DashboardLayout from "@/components/DashboardLayout";
+import Loading from "@/components/Loading";
 
 type Sale = {
     id: string;
-    customer: { name: string; };
-    location: { name: string; };
+    customer: { name: string };
+    location: { name: string };
     transporter: {
         name: string;
-        vehicleNumber: string;
-        driverName: string;
-    };
+        vehicleNumber: string | null;
+        driverName: string | null;
+    } | null;
     items: {
         product: {
             name: string;
@@ -27,9 +28,10 @@ type Sale = {
     }[];
     saleDate: string;
     isReturn: boolean;
-    invoiceNumber: String;
-    deliveryNote: string;
+    invoiceNumber: string;
+    deliveryNoteNo?: string | null; // <-- updated
 };
+
 
 export default function SalesDataPage() {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -44,8 +46,8 @@ export default function SalesDataPage() {
             const res = await fetch("/api/sales");
             const data = await res.json();
             console.log(data); // Add this to see the data structure
-            setSales(data.data || []); // Update this line
-            setFilteredSales(data.data || []); // Update this line
+            setSales(data.sales || []); // Update this line
+            setFilteredSales(data.sales || []); // Update this line
         } catch (err) {
             console.error(err);
             setError(err);
@@ -71,6 +73,7 @@ export default function SalesDataPage() {
         setFilteredSales(filtered);
     }, [search, sales]);
 
+
     const exportCSV = () => {
         // Flatten sales
         const rows = filteredSales.flatMap((s) =>
@@ -93,7 +96,7 @@ export default function SalesDataPage() {
                     1000,
                 isReturn: s.isReturn ? "Yes" : "No",
                 invoiceNumber: s.invoiceNumber,
-                deliveryNote: s.deliveryNote,
+                deliveryNote: s.deliveryNoteNo || "-",
                 transporterName: s.transporter?.name || "-",
                 vehicleNumber: s.transporter?.vehicleNumber || "-",
                 driverName: s.transporter?.driverName || "-",
@@ -139,8 +142,7 @@ export default function SalesDataPage() {
                 ).toFixed(2),
                 s.isReturn ? "Yes" : "No",
                 s.invoiceNumber,
-                s.deliveryNote,
-                s.transporter?.name || "-",
+                s.deliveryNoteNo || "-",
                 s.transporter?.vehicleNumber || "-",
                 s.transporter?.driverName || "-",
                 new Date(s.saleDate).toLocaleDateString(),
@@ -181,11 +183,10 @@ export default function SalesDataPage() {
 
         doc.save("sales.pdf");
     };
-
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
             <DashboardLayout>
-                <h1 className="text-3xl font-semibold mb-4 bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                <h1 className="text-3xl font-semibold mb-4 bg-gray-100 dark:bg-gray-800 px-2 py-2 rounded">
                     Sales Data
                 </h1>
                 {/* Controls */}
@@ -195,7 +196,7 @@ export default function SalesDataPage() {
                         placeholder="Search by customer, product, or location..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border p-2 bg-white rounded flex-1 min-w-[200px]"
+                        className="border p-2 bg-white rounded flex-1 min-w-[200px] dark:text-black"
                     />
                     <button
                         onClick={exportCSV}
@@ -213,10 +214,10 @@ export default function SalesDataPage() {
                 </div>
                 {/* Sales Table */}
                 <div className="overflow-auto w-full max-h-[550px] bg-white dark:bg-gray-800">
-                    <table className="min-w-full bg-white dark:bg-gray-800 border text-xs text-gray-900 dark:text-gray-200">
+                    <table className="min-w-full bg-white dark:bg-gray-800 border text-xs text-gray-900 dark:text-gray-200 w-full border-collapse whitespace-nowrap">
                         <thead className="sticky top-0 bg-blue-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                             <tr>
-                                <th className="p-2 border border-gray-300 dark:border-gray-600">#</th>
+                                {/*<th className="p-2 border border-gray-300 dark:border-gray-600">#</th>*/}
                                 <th className="p-2 border border-gray-300 dark:border-gray-600">Transaction Id</th>
                                 <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Customer Name</th>
                                 <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Product Name</th>
@@ -237,48 +238,53 @@ export default function SalesDataPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSales.map((s, index) => (
-                                <tr key={s.id} className="even:bg-gray-100 dark:even:bg-gray-700">
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600 text-center">{index + 1}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600 w-20 max-w-[80px] truncate">{s.id}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.customer.name}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => item.product.name).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => item.product.packSize).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => `${item.product.weightValue.toFixed(2)} ${item.product.weightUnit}`).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.location.name}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => item.quantity).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => item.price.toFixed(2)).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => item.total.toFixed(2)).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {s.items.map((item) => {
-                                            const weightInKg = item.product.weightUnit === 'kg' ? item.product.weightValue : item.product.weightValue / 1000;
-                                            const tonnage = (weightInKg * item.quantity) / 1000;
-                                            return tonnage.toFixed(2);
-                                        }).join(", ")}
-                                    </td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.isReturn ? "Yes" : "No"}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.invoiceNumber}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.deliveryNote}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.transporter.name}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">{s.transporter.vehicleNumber}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600 truncate">{s.transporter.driverName}</td>
-                                    <td className="p-2 border border-gray-300 dark:border-gray-600">
-                                        {new Date(s.saleDate).toLocaleDateString()}
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={18} className="p-6 text-center">
+                                        <Loading message="Loading sales data. Please wait..." />
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredSales.flatMap((s, index) =>
+                                    s.items.map((item, i) => (
+                                        <tr key={s.id + i} className="even:bg-gray-100 dark:even:bg-gray-700">
+                                            {/*<td className="p-2 border text-center">{index + 1}</td>*/}
+                                            <td className="p-2 border w-20 max-w-[80px] truncate">{s.id}</td>
+                                            <td className="p-2 border">{s.customer.name}</td>
+                                            <td className="p-2 border">{item.product.name}</td>
+                                            <td className="p-2 border">{item.product.packSize}</td>
+                                            <td className="p-2 border">
+                                                {`${item.product.weightValue.toFixed(2)} ${item.product.weightUnit}`}
+                                            </td>
+                                            <td className="p-2 border">{s.location.name}</td>
+                                            <td className="p-2 border">{item.quantity}</td>
+                                            <td className="p-2 border">{item.price.toFixed(2)}</td>
+                                            <td className="p-2 border">{item.total.toFixed(2)}</td>
+                                            <td className="p-2 border">
+                                                {(() => {
+                                                    const weightInKg =
+                                                        item.product.weightUnit === "kg"
+                                                            ? item.product.weightValue
+                                                            : item.product.weightValue / 1000;
+                                                    const tonnage = (weightInKg * item.quantity) / 1000;
+                                                    return tonnage.toFixed(2);
+                                                })()}
+                                            </td>
+                                            <td className="p-2 border">{s.isReturn ? "Yes" : "No"}</td>
+                                            <td className="p-2 border">{s.invoiceNumber}</td>
+                                            <td className="p-2 border whitespace-nowrap">
+                                                {s.deliveryNoteNo ?? "-"}
+                                            </td>
+                                            <td className="p-2 border">{s.transporter?.name ?? "-"}</td>
+                                            <td className="p-2 border">{s.transporter?.vehicleNumber ?? "-"}</td>
+                                            <td className="p-2 border truncate">{s.transporter?.driverName ?? "-"}</td>
+                                            <td className="p-2 border">
+                                                {new Date(s.saleDate).toLocaleDateString()}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )
+                            )}
                         </tbody>
                     </table>
                 </div>

@@ -1,28 +1,29 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
-import {
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
-    Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, } from "recharts";
 import { MapPin } from "lucide-react";
 import CustomTooltip from "./CustomTooltip";
 
 /* ---------------- TYPES ---------------- */
+interface Product {
+    id: string;
+    name: string;
+    weightValue: number;
+    packSize: number;
+}
+
 interface SaleItem {
+    productId: string;
     quantity: number;
     price: number;
+    product: Product | null;
 }
 
 interface Sale {
+    id: string;
     saleDate: string;
     items: SaleItem[];
-    location: {
-        name: string;
-    } | null;
+    location: { id: string; name: string; } | null;
 }
 
 interface ContributionData {
@@ -69,13 +70,10 @@ const SimpleDateRangeSelector = ({
 export default function SalesContributionByLocation() {
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
-
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [oldestDate, setOldestDate] = useState("");
-
     const today = new Date().toISOString().split("T")[0];
-
     const COLORS = [
         "#6366f1",
         "#22c55e",
@@ -88,20 +86,20 @@ export default function SalesContributionByLocation() {
     /* ---------------- FETCH SALES ---------------- */
     useEffect(() => {
         const fetchSales = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
                 const res = await fetch("/api/sales");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                const data: Sale[] = json.data || [];
-
+                // Handle both plain array or wrapped { success, data } 
+                const data: Sale[] = Array.isArray(json) ? json : json.sales || [];
                 setSales(data);
-
                 if (data.length) {
                     const oldest = new Date(
                         Math.min(...data.map(s => new Date(s.saleDate).getTime()))
-                    );
-                    setOldestDate(oldest.toISOString().split("T")[0]);
-                    setStartDate(oldest.toISOString().split("T")[0]);
+                    ).toISOString().split("T")[0];
+                    setOldestDate(oldest);
+                    setStartDate(oldest);
                     setEndDate(today);
                 } else {
                     setOldestDate(today);
@@ -110,36 +108,33 @@ export default function SalesContributionByLocation() {
                 }
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
+                setSales([]);
+                setOldestDate(today);
+                setStartDate(today);
+                setEndDate(today);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchSales();
     }, [today]);
 
     /* ---------------- COMPUTE CONTRIBUTION ---------------- */
     const contributionData: ContributionData[] = useMemo(() => {
         if (!sales.length) return [];
-
         const start = new Date(startDate || oldestDate);
         const end = new Date(endDate || today);
         end.setHours(23, 59, 59, 999);
-
         const totals = new Map<string, number>();
         let grandTotal = 0;
 
         sales.forEach(sale => {
             const d = new Date(sale.saleDate);
             if (d < start || d > end) return;
-
             const location = sale.location?.name || "Unknown";
-
-            const saleValue =
-                sale.items?.reduce((sum, item) => {
-                    return sum + item.quantity * item.price;
-                }, 0) || 0;
-
+            const saleValue = (sale.items || []).reduce((sum, item) => {
+                return sum + item.quantity * item.price;
+            }, 0);
             totals.set(location, (totals.get(location) || 0) + saleValue);
             grandTotal += saleValue;
         });
@@ -147,9 +142,7 @@ export default function SalesContributionByLocation() {
         return Array.from(totals.entries()).map(([location, total]) => ({
             location,
             salesValue: Number(total.toFixed(2)),
-            contribution: grandTotal
-                ? Number(((total / grandTotal) * 100).toFixed(1))
-                : 0,
+            contribution: grandTotal ? Number(((total / grandTotal) * 100).toFixed(1)) : 0,
         }));
     }, [sales, startDate, endDate, oldestDate, today]);
 

@@ -1,5 +1,5 @@
 //"use client";
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Pagination from "@/components/pagination";
@@ -23,7 +23,7 @@ export default async function InventoryPage({
     const q = (params.q ?? "").trim();
     const locations = Array.isArray(params.locationName) ? params.locationName : params.locationName ? [params.locationName] : [];
     const where = {
-        createdBy: userId,
+        createdById: userId,
         ...(q && {
             product: {
                 name: { contains: q, mode: "insensitive" as const },
@@ -49,7 +49,7 @@ export default async function InventoryPage({
             take: pageSize,
         }),
         prisma.location.findMany({
-            where: { createdBy: userId },
+            where: { createdById: userId },
             select: { id: true, name: true },
         }),
     ]);

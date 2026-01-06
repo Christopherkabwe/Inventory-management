@@ -1,75 +1,56 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
-export async function GET(request) {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const search = searchParams.get('search');
+export async function GET(req: Request) {
+    const user = getCurrentUser();
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search");
+    const category = searchParams.get("category");
+    const userId = user.id;  // <-- new
 
     try {
+        const where: any = { createdById: userId };
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: "insensitive" } },
+                { sku: { contains: search, mode: "insensitive" } },
+            ];
+        }
+        if (category) {
+            where.category = category;  // exact match filter
+        }
+
         const products = await prisma.productList.findMany({
-            where: userId ? { createdBy: userId } : {}, // Filter by userId if provided
-            select: {
-                id: true,
-                name: true,
-                sku: true,
-                price: true,
-                category: true,
-                weightValue: true,
-                weightUnit: true,
-                packSize: true,
-                inventories: {
-                    select: {
-                        quantity: true,
-                        location: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+            where,
+            include: { inventories: { select: { quantity: true, location: true } } },
+            orderBy: { createdAt: "desc" },
         });
 
-        // Aggregate inventory quantity per product
-        const productsWithTotalQuantity = products.map(product => ({
-            ...product,
-            quantity: product.inventories.reduce((sum, inv) => sum + inv.quantity, 0),
+        const productsWithQuantity = products.map((p) => ({
+            ...p,
+            quantity: p.inventories.reduce((sum, inv) => sum + inv.quantity, 0),
         }));
 
-        return NextResponse.json({ products: productsWithTotalQuantity ?? [] });
-    } catch (error) {
-        console.error("Product fetch error:", error);
-        return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+        return NextResponse.json({ products: productsWithQuantity });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }
 
-export async function POST(request) {
+export async function POST(req: Request) {
+    const user = getCurrentUser();
     try {
-        const {
-            name,
-            sku,
-            price,
-            packSize,
-            weightValue,
-            weightUnit,
-            userId,
-            location,
-            quantity = 0,
-        } = await request.json();
+        const { name, sku, price, packSize, weightValue, weightUnit, category, location, quantity } = await req.json();
 
-        // Basic validation
-        if (!name || !sku || price <= 0 || !userId || !location || !packSize || !weightValue || !weightUnit || quantity <= 0) {
-            return NextResponse.json(
-                { error: 'Missing or invalid fields: name, sku, price, user, location, or quantity.' },
-                { status: 400 }
-            );
+        if (!name || !sku || price <= 0 || !location || !packSize || !weightValue || !weightUnit || quantity <= 0) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Check for unique SKU
-        const existingProduct = await prisma.productList.findUnique({ where: { sku } });
-        if (existingProduct) {
-            return NextResponse.json({ error: 'SKU already exists.' }, { status: 409 });
-        }
+        const existing = await prisma.productList.findUnique({ where: { sku } });
+        if (existing) return NextResponse.json({ error: "SKU already exists" }, { status: 409 });
 
-        // Create product and inventory in a transaction
         const product = await prisma.$transaction(async (tx) => {
             const newProduct = await tx.productList.create({
                 data: {
@@ -79,51 +60,27 @@ export async function POST(request) {
                     packSize,
                     weightValue,
                     weightUnit,
-                    createdBy: userId,
+                    category,       // <--- added category
+                    createdById: user.id
                 },
             });
 
             await tx.inventory.create({
                 data: {
                     productId: newProduct.id,
-                    productName: newProduct.name,
-                    location,
+                    locationId: location,
                     quantity,
-                    lowStockAt: 5, // Adjust as needed
-                    createdBy: userId,
+                    lowStockAt: 5,
+                    createdById: user.id
                 },
             });
 
             return newProduct;
         });
 
-        // Fetch the product with inventory data
-        const productWithQuantity = await prisma.productList.findUnique({
-            where: { id: product.id },
-            select: {
-                id: true,
-                name: true,
-                sku: true,
-                price: true,
-                packSize: true,
-                weightValue: true,
-                weightUnit: true,
-                inventories: {
-                    select: { quantity: true, location: true },
-                },
-            },
-        });
-
-        const totalQuantity = productWithQuantity.inventories.reduce(
-            (sum, inv) => sum + inv.quantity,
-            0
-        );
-        return NextResponse.json(
-            { ...productWithQuantity, quantity: totalQuantity },
-            { status: 201 }
-        );
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+        return NextResponse.json(product, { status: 201 });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
     }
 }

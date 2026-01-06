@@ -1,68 +1,111 @@
 // app/api/sales/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { requireRole, UserRole } from "@/lib/rbac";
 
 type Params = { params: { id: string } };
 
 // -------------------- UPDATE SALE --------------------
 export async function PUT(req: NextRequest, { params }: Params) {
     const { id } = params;
-    try {
-        const { customerId, locationId, transporterId, items } = await req.json();
 
-        if (!customerId || !locationId || !items?.length) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    try {
+        const user = await getCurrentUser();
+        requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
+
+        const { items, transporterName, driverName, vehicleNumber } = await req.json();
+
+        if (!items?.length && !transporterName && !driverName && !vehicleNumber) {
+            return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
         }
 
         const updatedSale = await prisma.$transaction(async (tx) => {
-            // Fetch existing sale with items
+            // 1️⃣ Fetch sale and current items
             const sale = await tx.sale.findUnique({
                 where: { id },
                 include: { items: true },
             });
             if (!sale) throw new Error("Sale not found");
 
-            // Map old vs new quantities for inventory adjustments
-            const oldMap = new Map(sale.items.map((i) => [i.productId, i.quantity]));
-            const newMap = new Map(items.map((i: any) => [i.productId, i.quantity]));
-
-            const allProductIds = new Set([...oldMap.keys(), ...newMap.keys()]);
-
-            for (const productId of allProductIds) {
-                const oldQty = oldMap.get(productId) || 0;
-                const newQty = newMap.get(productId) || 0;
-                const delta = newQty - oldQty;
-
-                if (delta === 0) continue;
-
-                const inventory = await tx.inventory.findFirst({ where: { productId, locationId } });
-                if (!inventory) throw new Error(`Inventory not found for product ${productId}`);
-                if (inventory.quantity < -delta) throw new Error(`Insufficient stock for product ${productId}`);
-
-                await tx.inventory.update({
-                    where: { id: inventory.id },
-                    data: { quantity: { increment: -delta } },
-                });
+            // 2️⃣ Prevent editing confirmed/locked sales
+            if (sale.isLocked || sale.status === "CANCELLED") {
+                throw new Error("Cannot update a confirmed, partially invoiced, or cancelled sale");
             }
 
-            // Replace old sale items
-            await tx.saleItem.deleteMany({ where: { saleId: id } });
-            for (const item of items) {
-                await tx.saleItem.create({
-                    data: {
-                        saleId: id,
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                        total: item.price * item.quantity,
-                    },
+            // 3️⃣ Handle transporter update
+            let transporterId = sale.transporterId;
+            if (transporterName && vehicleNumber) {
+                const existing = await tx.transporter.findFirst({
+                    where: { name: transporterName, vehicleNumber },
                 });
+                transporterId =
+                    existing?.id ||
+                    (await tx.transporter.create({ data: { name: transporterName, vehicleNumber } })).id;
             }
 
-            // Update sale main info and include relations
-            return tx.sale.update({
+            // 4️⃣ Update sale info
+            await tx.sale.update({
                 where: { id },
-                data: { customerId, locationId, transporterId },
+                data: {
+                    transporterId,
+                    driverName: driverName ?? sale.driverName,
+                    vehicleNumber: vehicleNumber ?? sale.vehicleNumber,
+                },
+            });
+
+            // 5️⃣ Update items if provided
+            if (items?.length) {
+                // Restore inventory for old items
+                for (const oldItem of sale.items) {
+                    const inventory = await tx.inventory.findFirst({
+                        where: { productId: oldItem.productId, locationId: sale.locationId },
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { increment: oldItem.quantity } },
+                        });
+                    }
+                }
+
+                // Delete old sale items
+                await tx.saleItem.deleteMany({ where: { saleId: id } });
+
+                // Add new items & decrement inventory
+                for (const item of items) {
+                    const { productId, quantity, price } = item;
+                    if (!productId || quantity <= 0 || price < 0) throw new Error("Invalid sale item");
+
+                    const inventory = await tx.inventory.findFirst({
+                        where: { productId, locationId: sale.locationId },
+                    });
+                    if (!inventory || inventory.quantity < quantity)
+                        throw new Error(`Insufficient stock for product ${productId}`);
+
+                    await tx.inventory.update({
+                        where: { id: inventory.id },
+                        data: { quantity: { decrement: quantity } },
+                    });
+
+                    await tx.saleItem.create({
+                        data: {
+                            saleId: id,
+                            productId,
+                            quantity,
+                            quantityInvoiced: 0,
+                            quantityDelivered: 0,
+                            quantityReturned: 0,
+                            price,
+                            total: price * quantity,
+                        },
+                    });
+                }
+            }
+
+            // 6️⃣ Return updated sale with relations
+            return tx.sale.findUnique({
+                where: { id },
                 include: {
                     items: { include: { product: true } },
                     customer: true,
@@ -72,40 +115,58 @@ export async function PUT(req: NextRequest, { params }: Params) {
             });
         });
 
-        return NextResponse.json(updatedSale);
+        return NextResponse.json({ success: true, sale: updatedSale });
     } catch (error) {
         console.error("Update sale failed:", error);
-        return NextResponse.json({ error: "Failed to update sale" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to update sale", details: (error as Error).message },
+            { status: 500 }
+        );
     }
 }
 
 // -------------------- DELETE SALE --------------------
 export async function DELETE(req: NextRequest, { params }: Params) {
     const { id } = params;
+
     try {
+        const user = await getCurrentUser();
+        requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
+
         await prisma.$transaction(async (tx) => {
+            // 1️⃣ Fetch sale and items
             const sale = await tx.sale.findUnique({ where: { id }, include: { items: true } });
             if (!sale) throw new Error("Sale not found");
 
-            // Rollback inventory
-            for (const item of sale.items) {
-                const inventory = await tx.inventory.findFirst({ where: { productId: item.productId, locationId: sale.locationId } });
-                if (!inventory) throw new Error(`Inventory not found for product ${item.productId}`);
-
-                await tx.inventory.update({
-                    where: { id: inventory.id },
-                    data: { quantity: { increment: item.quantity } },
-                });
+            // 2️⃣ Prevent deletion of confirmed, partially invoiced, or locked sales
+            if (sale.isLocked || sale.status === "CONFIRMED" || sale.status === "PARTIALLY_INVOICED") {
+                throw new Error("Cannot delete confirmed, partially invoiced, or locked sale");
             }
 
-            // Delete sale items and sale
+            // 3️⃣ Restore inventory
+            for (const item of sale.items) {
+                const inventory = await tx.inventory.findFirst({
+                    where: { productId: item.productId, locationId: sale.locationId },
+                });
+                if (inventory) {
+                    await tx.inventory.update({
+                        where: { id: inventory.id },
+                        data: { quantity: { increment: item.quantity } },
+                    });
+                }
+            }
+
+            // 4️⃣ Delete sale items & sale
             await tx.saleItem.deleteMany({ where: { saleId: id } });
             await tx.sale.delete({ where: { id } });
         });
 
-        return NextResponse.json({ success: true, message: "Sale deleted successfully" });
+        return NextResponse.json({ success: true, message: "Sale deleted" });
     } catch (error) {
         console.error("Delete sale failed:", error);
-        return NextResponse.json({ error: "Failed to delete sale" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to delete sale", details: (error as Error).message },
+            { status: 500 }
+        );
     }
 }

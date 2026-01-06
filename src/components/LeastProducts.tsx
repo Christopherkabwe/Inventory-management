@@ -36,9 +36,9 @@ export default function LeastProducts({ limit = 5 }: { limit?: number }) {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales"); // adjust API if needed
+                const res = await fetch("/api/sales");
                 const json = await res.json();
-                setSales(json.data || []);
+                setSales(json.sales || []);
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
             } finally {

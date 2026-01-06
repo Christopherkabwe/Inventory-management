@@ -1,5 +1,5 @@
 // app/reports/page.tsx
-import { getStockReport } from "./stockReport";
+import { getStockReport } from "@/lib/stockReport";
 
 export const metadata = {
     title: "Stock Report",

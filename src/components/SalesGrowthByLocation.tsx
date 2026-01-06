@@ -90,7 +90,7 @@ export default function SalesGrowthByLocation() {
                 setLoading(true);
                 const res = await fetch("/api/sales");
                 const json = await res.json();
-                const data: Sale[] = json.data || [];
+                const data: Sale[] = json.sales || [];
                 setSales(data);
 
                 if (data.length > 0) {
@@ -117,6 +117,7 @@ export default function SalesGrowthByLocation() {
         };
         fetchSales();
     }, [today]);
+
 
     useEffect(() => {
         if (sales.length > 0 && !locationStartDate && !locationEndDate) {

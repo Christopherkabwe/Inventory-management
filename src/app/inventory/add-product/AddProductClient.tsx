@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 import { CreateProduct } from "@/lib/actions/products";
 import ProductList from "./ProductList";
 import { useFormStatus } from "react-dom";

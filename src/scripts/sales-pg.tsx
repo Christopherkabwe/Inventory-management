@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { useStackApp } from "@stackframe/stack";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/Simplesidebar";
 import { useToaster } from '@/components/Toaster';
 import { prisma } from "@/lib/prisma"
 import { motion } from 'framer-motion';

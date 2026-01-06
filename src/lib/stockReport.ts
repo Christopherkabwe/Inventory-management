@@ -1,69 +1,109 @@
-import { prisma } from './prisma';
+// lib/reports.ts
+import { prisma } from "@/lib/prisma";
 
-export async function getStockReport({ startDate, endDate }: { startDate?: Date; endDate?: Date }) {
-    const stockMovements = await prisma.stockMovement.findMany({
-        where: {
-            createdAt: {
-                gte: startDate,
-                lte: endDate,
-            },
-        },
+export type StockReportRow = {
+    productName: string;
+    location: string;
+    openingStock: number;
+    production: number;
+    ibtReceived: number;
+    ibtIssued: number;
+    rebagGain: number;
+    rebagLoss: number;
+    damaged: number;
+    expired: number;
+    returns: number;
+    salesQty: number;
+    closingStock: number;
+};
+export async function getStockReport(): Promise<StockReportRow[]> {
+    const inventories = await prisma.inventory.findMany({
         include: {
-            inventory: {
-                include: { product: true, location: true },
+            product: {
+                include: {
+                    productionItems: { include: { production: true } },
+                    transferItems: { include: { transfer: true } },
+                    adjustmentItems: { include: { adjustment: true } },
+                    saleItems: { include: { sale: true } },
+                },
             },
-            sale: true,
-            customer: true,
-            fromLocation: true,
-            toLocation: true,
+            location: true,
         },
-        orderBy: { createdAt: 'asc' },
     });
 
-    const report: Record<string, any> = {};
+    const report = inventories.map((inv) => {
+        const product = inv.product;
+        const location = inv.location;
 
-    for (const move of stockMovements) {
-        const key = `${move.inventory.product.id}-${move.inventory.location.id}`;
-        if (!report[key]) {
-            report[key] = {
-                productId: move.inventory.product.id,
-                productName: move.inventory.product.name,
-                locationId: move.inventory.location.id,
-                locationName: move.inventory.location.name,
-                openingStock: 0,
-                receipts: 0,
-                sales: 0,
-                transfersIn: 0,
-                transfersOut: 0,
-                returns: 0,
-                damaged: 0,
-                expired: 0,
-                rebagGain: 0,
-                rebagLoss: 0,
-                closingStock: 0,
-            };
-        }
+        const openingStock = inv.quantity;
 
-        const r = report[key];
+        const production = product.productionItems
+            .filter((pi) => pi.production?.locationId === location.id)
+            .reduce((sum, pi) => sum + (pi.quantity || 0), 0);
 
-        // Set openingStock from first movement if null
-        if (!r.openingStock && move.openingStock !== null) r.openingStock = move.openingStock;
+        const ibtIssued = product.transferItems
+            .filter((ti) => ti.transfer?.fromLocationId === location.id)
+            .reduce((sum, ti) => sum + (ti.quantity || 0), 0);
 
-        switch (move.type) {
-            case 'RECEIPT': r.receipts += move.quantity; break;
-            case 'SALE': r.sales += move.quantity; break;
-            case 'TRANSFER_IN': r.transfersIn += move.quantity; break;
-            case 'TRANSFER_OUT': r.transfersOut += move.quantity; break;
-            case 'RETURN': r.returns += move.quantity; break;
-            case 'DAMAGED': r.damaged += move.quantity; break;
-            case 'EXPIRED': r.expired += move.quantity; break;
-            case 'REBAG_GAIN': r.rebagGain += move.quantity; break;
-            case 'REBAG_LOSS': r.rebagLoss += move.quantity; break;
-        }
+        const ibtReceived = product.transferItems
+            .filter((ti) => ti.transfer?.toLocationId === location.id)
+            .reduce((sum, ti) => sum + (ti.quantity || 0), 0);
 
-        // Last movement closingStock
-        if (move.closingStock !== null) r.closingStock = move.closingStock;
-    }
+        const adjustmentItems = product.adjustmentItems.filter(
+            (ai) => ai.adjustment?.locationId === location.id
+        );
 
-    return Object.values(report);
+        const rebagGain = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "REBAG_GAIN")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
+
+        const rebagLoss = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "REBAG_LOSS")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
+
+        const damaged = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "DAMAGED")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
+
+        const expired = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "EXPIRED")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
+
+        const saleItems = product.saleItems.filter((si) => si.sale?.locationId === location.id);
+        const salesQty = saleItems.reduce((sum, si) => sum + (si.quantity || 0), 0);
+
+        const returns = saleItems
+            .filter((si) => si.sale?.isReturn)
+            .reduce((sum, si) => sum + (si.quantity || 0), 0);
+
+        const closingStock =
+            openingStock +
+            production +
+            ibtReceived +
+            rebagGain +
+            returns -
+            ibtIssued -
+            salesQty -
+            damaged -
+            expired -
+            rebagLoss;
+
+        return {
+            productName: product.name,
+            location: location.name,
+            openingStock,
+            production,
+            ibtReceived,
+            ibtIssued,
+            rebagGain,
+            rebagLoss,
+            damaged,
+            expired,
+            returns,
+            salesQty,
+            closingStock,
+        };
+    });
+
+    return report;
 }

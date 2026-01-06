@@ -1,188 +1,138 @@
+// app/api/sales/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { UserRole, requireRole } from "@/lib/rbac";
+import { createSaleSchema } from "@/lib/validators/sale";
+import { nextSequence } from "@/lib/sequence";
 
+// -------------------- GET ALL SALES --------------------
 export async function GET(req: NextRequest) {
     try {
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        // Optional filters
         const { searchParams } = new URL(req.url);
-        const page = Number(searchParams.get("page") || 1);
-        const limitParam = searchParams.get("limit");
-        const limit = limitParam ? Number(limitParam) : undefined;
-        const skip = limit ? (page - 1) * limit : undefined;
+        const locationId = searchParams.get("locationId");
+        const customerId = searchParams.get("customerId");
+        const status = searchParams.get("status");
 
-        const aggregate = searchParams.get("aggregate");
+        const where: any = {};
+        if (locationId) where.locationId = locationId;
+        if (customerId) where.customerId = customerId;
+        if (status) where.status = status;
 
-        let where = {};
-        const start = searchParams.get("start");
-        const end = searchParams.get("end");
+        // USER role restriction: only sales created by them
+        if (user.role === UserRole.USER) where.createdById = user.id;
 
-        if (start && end) {
-            where = {
-                createdAt: {
-                    gte: new Date(start),
-                    lte: new Date(end),
-                },
-            };
-        }
+        const sales = await prisma.sale.findMany({
+            where,
+            include: {
+                items: { include: { product: true } },
+                customer: true,
+                location: true,
+                transporter: true,
+                deliveryNotes: true, // includes full objects
+            },
+            orderBy: { createdAt: "desc" },
+        });
 
-        if (aggregate === "category") {
-            const grouped = await prisma.saleItem.groupBy({
-                by: ["productId"],
-                _sum: { quantity: true },
-                where: {
-                    sale: where,
-                },
-            });
+        // Map deliveryNoteNo to top-level for frontend
+        const mappedSales = sales.map((s) => ({
+            ...s,
+            deliveryNoteNo: s.deliveryNotes[0]?.deliveryNoteNo ?? null, // pick first DN
+        }));
+        return NextResponse.json({ success: true, sales: mappedSales });
 
-            const products = await prisma.product.findMany({
-                where: { id: { in: grouped.map(g => g.productId) } },
-                select: { id: true, category: true, weightValue: true, packSize: true },
-            });
-
-            const productMap = Object.fromEntries(products.map(p => [p.id, p]));
-            const categoryMap: Record<string, number> = {};
-
-            for (const row of grouped) {
-                const product = productMap[row.productId];
-                if (!product) continue;
-                const category = product.category || "Uncategorized";
-                const tonnage = (product.weightValue * (row._sum.quantity || 0) * product.packSize) / 1000;
-                categoryMap[category] = (categoryMap[category] || 0) + tonnage;
-            }
-
-            const data = Object.entries(categoryMap).map(([category, tonnage]) => ({
-                category,
-                tonnage: Number(tonnage.toFixed(2)),
-            }));
-
-            return NextResponse.json({ success: true, data });
-        }
-
-        const [sales, total] = await Promise.all([
-            prisma.sale.findMany({
-                orderBy: { createdAt: "desc" },
-                ...(limit ? { skip, take: limit } : {}),
-                where,
-                include: {
-                    items: { include: { product: true } },
-                    customer: true,
-                    location: true,
-                    transporter: true,
-                },
-            }),
-            prisma.sale.count({ where }),
-        ]);
-
-        if (limit) {
-            return NextResponse.json({
-                success: true,
-                data: sales,
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                },
-            });
-        }
-
-        return NextResponse.json({ success: true, data: sales, total });
     } catch (error) {
         console.error("Fetch sales failed:", error);
-        return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to fetch sales", details: error instanceof Error ? error.message : String(error) },
+            { status: 500 }
+        );
     }
 }
 
 // -------------------- CREATE SALE --------------------
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const user = await getCurrentUser();
+        requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
+
+
+
+        const rawBody = await req.json();
+
+        const body = createSaleSchema.parse(rawBody);
+
         const {
+            salesOrderId,
             customerId,
-            locationId,
-            transporterName,
-            driverName,      // always manual per sale
+            locationId,       // ✅ REQUIRED & validated
+            driverName,
             vehicleNumber,
             items,
-            createdBy,
-        } = await req.json();
+            transporterName,
+        } = body;
 
-        if (!customerId || !locationId || !items?.length || !driverName) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-        }
+        if (!items?.length) return NextResponse.json({ error: "No items provided" }, { status: 400 });
 
-        const sale = await prisma.$transaction(async (tx) => {
-            // 1️⃣ Generate Invoice Number
-            const invSeq = await tx.sequence.upsert({
-                where: { id: "INV" },
-                update: { value: { increment: 1 } },
-                create: { id: "INV", value: 1 },
-            });
-            const invoiceNumber = `INV${invSeq.value.toString().padStart(6, "0")}`;
+        const newSale = await prisma.$transaction(async (tx) => {
+            // Handle transporter
+            let transporterId: string | undefined;
+            let resolvedDriverName: string | null = null;
 
-            // 2️⃣ Generate Delivery Note Number
-            const dnSeq = await tx.sequence.upsert({
-                where: { id: "DN" },
-                update: { value: { increment: 1 } },
-                create: { id: "DN", value: 1 },
-            });
-            const deliveryNote = `DN${dnSeq.value.toString().padStart(6, "0")}`;
-
-            // 3️⃣ Find or create transporter (unique by name + vehicleNumber)
-            let transporterId: string | null = null;
             if (transporterName && vehicleNumber) {
-                const existingTransporter = await tx.transporter.findFirst({
-                    where: { name: transporterName, vehicleNumber },
+                const existing = await tx.transporter.findFirst({
+                    where: { name: transporterName, vehicleNumber }
                 });
 
-                if (existingTransporter) {
-                    transporterId = existingTransporter.id;
+                if (existing) {
+                    transporterId = existing.id;
+                    resolvedDriverName = driverName ?? existing.driverName ?? null;
                 } else {
-                    const newTransporter = await tx.transporter.create({
-                        data: { name: transporterName, vehicleNumber },
+                    const created = await tx.transporter.create({
+                        data: { name: transporterName, vehicleNumber, driverName }
                     });
-                    transporterId = newTransporter.id;
+                    transporterId = created.id;
+                    resolvedDriverName = driverName ?? created.driverName ?? null;
                 }
+            } else {
+                // No transporter specified, just use driverName from request or null
+                resolvedDriverName = driverName ?? null;
             }
+            // Handle invoice Number
+            const invoiceNumber = await nextSequence(tx, "INV");
 
-            // 4️⃣ Create Sale
-            const newSale = await tx.sale.create({
+            // Create Sale
+
+            const sale = await tx.sale.create({
                 data: {
+                    invoiceNumber,
+                    salesOrderId,
                     customerId,
                     locationId,
                     transporterId,
-                    driverName,       // manual per sale
-                    vehicleNumber,    // snapshot
-                    invoiceNumber,
-                    deliveryNote,
-                    createdBy,
+                    driverName: resolvedDriverName,
+                    vehicleNumber,
+                    createdById: user.id,
                 },
             });
 
-            // 5️⃣ Create SaleItems and update inventory
+            // Deduct inventory & create sale items
             for (const item of items) {
                 const { productId, quantity, price } = item;
+                if (!productId || quantity <= 0 || price < 0) throw new Error("Invalid sale item");
 
-                if (!productId || quantity <= 0 || price < 0) {
-                    throw new Error("Invalid sale item");
-                }
+                const inventory = await tx.inventory.findFirst({ where: { productId, locationId } });
+                if (!inventory || inventory.quantity < quantity) throw new Error(`Insufficient stock for product ${productId}`);
 
-                // Check inventory
-                const inventory = await tx.inventory.findFirst({
-                    where: { productId, locationId },
-                });
-                if (!inventory || inventory.quantity < quantity) {
-                    throw new Error(`Insufficient stock for product ${productId}`);
-                }
+                await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: { decrement: quantity } } });
 
-                // Decrement inventory
-                await tx.inventory.update({
-                    where: { id: inventory.id },
-                    data: { quantity: { decrement: quantity } },
-                });
-
-                // Create SaleItem
                 await tx.saleItem.create({
                     data: {
-                        saleId: newSale.id,
+                        saleId: sale.id,
                         productId,
                         quantity,
                         price,
@@ -191,27 +141,65 @@ export async function POST(req: Request) {
                 });
             }
 
-            // 6️⃣ Return full sale with relations
             return tx.sale.findUnique({
-                where: { id: newSale.id },
+                where: { id: sale.id },
                 include: {
                     items: { include: { product: true } },
                     customer: true,
                     location: true,
                     transporter: true,
+                    deliveryNotes: true,
                 },
             });
         });
 
-        return NextResponse.json(sale, { status: 201 });
+        return NextResponse.json({ success: true, sale: newSale });
     } catch (error) {
         console.error("Create sale failed:", error);
         return NextResponse.json(
-            {
-                error: "Failed to create sale",
-                details: error instanceof Error ? error.message : String(error),
-            },
+            { error: "Failed to create sale", details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
 }
+
+// -------------------- GET / PUT / DELETE SINGLE SALE --------------------
+export async function GETSingle(req: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const { id } = params;
+
+        const sale = await prisma.sale.findUnique({
+            where: { id },
+            include: {
+                items: {
+                    include: {
+                        product: true
+                    }
+                },
+                customer: true,
+                location: true,
+                transporter: true,
+                deliveryNotes: true,
+            },
+        });
+
+        if (!sale) return NextResponse.json({ error: "Sale not found" }, { status: 404 });
+
+        // USER role: only own sales
+        if (user.role === UserRole.USER && sale.createdById !== user.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        return NextResponse.json({ success: true, sale });
+    } catch (error) {
+        console.error("Fetch sale failed:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch sale", details: error instanceof Error ? error.message : String(error) },
+            { status: 500 }
+        );
+    }
+}
+

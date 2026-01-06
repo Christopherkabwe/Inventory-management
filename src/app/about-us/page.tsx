@@ -16,10 +16,10 @@ export default async function AboutPage() {
             {/* Hero Section */}
             <section className="text-white">
                 <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 mb-5 text-center">
-                    <h1 className="w-full text-3xl xl:text-4xl font-bold py-2">
+                    <h1 className="w-full text-3xl xl:text-4xl font-bold">
                         Biz360° Business Management
                     </h1>
-                    <p className="text-purple-400 p-2 text-center text-lg font-medium">
+                    <p className="text-purple-400 text-center text-lg font-medium">
                         Your Business. One Platform. Full Control.
                     </p>
                 </div>

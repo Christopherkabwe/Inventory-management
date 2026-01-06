@@ -1,5 +1,5 @@
 "use client";
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 import { useEffect, useState, useCallback } from "react";
 import { Clock, X } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -20,10 +20,6 @@ type Transfer = {
     toLocation: Location | null;
     quantity: number;
     transferDate: string;
-};
-
-export const metadata = {
-    title: "Stock Transfer",
 };
 
 export default function TransfersPage() {

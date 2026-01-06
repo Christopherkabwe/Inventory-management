@@ -14,7 +14,11 @@
     "lint": "eslint",
     "products": "tsx --tsconfig ./tsconfig.json src/scripts/products.ts",
     "generateSales": "tsx --tsconfig ./tsconfig.json src/scripts/generateSales.ts",
-    "seed": "tsx --tsconfig ./tsconfig.json src/scripts/seed.ts"
+    "seed-locations": "tsx --tsconfig ./tsconfig.json src/scripts/seed-locations.ts",
+    "seed": "tsx --tsconfig ./tsconfig.json src/scripts/seed.ts",
+    "ClearDatabase": "tsx --tsconfig ./tsconfig.json src/scripts/ClearDatabase.ts",
+    "reset-DB": "tsx --tsconfig ./tsconfig.json src/scripts/reset-DB.ts",
+    "fixStackAuthUsers": "tsx --tsconfig ./tsconfig.json src/scripts/fixStackAuthUsers.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -36,6 +40,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-pdf/renderer": "^4.3.1",
     "@stackframe/stack": "^2.8.56",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -43,6 +49,7 @@
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.26",
     "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.3",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.556.0",
@@ -58,6 +65,7 @@
     "react-to-print": "^3.2.0",
     "recharts": "^3.5.1",
     "server-only": "^0.0.1",
+    "swr": "^2.3.8",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.13"
@@ -65,6 +73,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/json2csv": "^5.0.7",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.27",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.7",

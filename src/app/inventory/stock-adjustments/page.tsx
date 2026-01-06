@@ -26,10 +26,6 @@ type Adjustment = {
     createdAt: string;
 };
 
-export const metadata = {
-    title: "Stock Adjustment",
-};
-
 export default function AdjustmentsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);

@@ -1,117 +1,71 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
-// -------------------- GET /api/transfers --------------------
-export async function GET(req: Request) {
+// -------------------- GET /api/transporters --------------------
+export async function GET(req: NextRequest) {
     try {
+        const user = await getCurrentUser(); // ensure logged-in
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const { searchParams } = new URL(req.url);
         const page = Number(searchParams.get("page") || 1);
-        const limitParam = searchParams.get("limit");
-        const limit = limitParam ? Number(limitParam) : undefined;
-        const skip = limit ? (page - 1) * limit : undefined;
+        const limit = Number(searchParams.get("limit") || 20);
+        const skip = (page - 1) * limit;
 
-        const [transfers, total] = await Promise.all([
-            prisma.transfer.findMany({
+        const [transporters, total] = await Promise.all([
+            prisma.transporter.findMany({
+                skip,
+                take: limit,
                 orderBy: { createdAt: "desc" },
-                ...(limit ? { skip, take: limit } : {}),
-                include: {
-                    items: { include: { product: true } },
-                    fromLocation: true,
-                    toLocation: true,
-                    transporter: true,
-                },
             }),
-            prisma.transfer.count(),
+            prisma.transporter.count(),
         ]);
 
-        if (limit) {
-            return NextResponse.json({
-                success: true,
-                data: transfers,
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                },
-            });
-        }
-
-        return NextResponse.json({ success: true, data: transfers, total });
+        return NextResponse.json({
+            success: true,
+            data: transporters,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
     } catch (error) {
-        console.error("Fetch transfers failed:", error);
-        return NextResponse.json({ error: "Failed to fetch transfers" }, { status: 500 });
+        console.error("Fetch transporters failed:", error);
+        return NextResponse.json({ error: "Failed to fetch transporters", details: (error as Error).message }, { status: 500 });
     }
 }
 
-// -------------------- POST /api/transfers --------------------
-export async function POST(req: Request) {
+// -------------------- POST /api/transporters --------------------
+export async function POST(req: NextRequest) {
     try {
-        const { fromLocationId, toLocationId, transporterId, items, createdBy } = await req.json();
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        if (!fromLocationId || !toLocationId || !items?.length) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        // Only ADMIN or MANAGER can create transporters
+        if (!["ADMIN", "MANAGER"].includes(user.role)) {
+            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
         }
 
-        const result = await prisma.$transaction(async (tx) => {
-            // Generate IBT number
-            const seq = await tx.sequence.upsert({
-                where: { id: "IBT" },
-                update: { value: { increment: 1 } },
-                create: { id: "IBT", value: 1 },
-            });
-            const ibtNumber = `IBT${seq.value.toString().padStart(8, "0")}`;
+        const { name, vehicleNumber, driverName } = await req.json();
 
-            // Create transfer
-            const transfer = await tx.transfer.create({
-                data: {
-                    ibtNumber,
-                    fromLocationId,
-                    toLocationId,
-                    transporterId,
-                    createdBy,
-                },
-            });
+        if (!name) {
+            return NextResponse.json({ error: "Transporter name is required" }, { status: 400 });
+        }
 
-            for (const item of items) {
-                const { productId, quantity } = item;
-                if (!productId || quantity <= 0) throw new Error("Invalid item");
-
-                // Check inventory in source location
-                const inventory = await tx.inventory.findFirst({ where: { productId, locationId: fromLocationId } });
-                if (!inventory || inventory.quantity < quantity) {
-                    throw new Error(`Insufficient stock for product ${productId} at source location`);
-                }
-
-                // Create TransferItem
-                await tx.transferItem.create({
-                    data: {
-                        transferId: transfer.id,
-                        productId,
-                        quantity,
-                    },
-                });
-
-                // Decrement source inventory
-                await tx.inventory.update({
-                    where: { id: inventory.id },
-                    data: { quantity: { decrement: quantity } },
-                });
-
-                // Increment destination inventory
-                await tx.inventory.upsert({
-                    where: { productId_locationId: { productId, locationId: toLocationId } },
-                    update: { quantity: { increment: quantity } },
-                    create: { productId, locationId: toLocationId, quantity, lowStockAt: 0, createdBy },
-                });
-            }
-
-            return transfer;
+        const transporter = await prisma.transporter.create({
+            data: {
+                name,
+                vehicleNumber: vehicleNumber || null,
+                driverName: driverName || null,
+            },
         });
 
-        return NextResponse.json(result, { status: 201 });
+        return NextResponse.json({ success: true, transporter }, { status: 201 });
     } catch (error) {
-        console.error("Create transfer failed:", error);
-        return NextResponse.json({ error: "Failed to create transfer" }, { status: 500 });
+        console.error("Create transporter failed:", error);
+        return NextResponse.json({ error: "Failed to create transporter", details: (error as Error).message }, { status: 500 });
     }
 }

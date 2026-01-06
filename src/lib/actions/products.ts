@@ -30,7 +30,7 @@ export async function deleteFromInventory(
 
     try {
         const inventory = await prisma.inventory.findUnique({
-            where: { id, createdBy: user.id },
+            where: { id, createdById: user.id },
             include: { product: true },
         });
 
@@ -39,10 +39,10 @@ export async function deleteFromInventory(
         }
 
         await prisma.$transaction([
-            prisma.inventory.delete({ where: { id, createdBy: user.id } }),
+            prisma.inventory.delete({ where: { id, createdById: user.id } }),
             // Optional: Delete the product if you want to remove it entirely
             // prisma.productList.delete({
-            //   where: { id: inventory.productId, createdBy: user.id },
+            //   where: { id: inventory.productId, createdById: user.id },
             // }),
         ]);
 
@@ -131,7 +131,7 @@ export async function CreateProduct(
                     packSize: parsed.data.packSize,
                     weightValue: parsed.data.weightValue,
                     weightUnit: parsed.data.weightUnit,
-                    createdBy: user.id,
+                    createdById: user.id,
                 },
             });
         }
@@ -159,7 +159,7 @@ export async function CreateProduct(
                 },
                 quantity: parsed.data.quantity,
                 lowStockAt: parsed.data.lowStockAt || 5,
-                createdBy: user.id,
+                createdById: user.id,
             },
         });
 
@@ -176,7 +176,7 @@ export async function getProducts() {
 
     const products = await prisma.inventory.findMany({
         where: {
-            createdBy: user.id,
+            createdById: user.id,
         },
         include: {
             product: true,

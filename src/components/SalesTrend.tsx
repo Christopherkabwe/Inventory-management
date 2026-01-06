@@ -10,15 +10,13 @@ import SalesByCategoryPie from "./SalesByCategoryPie";
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
     return (
-        <div className="bg-white border p-2 text-xs" >
-            <div>{label}</div >
-            {
-                payload.map((p: any) => (
-                    <div key={p.dataKey} >
-                        {p.name}: {p.dataKey === "value" ? `K${p.value.toFixed(2)}` : `${p.value.toFixed(2)} tons`}
-                    </div>
-                ))
-            }
+        <div className="bg-white border p-2 text-xs">
+            <div>{label}</div>
+            {payload.map((p: any) => (
+                <div key={p.dataKey}>
+                    {p.name}: {p.dataKey === "value" ? `K${p.value.toFixed(2)}` : `${p.value.toFixed(2)} tons`}
+                </div>
+            ))}
         </div>
     );
 };
@@ -39,6 +37,7 @@ interface SaleItem {
 
 interface Sale {
     saleDate: string;
+    createdById: string;
     items: SaleItem[];
 }
 
@@ -51,12 +50,9 @@ interface ChartDataPoint {
 
 type ViewMode = "daily" | "monthly" | "yearly";
 
-export default function TestPage() {
-    // ✅ Hooks always at the top
+export default function SalesTrend() {
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingValueChart, setLoadingValueChart] = useState(true);
-    const [loadingTonnageChart, setLoadingTonnageChart] = useState(true);
 
     const [valueStartDate, setValueStartDate] = useState("");
     const [valueEndDate, setValueEndDate] = useState("");
@@ -71,44 +67,58 @@ export default function TestPage() {
         fetch("/api/sales")
             .then(res => res.json())
             .then(data => {
-                if (data.success) setSales(data.data);
-                else console.error("Failed to fetch sales:", data.error);
+                if (data.success) {
+                    setSales(data.sales);
+                }
                 setLoading(false);
-                setLoadingValueChart(false);
-                setLoadingTonnageChart(false);
             })
             .catch(err => {
                 console.error(err);
                 setLoading(false);
-                setLoadingValueChart(false);
-                setLoadingTonnageChart(false);
             });
     }, []);
 
-    // ---------------- Chart calculations ----------------
+    // ---------------- Compute daily sales trend ----------------
     const salesTrendData: ChartDataPoint[] = useMemo(() => {
+        if (!sales.length) return [];
+
         const map = new Map<string, ChartDataPoint>();
-        sales.forEach(s => {
-            const dateKey = new Date(s.saleDate).toISOString().split("T")[0];
-            if (!map.has(dateKey)) map.set(dateKey, { date: dateKey, value: 0, quantity: 0, tonnage: 0 });
+
+        sales.forEach(sale => {
+            if (!sale?.saleDate || !Array.isArray(sale.items)) return;
+
+            // Use local date string "YYYY-MM-DD"
+            const saleDate = new Date(sale.saleDate);
+            const dateKey = saleDate.toLocaleDateString("en-CA");
+
+            if (!map.has(dateKey)) {
+                map.set(dateKey, { date: dateKey, value: 0, quantity: 0, tonnage: 0 });
+            }
             const acc = map.get(dateKey)!;
-            s.items.forEach(item => {
-                acc.value += item.quantity * item.price;
-                acc.quantity += item.quantity;
-                acc.tonnage += item.product
-                    ? (item.product.weightValue * item.quantity * item.product.packSize) / 1000
-                    : 0;
+
+            sale.items.forEach(item => {
+                const quantity = item.quantity ?? 0;
+                const price = item.price ?? 0;
+                const product = item.product;
+                acc.value += quantity * price;
+                acc.quantity += quantity;
+                if (product) {
+                    acc.tonnage += (product.weightValue * quantity * product.packSize) / 1000;
+                }
             });
         });
-        return Array.from(map.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        return Array.from(map.values()).sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
     }, [sales]);
 
+    // ---------------- Aggregate by view mode ----------------
     const aggregateTrendData = (data: ChartDataPoint[], view: ViewMode) => {
         const map = new Map<string, ChartDataPoint>();
         data.forEach(d => {
             const date = new Date(d.date);
             let key = "";
-            if (view === "daily") key = date.toISOString().split("T")[0];
+            if (view === "daily") key = date.toLocaleDateString("en-CA");
             else if (view === "monthly") key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
             else key = `${date.getFullYear()}`;
 
@@ -121,7 +131,7 @@ export default function TestPage() {
         return Array.from(map.values());
     };
 
-    // ---------------- Set default dates once data is loaded ----------------
+    // ---------------- Set default date ranges after salesTrendData ----------------
     useEffect(() => {
         if (!salesTrendData.length) return;
         const defaultStart = salesTrendData[0].date;
@@ -132,20 +142,30 @@ export default function TestPage() {
         setTonnageEndDate(defaultEnd);
     }, [salesTrendData]);
 
-    const filteredValueData = useMemo(
-        () => salesTrendData.filter(d => new Date(d.date) >= new Date(valueStartDate) && new Date(d.date) <= new Date(valueEndDate)),
-        [salesTrendData, valueStartDate, valueEndDate]
-    );
+    // ---------------- Filter by selected date range ----------------
+    const filterByDate = (data: ChartDataPoint[], startDate: string, endDate: string) => {
+        if (!data.length) return [];
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(23, 59, 59, 999);
+        return data.filter(d => {
+            const date = new Date(d.date);
+            date.setHours(0, 0, 0, 0); // Set time to midnight
+            if (start && date < start) return false;
+            if (end && date > end) return false;
+            return true;
+        });
 
-    const filteredTonnageData = useMemo(
-        () => salesTrendData.filter(d => new Date(d.date) >= new Date(tonnageStartDate) && new Date(d.date) <= new Date(tonnageEndDate)),
-        [salesTrendData, tonnageStartDate, tonnageEndDate]
-    );
+    };
+
+    const filteredValueData = useMemo(() => filterByDate(salesTrendData, valueStartDate, valueEndDate), [salesTrendData, valueStartDate, valueEndDate]);
+    const filteredTonnageData = useMemo(() => filterByDate(salesTrendData, tonnageStartDate, tonnageEndDate), [salesTrendData, tonnageStartDate, tonnageEndDate]);
 
     const valueTrendData = useMemo(() => aggregateTrendData(filteredValueData, valueView), [filteredValueData, valueView]);
     const tonnageTrendData = useMemo(() => aggregateTrendData(filteredTonnageData, tonnageView), [filteredTonnageData, tonnageView]);
 
-    // Date Range Selector
+    // ---------------- Date Range Selector ----------------
     const DateRangeSelector = ({
         start, end, setStart, setEnd, view, setView
     }: {
@@ -156,26 +176,16 @@ export default function TestPage() {
         view: ViewMode,
         setView: (v: ViewMode) => void
     }) => {
-        // Default fallback dates
-        const defaultStart = new Date(2024, 0, 1).toISOString().split("T")[0]; // Jan 1, 2024
-        const defaultEnd = new Date().toISOString().split("T")[0]; // today
-
+        const defaultStart = new Date(2026, 0, 1).toISOString().split("T")[0];
+        const defaultEnd = new Date().toISOString().split("T")[0];
         return (
             <div className="flex items-center justify-end w-full gap-2 mb-5">
                 <span className="text-xs text-center">Date Range:</span>
-                <input
-                    type="date"
-                    value={start}
-                    onChange={e => setStart(e.target.value || defaultStart)}
-                    className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
-                />
+                <input type="date" value={start} onChange={e => setStart(e.target.value || defaultStart)}
+                    className="border rounded px-2 py-1 text-xs hover:bg-gray-100" />
                 <span>-</span>
-                <input
-                    type="date"
-                    value={end}
-                    onChange={e => setEnd(e.target.value || defaultEnd)}
-                    className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
-                />
+                <input type="date" value={end} onChange={e => setEnd(e.target.value || defaultEnd)}
+                    className="border rounded px-2 py-1 text-xs hover:bg-gray-100" />
                 <select value={view} onChange={e => setView(e.target.value as ViewMode)}
                     className="border rounded px-2 py-1 text-xs hover:bg-gray-100">
                     <option value="daily">Daily</option>
@@ -186,9 +196,10 @@ export default function TestPage() {
         );
     };
 
+    // ---------------- Render ----------------
     return (
-        <div className="space-y-6" >
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2" >
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2">
                 {/* Sales Value */}
                 <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
@@ -196,30 +207,20 @@ export default function TestPage() {
                             <BarChart3 className="h-5 w-5 text-blue-600" /> Sales Value Trend
                         </h3>
                     </div>
-                    <div>
-                        <DateRangeSelector start={valueStartDate} end={valueEndDate} setStart={setValueStartDate} setEnd={setValueEndDate} view={valueView} setView={setValueView} />
-                    </div>
-                    {loadingValueChart ? (
-                        <div className="flex justify-center items-center h-[250px]">
-                            Loading...
-                        </div>
-                    ) : (
+                    <DateRangeSelector start={valueStartDate} end={valueEndDate} setStart={setValueStartDate} setEnd={setValueEndDate} view={valueView} setView={setValueView} />
+                    {loading ?
+                        <div className="flex justify-center items-center h-[250px]">Loading...
+                        </div> :
                         <ResponsiveContainer width="100%" height={250}>
                             <LineChart data={valueTrendData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip content={<CustomTooltip labels={{
-                                    titleKey: "date", metrics: [
-                                        { key: "value", label: "Sales Value", format: v => `K${v.toFixed(2)}` },
-                                        { key: "tonnage", label: "Tonnage", format: v => `${v.toFixed(2)} tons` },
-                                        { key: "quantity", label: "Quantity", format: v => `${v} units` },
-                                    ],
-                                }} />} />
+                                <Tooltip />
                                 <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
-                    )}
+                    }
                 </div>
                 {/* Sales Tonnage */}
                 <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow">
@@ -228,27 +229,18 @@ export default function TestPage() {
                             <BarChart3 className="h-5 w-5 text-blue-600" /> Sales Tonnage Trend
                         </h3>
                     </div>
-                    <div>
-                        <DateRangeSelector start={tonnageStartDate} end={tonnageEndDate} setStart={setTonnageStartDate} setEnd={setTonnageEndDate} view={tonnageView} setView={setTonnageView} />
-                    </div>
-                    {loadingTonnageChart ? (
-                        <div className="flex justify-center items-center h-[250px]">Loading...</div>
-                    ) : (
+                    <DateRangeSelector start={tonnageStartDate} end={tonnageEndDate} setStart={setTonnageStartDate} setEnd={setTonnageEndDate} view={tonnageView} setView={setTonnageView} />
+                    {loading ? <div className="flex justify-center items-center h-[250px]">Loading...</div> :
                         <ResponsiveContainer width="100%" height={250}>
                             <LineChart data={tonnageTrendData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                 <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip content={<CustomTooltip labels={{
-                                    titleKey: "date", metrics: [
-                                        { key: "tonnage", label: "Tonnage", format: v => `${v.toFixed(2)} tons` },
-                                        { key: "value", label: "Sales Value", format: v => `K${v.toFixed(2)}` },
-                                    ],
-                                }} />} />
+                                <Tooltip content={<CustomTooltip />} />
                                 <Line type="monotone" dataKey="tonnage" stroke="#16a34a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
-                    )}
+                    }
                 </div>
             </div>
         </div>

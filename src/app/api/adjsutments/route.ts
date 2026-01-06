@@ -1,114 +1,89 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { requireRole, UserRole } from "@/lib/rbac";
+import { nextSequence } from "@/lib/sequence";
 
-// GET /api/adjustments?limit=10&page=1
 export async function GET(req: Request) {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get("page") || 1);
+    const limit = Number(searchParams.get("limit") || 0);
+    const skip = limit ? (page - 1) * limit : undefined;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const page = Number(searchParams.get("page") || 1);
-        const limitParam = searchParams.get("limit");
-        const limit = limitParam ? Number(limitParam) : undefined;
-        const skip = limit ? (page - 1) * limit : undefined;
+        // Role-based filter: USERS only see their own adjustments
+        const where: any = {};
+        if (user.role === UserRole.USER) where.createdById = user.id;
 
         const [adjustments, total] = await Promise.all([
             prisma.adjustment.findMany({
+                where,
                 orderBy: { createdAt: "desc" },
                 ...(limit ? { skip, take: limit } : {}),
-                include: {
-                    location: true,
-                    items: { include: { product: true } },
-                },
+                include: { location: true, items: { include: { product: true } } },
             }),
-            prisma.adjustment.count(),
+            prisma.adjustment.count({ where }),
         ]);
 
-        if (limit) {
-            return NextResponse.json({
-                success: true,
-                data: adjustments,
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                },
-            });
-        }
-
-        return NextResponse.json({ success: true, data: adjustments, total });
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: "Failed to fetch adjustments" }, { status: 500 });
+        return NextResponse.json({
+            success: true,
+            data: adjustments,
+            ...(limit && { pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }),
+        });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: "Failed to fetch adjustments", details: (err as Error).message }, { status: 500 });
     }
 }
 
-// POST /api/adjustments
 export async function POST(req: Request) {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Only ADMIN or MANAGER can create adjustments
+    requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
+
     try {
-        const { locationId, type, reason, items, createdBy } = await req.json();
-
-        if (!locationId || !type || !items?.length) {
+        const { locationId, type, reason, items } = await req.json();
+        if (!locationId || !type || !items?.length)
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-        }
 
-        const result = await prisma.$transaction(async (tx) => {
+        const adjustment = await prisma.$transaction(async (tx) => {
             // Generate adjustment number
-            const seq = await tx.sequence.upsert({
-                where: { id: "ADJ" },
-                update: { value: { increment: 1 } },
-                create: { id: "ADJ", value: 1 },
-            });
-            const adjustmentNo = `ADJ${seq.value.toString().padStart(6, "0")}`;
+            const adjustmentNo = await nextSequence(tx, "ADJ");
 
             // Create adjustment
-            const adjustment = await tx.adjustment.create({
-                data: {
-                    adjustmentNo,
-                    locationId,
-                    type,
-                    reason,
-                    createdBy,
-                },
+            const adj = await tx.adjustment.create({
+                data: { adjustmentNo, locationId, type, reason, createdById: user.id },
             });
 
-            // Create adjustment items and update inventory
+            // Process items
             for (const item of items) {
                 const { productId, quantity } = item;
                 if (!productId || quantity <= 0) throw new Error("Invalid item");
 
-                // Create AdjustmentItem
-                await tx.adjustmentItem.create({
-                    data: {
-                        adjustmentId: adjustment.id,
-                        productId,
-                        quantity,
-                    },
-                });
+                await tx.adjustmentItem.create({ data: { adjustmentId: adj.id, productId, quantity } });
 
-                // Update inventory
                 const inventory = await tx.inventory.findFirst({ where: { productId, locationId } });
                 if (!inventory) throw new Error(`Inventory not found for product ${productId}`);
 
                 let updatedQty = inventory.quantity;
-                if (type.toUpperCase() === "REBAG_GAIN" || type.toUpperCase() === "GAIN") {
-                    updatedQty += quantity;
-                } else {
-                    if (inventory.quantity < quantity) throw new Error(`Insufficient stock for product ${productId}`);
-                    updatedQty -= quantity;
-                }
+                if (["REBAG_GAIN", "GAIN"].includes(type.toUpperCase())) updatedQty += quantity;
+                else if (inventory.quantity >= quantity) updatedQty -= quantity;
+                else throw new Error(`Insufficient stock for product ${productId}`);
 
-                await tx.inventory.update({
-                    where: { id: inventory.id },
-                    data: { quantity: updatedQty },
-                });
+                await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: updatedQty } });
             }
 
-            return adjustment;
+            return adj;
         });
 
-        return NextResponse.json(result, { status: 201 });
-    } catch (error) {
-        console.error("Create adjustment failed:", error);
-        return NextResponse.json({ error: "Failed to create adjustment" }, { status: 500 });
+        return NextResponse.json({ success: true, adjustment }, { status: 201 });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: "Failed to create adjustment", details: (err as Error).message }, { status: 500 });
     }
 }

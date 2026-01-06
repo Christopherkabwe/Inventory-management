@@ -1,19 +1,29 @@
+// app/api/transfers/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { nextSequence } from "@/lib/sequence";
 
 // -------------------- GET TRANSFERS --------------------
 export async function GET(req: NextRequest) {
     try {
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const { searchParams } = new URL(req.url);
         const page = Number(searchParams.get("page") || 1);
         const limitParam = searchParams.get("limit");
         const limit = limitParam ? Number(limitParam) : undefined;
         const skip = limit ? (page - 1) * limit : undefined;
 
+        // Role-based filter
+        const where = user.role === "USER" ? { createdById: user.id } : {};
+
         const [transfers, total] = await Promise.all([
             prisma.transfer.findMany({
                 orderBy: { createdAt: "desc" },
                 ...(limit ? { skip, take: limit } : {}),
+                where,
                 include: {
                     items: { include: { product: true } },
                     fromLocation: true,
@@ -21,7 +31,7 @@ export async function GET(req: NextRequest) {
                     transporter: true,
                 },
             }),
-            prisma.transfer.count(),
+            prisma.transfer.count({ where }),
         ]);
 
         if (limit) {
@@ -43,28 +53,35 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Failed to fetch transfers", details: (error as Error).message }, { status: 500 });
     }
 }
-
 // -------------------- CREATE TRANSFER --------------------
 export async function POST(req: NextRequest) {
     try {
-        const { fromLocationId, toLocationId, transporterId, items, createdBy } = await req.json();
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        if (!fromLocationId || !toLocationId || !items?.length || !createdBy) {
+        // Only ADMIN or MANAGER can create transfers
+        if (!["ADMIN", "MANAGER"].includes(user.role)) {
+            return NextResponse.json({ error: "Forbidden: Admin or Manager required" }, { status: 403 });
+        }
+
+        const { fromLocationId, toLocationId, transporterId, items } = await req.json();
+        if (!fromLocationId || !toLocationId || !items?.length) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
         const transfer = await prisma.$transaction(async (tx) => {
-            // 1️⃣ Generate IBT number
-            const seq = await tx.sequence.upsert({
-                where: { id: "IBT" },
-                update: { value: { increment: 1 } },
-                create: { id: "IBT", value: 1 },
-            });
-            const ibtNumber = `IBT${seq.value.toString().padStart(6, "0")}`;
+            // 1️⃣ Generate IBT number using centralized sequence
+            const ibtNumber = await nextSequence(tx, "IBT"); // returns IBT-2026-000001
 
             // 2️⃣ Create transfer
             const newTransfer = await tx.transfer.create({
-                data: { fromLocationId, toLocationId, transporterId, ibtNumber, createdBy },
+                data: {
+                    fromLocationId,
+                    toLocationId,
+                    transporterId,
+                    ibtNumber,
+                    createdById: user.id,
+                },
             });
 
             // 3️⃣ Process items
@@ -72,7 +89,10 @@ export async function POST(req: NextRequest) {
                 const { productId, quantity } = item;
                 if (!productId || quantity <= 0) throw new Error("Invalid item");
 
-                const sourceInventory = await tx.inventory.findFirst({ where: { productId, locationId: fromLocationId } });
+                // Deduct from source inventory
+                const sourceInventory = await tx.inventory.findFirst({
+                    where: { productId, locationId: fromLocationId },
+                });
                 if (!sourceInventory || sourceInventory.quantity < quantity) {
                     throw new Error(`Insufficient stock for product ${productId} at source`);
                 }
@@ -82,27 +102,37 @@ export async function POST(req: NextRequest) {
                     data: { quantity: { decrement: quantity } },
                 });
 
+                // Increment or create destination inventory
                 await tx.inventory.upsert({
                     where: { productId_locationId: { productId, locationId: toLocationId } },
                     update: { quantity: { increment: quantity } },
-                    create: { productId, locationId: toLocationId, quantity, lowStockAt: 0, createdBy },
+                    create: { productId, locationId: toLocationId, quantity, lowStockAt: 0, createdById: user.id },
                 });
 
+                // Create transfer item
                 await tx.transferItem.create({
                     data: { transferId: newTransfer.id, productId, quantity },
                 });
             }
 
+            // 4️⃣ Return the transfer with relations
             return tx.transfer.findUnique({
                 where: { id: newTransfer.id },
-                include: { items: { include: { product: true } }, fromLocation: true, toLocation: true, transporter: true },
+                include: {
+                    items: { include: { product: true } },
+                    fromLocation: true,
+                    toLocation: true,
+                    transporter: true,
+                },
             });
         });
 
-        return NextResponse.json(transfer, { status: 201 });
+        return NextResponse.json({ success: true, transfer }, { status: 201 });
     } catch (error) {
         console.error("Create transfer failed:", error);
-        return NextResponse.json({ error: "Failed to create transfer", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json({
+            error: "Failed to create transfer",
+            details: (error as Error).message,
+        }, { status: 500 });
     }
 }
-

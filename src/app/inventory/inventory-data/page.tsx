@@ -2,16 +2,13 @@
 
 import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Inventory, ProductList, Location } from "@prisma/client";
+import { Product, Location, Inventory } from "@/components/interfaces"
 
 type InventoryItem = Inventory & {
-    product: ProductList;
+    product: Product;
     location: Location;
 };
 
-export const metadata = {
-    title: "Inventory Data",
-};
 
 export default function InventoryPage() {
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -24,9 +21,10 @@ export default function InventoryPage() {
             try {
                 const res = await fetch("/api/inventory/raw");
                 const data = await res.json();
-                setInventory(data);
+                setInventory(data.inventory ?? []); // ✅ ensure an array
             } catch (err) {
                 console.error("Failed to fetch inventory", err);
+                setInventory([]); // fallback
             } finally {
                 setLoading(false);
             }
@@ -38,7 +36,7 @@ export default function InventoryPage() {
     const filteredInventory = useMemo(() => {
         return inventory.filter(
             (item) =>
-                item.product.name.toLowerCase().includes(filterProduct.toLowerCase()) &&
+                item.product?.name.toLowerCase().includes(filterProduct.toLowerCase()) &&
                 item.location.name.toLowerCase().includes(filterLocation.toLowerCase())
         );
     }, [inventory, filterProduct, filterLocation]);

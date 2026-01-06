@@ -76,7 +76,7 @@ export default function SalesTable() {
                 const res = await fetch("/api/sales");
                 const data = await res.json();
                 if (data.success) {
-                    setSales(data.data || []);
+                    setSales(data.sales || []);
                 }
             } catch (err) {
                 console.error("Fetch error:", err);

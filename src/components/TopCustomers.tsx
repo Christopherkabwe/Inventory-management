@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function TopCustomers({
-    title = "Top Active Customers {Last 30 Days)",
+    title = "Top Active Customers {Last 3 Months)",
     iconColor = "text-yellow-500",
     limit = 5,
 }: Partial<Props> = {}) {
@@ -44,7 +44,7 @@ export default function TopCustomers({
                 setLoading(true);
                 const res = await fetch("/api/sales"); // adjust endpoint if needed
                 const data = await res.json();
-                setSales(data.data || []);
+                setSales(data.sales || []);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -55,13 +55,13 @@ export default function TopCustomers({
         fetchSales();
     }, []);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const L3Months = new Date();
+    L3Months.setDate(L3Months.getDate() - 90);
 
     // Aggregate sales by customer
     const customersWithStats = Object.values(
         sales
-            .filter((s) => new Date(s.saleDate) >= thirtyDaysAgo)
+            .filter((s) => new Date(s.saleDate) >= L3Months)
             .reduce((acc: Record<string, any>, sale) => {
                 const custId = sale.customer.id;
                 if (!acc[custId]) {

@@ -36,11 +36,13 @@ export default function SalesByCategory() {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales"); // adjust endpoint as needed
+                const res = await fetch("/api/sales");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                setSales(json.data || []);
+                setSales(json.sales || []);
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
+                setSales([]);
             } finally {
                 setLoading(false);
             }

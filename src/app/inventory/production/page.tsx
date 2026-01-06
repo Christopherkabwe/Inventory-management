@@ -24,10 +24,6 @@ type Production = {
     items: ProductionItem[];
 };
 
-export const metadata = {
-    title: "Production",
-};
-
 export default function ProductionsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [productions, setProductions] = useState<Production[]>([]);

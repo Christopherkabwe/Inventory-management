@@ -12,7 +12,17 @@ export interface Product {
     createdAt: Date;
     updatedAt: Date;
 }
-
+export interface Inventory {
+    id: string;
+    product: Product;
+    location: Location;
+    quantity: number;
+    lowStockAt: number;
+    expiryDate?: string | null;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+}
 export interface Location {
     id: string;
     name: string;

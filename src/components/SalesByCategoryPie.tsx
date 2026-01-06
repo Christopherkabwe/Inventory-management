@@ -49,10 +49,12 @@ export default function SalesByCategoryPie() {
         const fetchSales = async () => {
             try {
                 const res = await fetch(`/api/sales`);
+                //console.log('Response:', res);
                 const json = await res.json();
-                const data: Sale[] = json.data || [];
+                //console.log('JSON:', json);
+                const data: Sale[] = json.sales || []; // Fix here
+                //console.log('Data:', data);
                 setSales(data);
-
                 if (data.length > 0) {
                     const oldest = new Date(
                         Math.min(...data.map((s) => new Date(s.saleDate).getTime()))
@@ -73,6 +75,10 @@ export default function SalesByCategoryPie() {
         };
         fetchSales();
     }, [today]);
+
+    useEffect(() => {
+        //console.log('Sales:', sales);
+    }, [sales]);
 
     // -----------------------------
     // COMPUTE TONNAGE BY CATEGORY

@@ -9,14 +9,53 @@ datasource db {
   provider = "postgresql"
 }
 
-// -------------------- GLOBAL SEQUENCE --------------------
+// ==================== GLOBAL SEQUENCE ====================
 model Sequence {
-  id        String   @id   // "INV", "IBT", "PROD", "ADJ"
+  id        String
+  year      Int
   value     Int
   updatedAt DateTime @updatedAt
+
+  @@id([id, year])
 }
 
-// -------------------- PRODUCTS --------------------
+
+// ==================== USERS ====================
+model User {
+  id            String   @id @default(cuid())
+  email         String?   @unique
+  fullName      String?
+  role          UserRole @default(USER)
+  password    String  // hashed password
+  stackAuthId   String?  @unique
+  isActive      Boolean  @default(true)
+  locationId  String?   // nullable for admins
+  location    Location? @relation(fields: [locationId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdSales       Sale[]       @relation("SalesCreatedBy")
+  createdTransfers   Transfer[]   @relation("TransfersCreatedBy")
+  createdAdjustments Adjustment[] @relation("AdjustmentsCreatedBy")
+  createdProductions Production[] @relation("ProductionsCreatedBy")
+  createdProducts    ProductList[] @relation("ProductsCreatedBy")
+  createdCustomers   Customer[]    @relation("CustomersCreatedBy")
+  createdQuotations  Quotation[]   @relation("QuotationsCreatedBy")
+  createdOrders      SalesOrder[]  @relation("OrdersCreatedBy")
+  receivedTransfers  TransferReceipt[] @relation("TransfersReceivedBy")
+  createdInventory   Inventory[] @relation("InventoryCreatedBy")
+  createdDeliveryNotes DeliveryNote[] @relation("DeliveryNotesCreatedBy")
+  createdCreditNotes CreditNote[] @relation("CreditNotesCreatedBy")
+  createdSaleReturns SaleReturn[] @relation("SaleReturnsCreatedBy")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}
+
+// ==================== PRODUCTS ====================
 model ProductList {
   id          String      @id @default(cuid())
   sku         String      @unique
@@ -26,7 +65,8 @@ model ProductList {
   category    String?
   weightValue Float
   weightUnit  String
-  createdBy   String
+  createdById String
+  createdBy   User        @relation("ProductsCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -35,28 +75,35 @@ model ProductList {
   transferItems TransferItem[]
   productionItems ProductionItem[]
   adjustmentItems AdjustmentItem[]
+  orderItems  SalesOrderItem[]
+  quotationItems QuotationItem[]
+  saleReturns SaleReturn[]
 
-  @@index([sku])
+  deliveryNoteItems DeliveryNoteItem[]
+  transferReceiptItems TransferReceiptItem[]
 }
 
-// -------------------- LOCATIONS --------------------
+// ==================== LOCATIONS ====================
 model Location {
   id        String   @id @default(cuid())
   name      String   @unique
   address   String?
-  createdBy String
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   inventories Inventory[]
   sales       Sale[]
+  orders      SalesOrder[]
   transfersFrom Transfer[] @relation("TransfersFrom")
   transfersTo   Transfer[] @relation("TransfersTo")
   adjustments   Adjustment[]
   productions   Production[]
+  deliveryNotes DeliveryNote[]
+  quotations    Quotation[]
 }
 
-// -------------------- INVENTORY --------------------
+// ==================== INVENTORY ====================
 model Inventory {
   id         String      @id @default(cuid())
   productId  String
@@ -66,15 +113,16 @@ model Inventory {
   quantity   Int
   lowStockAt Int
   expiryDate DateTime?
-  createdBy  String
+  createdById String
+  createdBy  User        @relation("InventoryCreatedBy", fields: [createdById], references: [id])
   createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  updatedAt  DateTime    @default(now())
 
   @@unique([productId, locationId])
   @@index([productId])
 }
 
-// -------------------- CUSTOMERS --------------------
+// ==================== CUSTOMERS ====================
 model Customer {
   id        String   @id @default(cuid())
   name      String
@@ -82,96 +130,265 @@ model Customer {
   phone     String
   country   String
   city      String
-  createdBy String
+  createdById String
+  createdBy User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sales Sale[]
+  sales     Sale[]
+  orders    SalesOrder[]
+  quotations Quotation[]
 }
 
-// -------------------- TRANSPORTERS --------------------
+// ==================== TRANSPORTERS ====================
 model Transporter {
   id           String   @id @default(cuid())
   name         String
   vehicleNumber String?
   driverName   String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now())
 
   sales     Sale[]
   transfers Transfer[]
+  deliveryNotes DeliveryNote[]
 }
 
-// -------------------- SALES --------------------
+// ==================== SALES ORDERS ====================
+model SalesOrder {
+  id          String   @id @default(cuid())
+  orderNumber String   @unique
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  status      SalesOrderStatus @default(PENDING)
+  createdById String
+  createdBy   User     @relation("OrdersCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  items SalesOrderItem[]
+  invoices Sale[]
+  deliveryNotes DeliveryNote[]
+}
+
+model SalesOrderItem {
+  id            String      @id @default(cuid())
+  salesOrderId  String
+  salesOrder    SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       ProductList @relation(fields: [productId], references: [id])
+  quantity      Int
+  quantityInvoiced Int     @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// ==================== SALES (INVOICES) ====================
 model Sale {
   id            String   @id @default(cuid())
   invoiceNumber String   @unique
-  deliveryNote  String?
-
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id])
-
+  deliveryNoteNo  String?
+  salesOrderId  String
+  salesOrder    SalesOrder @relation(fields: [salesOrderId], references: [id])
   locationId    String
   location      Location @relation(fields: [locationId], references: [id])
-
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
   transporterId String?
   transporter   Transporter? @relation(fields: [transporterId], references: [id])
-
+  driverName String?
   saleDate      DateTime @default(now())
-  createdBy     String
+  createdById   String
+  createdBy     User @relation("SalesCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @default(now())
+  status        SaleStatus @default(PENDING)
 
   items         SaleItem[]
+  creditNotes   CreditNote[]
+  returns       SaleReturn[]
+  deliveryNotes DeliveryNote[]
 }
 
 model SaleItem {
-  id        String      @id @default(cuid())
-  saleId    String
-  sale      Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id               String      @id @default(cuid())
+  saleId           String
+  sale             Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId        String
+  product          ProductList @relation(fields: [productId], references: [id])
+  quantity         Int
+  quantityInvoiced Int         @default(0)
+  quantityDelivered Int        @default(0)
+  quantityReturned  Int        @default(0)
+  price            Float
+  total            Float
+  updatedAt DateTime @default(now()) @updatedAt
 
-  productId String
-  product   ProductList @relation(fields: [productId], references: [id])
-
-  quantity  Int
-  price     Float
-  total     Float
+  @@index([saleId])
+  @@index([productId])
 }
 
-// -------------------- TRANSFERS --------------------
+// ==================== DELIVERY NOTES ====================
+model DeliveryNote {
+  id             String   @id @default(cuid())
+  deliveryNoteNo String   @unique
+  saleId         String
+  sale           Sale     @relation(fields: [saleId], references: [id])
+  salesOrderId   String
+  salesOrder     SalesOrder @relation(fields: [salesOrderId], references: [id])
+  locationId     String
+  location       Location @relation(fields: [locationId], references: [id])
+  transporterId  String?
+  transporter    Transporter? @relation(fields: [transporterId], references: [id])
+  dispatchedAt   DateTime @default(now())
+  createdById    String
+  createdBy      User @relation("DeliveryNotesCreatedBy", fields: [createdById], references: [id])
+
+  items DeliveryNoteItem[]
+}
+
+model DeliveryNoteItem {
+  id               String       @id @default(cuid())
+  deliveryNoteId   String
+  deliveryNote     DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  productId        String
+  product          ProductList  @relation(fields: [productId], references: [id])
+  quantityDelivered Int
+
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([deliveryNoteId])
+  @@index([productId])
+}
+
+// ==================== QUOTATIONS ====================
+model Quotation {
+  id           String   @id @default(cuid())
+  quoteNumber  String   @unique
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  status       QuotationStatus @default(PENDING)
+  createdById  String
+  createdBy    User @relation("QuotationsCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  items QuotationItem[]
+}
+
+model QuotationItem {
+  id           String      @id @default(cuid())
+  quotationId  String
+  quotation    Quotation  @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId    String
+  product      ProductList @relation(fields: [productId], references: [id])
+  quantity     Int
+  price        Float
+  total        Float
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum QuotationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==================== CREDIT NOTES ====================
+model CreditNote {
+  id                  String   @id @default(cuid())
+  creditNoteNumber    String   @unique
+  saleId              String
+  sale                Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  reason              String
+  amount              Float
+  createdById         String
+  createdBy           User     @relation("CreditNotesCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+}
+
+// ==================== SALE RETURNS ====================
+model SaleReturn {
+  id          String   @id @default(cuid())
+  returnNumber String   @unique 
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     ProductList @relation(fields: [productId], references: [id])
+  quantity    Int
+  reason      String
+  createdById String
+  createdBy   User     @relation("SaleReturnsCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+}
+
+// ==================== TRANSFERS (IBT) ====================
 model Transfer {
   id             String   @id @default(cuid())
   ibtNumber      String   @unique
-
   fromLocationId String
   fromLocation   Location @relation("TransfersFrom", fields: [fromLocationId], references: [id])
-
   toLocationId   String
   toLocation     Location @relation("TransfersTo", fields: [toLocationId], references: [id])
-
   transporterId  String?
   transporter    Transporter? @relation(fields: [transporterId], references: [id])
-
   transferDate   DateTime @default(now())
-  createdBy      String
+  createdById    String
+  createdBy      User @relation("TransfersCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  updatedAt      DateTime @default(now())
+  status         TransferStatus @default(PENDING)
   items          TransferItem[]
+  receipt        TransferReceipt?
 }
 
 model TransferItem {
   id          String      @id @default(cuid())
   transferId  String
   transfer    Transfer    @relation(fields: [transferId], references: [id], onDelete: Cascade)
-
   productId   String
   product     ProductList @relation(fields: [productId], references: [id])
-
   quantity    Int
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
-// -------------------- PRODUCTION --------------------
+model TransferReceipt {
+  id          String      @id @default(cuid())
+  transferId  String      @unique
+  transfer    Transfer    @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  receivedById String
+  receivedBy  User        @relation("TransfersReceivedBy", fields: [receivedById], references: [id])
+  receivedAt  DateTime    @default(now())
+  items       TransferReceiptItem[]
+}
+
+model TransferReceiptItem {
+  id           String      @id @default(cuid())
+  transferReceiptId String
+  transferReceipt   TransferReceipt @relation(fields: [transferReceiptId], references: [id], onDelete: Cascade)
+  productId    String
+  product      ProductList @relation(fields: [productId], references: [id])
+  quantityReceived Int
+  quantityDamaged  Int
+  quantityExpired  Int
+  comment         String?
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// ==================== ENUMS ====================
+enum TransferStatus {
+  PENDING
+  DISPATCHED
+  RECEIVED
+  CANCELLED
+}
+
+// ==================== PRODUCTION ====================
 model Production {
   id            String   @id @default(cuid())
   productionNo  String   @unique
@@ -179,11 +396,10 @@ model Production {
   location      Location @relation(fields: [locationId], references: [id])
   batchNumber   String
   notes         String?
-
-  createdBy     String
+  createdById   String
+  createdBy     User @relation("ProductionsCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  updatedAt     DateTime @default(now())
   items         ProductionItem[]
 }
 
@@ -191,28 +407,24 @@ model ProductionItem {
   id           String      @id @default(cuid())
   productionId String
   production   Production  @relation(fields: [productionId], references: [id], onDelete: Cascade)
-
   productId    String
   product      ProductList @relation(fields: [productId], references: [id])
-
   quantity     Int
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
-// -------------------- ADJUSTMENTS --------------------
+// ==================== ADJUSTMENTS ====================
 model Adjustment {
   id           String   @id @default(cuid())
   adjustmentNo String   @unique
-
   locationId   String
   location     Location @relation(fields: [locationId], references: [id])
-
-  type         String
+  type         AdjustmentType
   reason       String?
-
-  createdBy    String
+  createdById  String
+  createdBy    User     @relation("AdjustmentsCreatedBy", fields: [createdById], references: [id])
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  updatedAt    DateTime @default(now())
   items        AdjustmentItem[]
 }
 
@@ -220,9 +432,29 @@ model AdjustmentItem {
   id            String      @id @default(cuid())
   adjustmentId  String
   adjustment    Adjustment  @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
-
   productId     String
   product       ProductList @relation(fields: [productId], references: [id])
-
   quantity      Int
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum AdjustmentType {
+  DAMAGED
+  EXPIRED
+  MANUAL
+}
+
+// ==================== ENUMS ====================
+enum SalesOrderStatus {
+  PENDING
+  CONFIRMED
+  PARTIALLY_INVOICED
+  CANCELLED
+}
+
+enum SaleStatus {
+  PENDING
+  CONFIRMED
+  PARTIALLY_INVOICED
+  CANCELLED
 }

@@ -50,7 +50,7 @@ export default function TopProducts({
                 setLoading(true);
                 const res = await fetch("/api/sales");
                 const json = await res.json();
-                const data: Sale[] = json.data || [];
+                const data: Sale[] = json.sales || [];
                 setSales(data);
             } catch (err) {
                 console.error("Failed to fetch sales:", err);

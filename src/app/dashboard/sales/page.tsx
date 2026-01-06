@@ -1,4 +1,4 @@
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DollarSign, TrendingUp, Users, ShoppingBag, Calendar, MapPin } from "lucide-react";
@@ -39,7 +39,7 @@ export default async function SalesDashboardPage() {
 
     // Metrics
     const sales: DashboardSale[] = await prisma.sale.findMany({
-        where: { createdBy: userId },
+        where: { createdById: userId },
         include: {
             customer: { select: { id: true, name: true } },
             location: { select: { id: true, name: true, address: true } },
@@ -70,7 +70,7 @@ export default async function SalesDashboardPage() {
             salePrice: item.product.price,
             totalAmount: item.product.price * item.quantity,
             saleDate: sale.saleDate,
-            createdBy: sale.createdBy,
+            createdBy: sale.createdById,
             createdAt: sale.createdAt,
             updatedAt: sale.updatedAt,
             location: { name: sale.location?.name, address: sale.location?.address },
@@ -94,7 +94,7 @@ export default async function SalesDashboardPage() {
         by: ['productId'],
         where: {
             sale: {
-                createdBy: userId,
+                createdById: userId,
                 saleDate: { gte: thirtyDaysAgo },
             },
         },
@@ -144,7 +144,7 @@ export default async function SalesDashboardPage() {
     const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
 
     const customers = await prisma.customer.findMany({
-        where: { createdBy: userId },
+        where: { createdById: userId },
         include: {
             sales: {
                 include: {
@@ -163,7 +163,7 @@ export default async function SalesDashboardPage() {
     const lastMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
     const prevMonthSales = await prisma.sale.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             saleDate: {
                 gte: lastMonthStart,
                 lte: lastMonthEnd
@@ -216,7 +216,7 @@ export default async function SalesDashboardPage() {
 
     const salesYTD = await prisma.sale.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             saleDate: {
                 gte: startOfYear
             }
@@ -242,7 +242,7 @@ export default async function SalesDashboardPage() {
 
     const salesMTD = await prisma.sale.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             saleDate: {
                 gte: startOfMonth
             }
@@ -272,7 +272,7 @@ export default async function SalesDashboardPage() {
     // Total sales last year
     const lastYearSales = await prisma.sale.findMany({
         where: {
-            createdBy: userId,
+            createdById: userId,
             saleDate: { gte: startOfLastYear, lte: endOfLastYear },
         },
     });

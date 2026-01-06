@@ -88,7 +88,7 @@ export default function TopProductsByLocation() {
                 setLoading(true);
                 const res = await fetch("/api/sales");
                 const json = await res.json();
-                const data: Sale[] = json.data || [];
+                const data: Sale[] = json.sales || [];
                 setSales(data);
 
                 if (data.length > 0) {

@@ -1,5 +1,5 @@
 //"use client";
-import Sidebar from "@/components/sidebar2";
+import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Pagination from "@/components/pagination";
@@ -25,7 +25,7 @@ export default async function InventoryPage({
     const productId = params.productId;
     const locations = Array.isArray(params.locationName) ? params.locationName : params.locationName ? [params.locationName] : [];
     const where = {
-        createdBy: userId,
+        createdById: userId,
         ...(productId && {
             productId,
         }),
@@ -54,11 +54,11 @@ export default async function InventoryPage({
             take: pageSize,
         }),
         prisma.location.findMany({
-            where: { createdBy: userId },
+            where: { createdById: userId },
             select: { id: true, name: true },
         }),
         prisma.inventory.findMany({
-            where: { createdBy: userId },
+            where: { createdById: userId },
             include: {
                 product: {
                     select: {
@@ -77,7 +77,7 @@ export default async function InventoryPage({
         }),
         prisma.sale.findMany({
             where: {
-                createdBy: userId,
+                createdById: userId,
                 saleDate: {
                     gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
                 },
