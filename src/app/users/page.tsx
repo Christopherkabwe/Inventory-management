@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { UserRole } from "@/lib/rbac";
 import Link from "next/link";
+import Loading from "@/components/Loading";
 
 interface Location {
     id: string;
@@ -70,7 +71,7 @@ export default function UsersPage() {
     if (loading)
         return (
             <DashboardLayout>
-                <p className="text-center mt-10">Loading users...</p>
+                <Loading />
             </DashboardLayout>
         );
 
@@ -185,7 +186,7 @@ export default function UsersPage() {
                                         <td className="border border-gray-300 px-4 py-2">
                                             <div className="flex space-x-2">
                                                 <Link
-                                                    href={`/users/${user.id}/edit`}
+                                                    href={`/users/user-data/${user.id}/edit`}
                                                     className="text-blue-600 hover:underline"
                                                 >
                                                     Edit

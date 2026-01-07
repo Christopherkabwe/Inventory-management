@@ -1,86 +1,90 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES = "7d";
+const JWT_EXPIRES_IN = "7d";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    const { email, password, stackUser } = req.body;
-
+export async function POST(req: NextRequest) {
     try {
-        let user;
+        const body = await req.json();
+        const email = body.email?.toLowerCase().trim();
+        const password = body.password;
 
-        // -------------------- STACKAUTH LOGIN --------------------
-        if (stackUser) {
-            user = await prisma.user.findUnique({
-                where: { stackAuthId: stackUser.id },
-            });
-
-            if (!user) {
-                user = await prisma.user.create({
-                    data: {
-                        stackAuthId: stackUser.id,
-                        email: stackUser.primaryEmail,
-                        fullName: stackUser.displayName ?? stackUser.primaryEmail.split("@")[0],
-                        role: "USER",
-                        isActive: true,
-                    },
-                });
-            }
+        // -------------------- VALIDATION --------------------
+        if (!email || !password) {
+            return NextResponse.json(
+                { error: "Email and password are required" },
+                { status: 400 }
+            );
         }
 
-        // -------------------- LOCAL EMAIL/PASSWORD LOGIN --------------------
-        else if (email && password) {
-            user = await prisma.user.findUnique({ where: { email } });
+        // -------------------- FIND USER --------------------
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
 
-            if (!user) {
-                return res.status(401).json({ error: "User not found" });
-            }
-            if (!user.password) {
-                return res.status(401).json({ error: "User does not have a password set" });
-            }
-
-            const valid = await bcrypt.compare(password, user.password);
-            if (!valid) {
-                return res.status(401).json({ error: "Invalid password" });
-            }
+        if (!user || !user.password) {
+            return NextResponse.json(
+                { error: "Invalid credentials" },
+                { status: 401 }
+            );
         }
 
-        // -------------------- INVALID REQUEST --------------------
-        else {
-            return res.status(400).json({ error: "Invalid request body" });
+        // -------------------- CHECK PASSWORD --------------------
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if (!isValid) {
+            return NextResponse.json(
+                { error: "Invalid credentials" },
+                { status: 401 }
+            );
         }
 
-        // -------------------- CHECK IF USER IS ACTIVE --------------------
+        // -------------------- CHECK ACTIVE --------------------
         if (!user.isActive) {
-            return res.status(403).json({ error: "User is inactive" });
+            return NextResponse.json(
+                { error: "User account is inactive" },
+                { status: 403 }
+            );
         }
 
         // -------------------- CREATE JWT --------------------
         const token = jwt.sign(
-            { userId: user.id, role: user.role },
+            {
+                userId: user.id,
+                role: user.role,
+            },
             JWT_SECRET,
-            { expiresIn: JWT_EXPIRES }
+            { expiresIn: JWT_EXPIRES_IN }
         );
 
-        return res.status(200).json({
-            message: "Login successful",
+        // -------------------- SET COOKIE --------------------
+        const response = NextResponse.json({
+            success: true,
             user: {
                 id: user.id,
                 fullName: user.fullName,
                 email: user.email,
                 role: user.role,
             },
-            token,
         });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Server error" });
+
+        response.cookies.set("auth_token", token, {
+            httpOnly: true,
+            secure: false, //{/* process.env.NODE_ENV === "production" when production ready*/}
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+
+        return response;
+    } catch (error) {
+        console.error("Login error:", error);
+        return NextResponse.json(
+            { error: "Server error" },
+            { status: 500 }
+        );
     }
 }

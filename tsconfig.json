@@ -39,7 +39,10 @@
     "src/components/SalesTonnageByLocation.tsx",
     "src/app/api/[sales]/route.js",
     "src/app/api/customers/route.ts",
-    "src/components/RecentSales.Clienttsx"
+    "src/components/RecentSales.Clienttsx",
+    "src/components/Toaster.js",
+    "next.config.ts",
+    "src/app/dashboard/ClientRedirect.js"
   ],
   "exclude": [
     "node_modules"

@@ -16,6 +16,7 @@ import {
 import StockHealthPie from "@/components/StockHealthPie";
 import InventorySummary from "@/components/InventorySummary";
 import DashboardLayout from "@/components/DashboardLayout";
+import { redirect } from "next/navigation";
 
 export const metadata = {
     title: "Inventory Dashboard",
@@ -23,7 +24,7 @@ export const metadata = {
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
-    if (!user) return <div>Please log in.</div>;
+    if (!user) redirect("/sign-in");
     const userId = user.id;
 
     /* -----------------------------

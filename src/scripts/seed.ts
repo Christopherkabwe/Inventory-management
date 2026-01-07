@@ -18,18 +18,17 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 // Pick a random user by role and optional location
+// Pick a random user by role and optional location
 function pickRandomUserForTask(
     users: any[],
     locationId?: string,
     roles: UserRole[] = ["USER", "MANAGER", "ADMIN"]
 ) {
     let eligible = users.filter(u => roles.includes(u.role));
-
     if (locationId) {
         // Admins are global, others must belong to location
-        eligible = eligible.filter(u => u.role !== "ADMIN" ? u.locationId === locationId : true);
+        eligible = eligible.filter(u => u.role === "ADMIN" ? true : u.locationId === locationId);
     }
-
     return pickRandom(eligible);
 }
 
@@ -69,28 +68,6 @@ async function main() {
             create: { id: key, year: startDate.getFullYear(), value: 0 },
         });
     }
-
-    // -------------------- LOCATIONS --------------------
-    console.log("🏢 Creating locations...");
-    const locationNames = ["Warehouse A", "Warehouse B", "Store 1", "Store 2"];
-    const locationsData = locationNames.map(name => ({
-        name,
-        address: faker.location.streetAddress(),
-    }));
-    await prisma.location.createMany({ data: locationsData, skipDuplicates: true });
-    const locations = await prisma.location.findMany();
-
-    // Assign locations to users (if not ADMIN)
-    for (const user of users) {
-        if (user.role !== "ADMIN" && !user.locationId) {
-            const location = pickRandom(locations);
-            await prisma.user.update({
-                where: { id: user.id },
-                data: { locationId: location.id },
-            });
-        }
-    }
-
     // -------------------- PRODUCTS --------------------
     console.log("📦 Creating products...");
     const categories = ["Electronics", "Fashion", "Home Goods", "Toys", "Food"];
@@ -107,16 +84,23 @@ async function main() {
     await prisma.productList.createMany({ data: productsData });
     const products = await prisma.productList.findMany();
 
+    // -------------------- LOCATIONS --------------------
+    const locations = await prisma.location.findMany();
+
     // -------------------- CUSTOMERS --------------------
     console.log("👥 Creating customers...");
-    const customersData = Array.from({ length: 15 }).map((_, i) => ({
-        name: `Customer ${i + 1}`,
-        email: `customer${i + 1}@example.com`,
-        phone: faker.phone.number(),
-        country: "Zambia",
-        city: pickRandom(["Lusaka", "Ndola", "Kitwe"]),
-        createdById: pickRandom([...admins, ...managers]).id,
-    }));
+    const customersData = Array.from({ length: 15 }).map((_, i) => {
+        const location = pickRandom(locations);
+        return {
+            name: `Customer ${i + 1}`,
+            email: `customer${i + 1}@example.com`,
+            phone: faker.phone.number(),
+            country: "Zambia",
+            city: pickRandom(["Lusaka", "Ndola", "Kitwe"]),
+            locationId: location.id,
+            createdById: pickRandom([...admins, ...managers]).id,
+        };
+    });
     await prisma.customer.createMany({ data: customersData });
     const customers = await prisma.customer.findMany();
 
@@ -204,13 +188,14 @@ async function main() {
     for (let i = 0; i < 50; i++) {
         const customer = pickRandom(customers);
         const location = pickRandom(locations);
+        const user = pickRandomUserForTask(allRoles, location.id, ["MANAGER", "ADMIN"]);
         const orderNumber = await getNextSequence("SO");
         const order = await prisma.salesOrder.create({
             data: {
                 orderNumber,
                 customerId: customer.id,
                 locationId: location.id,
-                createdById: pickRandom([...admins, ...managers]).id,
+                createdById: user.id,
                 status: "PENDING",
             },
         });
@@ -230,13 +215,12 @@ async function main() {
     // -------------------- SALES (INVOICES) & DELIVERY NOTES --------------------
     console.log("💰 Creating sales (invoices)...");
     const sales: any[] = [];
-
     for (let i = 0; i < 100; i++) {
         const order = pickRandom(salesOrders);
         const customer = customers.find((c) => c.id === order.customerId)!;
         const location = locations.find((l) => l.id === order.locationId)!;
         const transporter = pickRandom(transporters);
-
+        const user = pickRandomUserForTask(allRoles, location.id, ["MANAGER", "ADMIN"]);
         const invoiceNumber = await getNextSequence("INV");
         const sale = await prisma.sale.create({
             data: {
@@ -246,7 +230,7 @@ async function main() {
                 customerId: customer.id,
                 transporterId: transporter?.id,
                 saleDate: randomDate(),
-                createdById: pickRandom(allRoles).id,
+                createdById: user.id,
                 status: "PENDING",
             },
         });

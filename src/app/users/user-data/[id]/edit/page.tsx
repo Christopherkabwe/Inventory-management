@@ -61,7 +61,7 @@ export default function EditUserPage() {
 
             setUser(data.user);
             addToast("User updated successfully", "success");
-            router.push("/users/users"); // redirect after save
+            router.push("/users/user-data"); // redirect after save
         } catch (err: any) {
             console.error(err);
             addToast(err.message || "Failed to save user", "error");
@@ -84,7 +84,7 @@ export default function EditUserPage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
 
@@ -93,7 +93,7 @@ export default function EditUserPage() {
                     <select
                         value={role}
                         onChange={(e) => setRole(e.target.value as UserRole)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="mt-1 p-2  block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     >
                         <option value="ADMIN">Admin</option>
                         <option value="MANAGER">Manager</option>
@@ -112,7 +112,7 @@ export default function EditUserPage() {
                     <span>{isActive ? "Active" : "Inactive"}</span>
                 </div>
 
-                <div className="flex space-x-4 mt-4">
+                <div className="flex space-x-4 justify-center mt-5">
                     <button
                         onClick={handleSave}
                         disabled={saving}
@@ -121,8 +121,8 @@ export default function EditUserPage() {
                         {saving ? "Saving..." : "Save"}
                     </button>
                     <button
-                        onClick={() => router.push("/users/users")}
-                        className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+                        onClick={() => router.push("/users/user-data")}
+                        className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
                     >
                         Cancel
                     </button>

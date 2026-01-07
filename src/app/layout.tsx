@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { StackProvider, StackTheme } from "@stackframe/stack";
-import { stackClientApp } from "../stack/client";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
@@ -47,18 +45,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       ><ThemeProviderWrapper>
-          <StackProvider app={stackClientApp}>
-            <StackTheme>
-              <ToasterProvider>
+          <ToasterProvider>
 
-                {children}
-                {/* Only one Toaster instance */}
-                <Toaster position="bottom-right" />
-              </ToasterProvider>
-            </StackTheme>
-          </StackProvider>
+            {children}
+            {/* Only one Toaster instance */}
+            <Toaster position="bottom-right" />
+          </ToasterProvider>
         </ThemeProviderWrapper>
-      </body>
-    </html>
+      </body >
+    </html >
   );
 }

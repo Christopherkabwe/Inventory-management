@@ -32,7 +32,9 @@ CREATE TABLE "User" (
     "email" TEXT,
     "fullName" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
-    "password" TEXT,
+    "password" TEXT NOT NULL,
+    "passwordResetToken" TEXT,
+    "passwordResetExpires" TIMESTAMP(3),
     "stackAuthId" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "locationId" TEXT,
@@ -40,6 +42,20 @@ CREATE TABLE "User" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "revoked" BOOLEAN NOT NULL DEFAULT false,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -94,6 +110,7 @@ CREATE TABLE "Customer" (
     "country" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "createdById" TEXT NOT NULL,
+    "locationId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -362,6 +379,15 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "User_stackAuthId_key" ON "User"("stackAuthId");
 
 -- CreateIndex
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+
+-- CreateIndex
+CREATE INDEX "Session_revoked_idx" ON "Session"("revoked");
+
+-- CreateIndex
+CREATE INDEX "Session_expiresAt_idx" ON "Session"("expiresAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ProductList_sku_key" ON "ProductList"("sku");
 
 -- CreateIndex
@@ -422,6 +448,9 @@ CREATE UNIQUE INDEX "Adjustment_adjustmentNo_key" ON "Adjustment"("adjustmentNo"
 ALTER TABLE "User" ADD CONSTRAINT "User_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ProductList" ADD CONSTRAINT "ProductList_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -435,6 +464,9 @@ ALTER TABLE "Inventory" ADD CONSTRAINT "Inventory_createdById_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Customer" ADD CONSTRAINT "Customer_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Customer" ADD CONSTRAINT "Customer_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SalesOrder" ADD CONSTRAINT "SalesOrder_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

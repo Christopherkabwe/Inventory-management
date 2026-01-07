@@ -59,21 +59,23 @@ export default function CreateUserForm({ currentUser }: Props) {
         setLoading(true);
 
         try {
+            const effectiveLocation =
+                currentUser.role === UserRole.MANAGER
+                    ? currentUser.locationId
+                    : form.locationId;
+
+            const payload = {
+                ...form,
+                locationId: effectiveLocation,
+            };
+
             const res = await fetch("/api/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify(payload),
             });
 
             const data = await res.json();
-
-            if (res.status === 409) {
-                addToast(data.error || "User already exists", "error");
-                if (data.userId && confirm("User exists. Edit?")) {
-                    router.push(`/users/${data.userId}/edit`);
-                }
-                return;
-            }
 
             if (!res.ok) {
                 addToast(data.error || "Failed to create user", "error");
@@ -81,11 +83,14 @@ export default function CreateUserForm({ currentUser }: Props) {
             }
 
             addToast("User created successfully");
-            router.push("/users/users");
+            router.push("/users");
+
         } catch (err) {
             console.error(err);
             addToast("Something went wrong", "error");
-        } finally { setLoading(false); }
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -99,12 +104,20 @@ export default function CreateUserForm({ currentUser }: Props) {
                     <p className="text-sm text-gray-500">Password must be at least 6 characters</p>
 
                     {/* Role */}
-                    <select name="role" value={form.role} onChange={handleChange} disabled={currentUser.role === UserRole.MANAGER} className="w-full border px-3 py-2 rounded-md">
+                    <select
+                        name="role"
+                        value={form.role}
+                        onChange={handleChange}
+                        disabled={currentUser.role === UserRole.MANAGER}
+                    >
                         <option value={UserRole.USER}>USER</option>
-                        {currentUser.role === UserRole.ADMIN && <>
-                            <option value={UserRole.MANAGER}>MANAGER</option>
-                            <option value={UserRole.ADMIN}>ADMIN</option>
-                        </>}
+
+                        {currentUser.role === UserRole.ADMIN && (
+                            <>
+                                <option value={UserRole.MANAGER}>MANAGER</option>
+                                <option value={UserRole.ADMIN}>ADMIN</option>
+                            </>
+                        )}
                     </select>
 
                     {/* Location */}

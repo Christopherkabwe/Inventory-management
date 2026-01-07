@@ -1,51 +1,50 @@
 // src/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { ROUTE_ACCESS } from "@/lib/auth/route-access";
 
 const AUTH_JWT_SECRET = new TextEncoder().encode(
-    process.env.AUTH_JWT_SECRET!
+    process.env.JWT_SECRET!
 );
+
+const PUBLIC_ROUTES = [
+    "/",
+    "/about-us",
+    "/sign-in",
+    "/sign-up",
+    "/forgot-password",
+];
 
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
-    // -------------------- ALLOW STATIC ASSETS --------------------
-    if (pathname.startsWith("/_next") || pathname.startsWith("/favicon.ico")) {
+    //console.log("🔥 MIDDLEWARE HIT:", req.nextUrl.pathname);
+
+    // Allow public routes
+    if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
         return NextResponse.next();
     }
 
-    // -------------------- PUBLIC ROUTES --------------------
-    if (ROUTE_ACCESS.public.some(route => pathname.startsWith(route))) {
+    // Allow static files
+    if (
+        pathname.startsWith("/_next") ||
+        pathname.startsWith("/favicon.ico")
+    ) {
         return NextResponse.next();
     }
 
-    // -------------------- AUTH TOKEN CHECK --------------------
     const token = req.cookies.get("auth_token")?.value;
+
+    console.log("MIDDLEWARE TOKEN:", req.cookies.get("auth_token"));
+
     if (!token) {
-        // If someone tries to access /dashboard or protected route
-        // redirect to "/" instead of /sign-in
-        return NextResponse.redirect(new URL("/", req.url));
+        return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
     try {
-        const { payload } = await jwtVerify(token, AUTH_JWT_SECRET);
-
-        // -------------------- ADMIN ROUTES --------------------
-        if (
-            ROUTE_ACCESS.admin.some(route => pathname.startsWith(route)) &&
-            payload.role !== "ADMIN"
-        ) {
-            return NextResponse.redirect(new URL("/unauthorized", req.url));
-        }
-
+        await jwtVerify(token, AUTH_JWT_SECRET);
         return NextResponse.next();
     } catch {
-        // Invalid token → redirect to "/"
-        return NextResponse.redirect(new URL("/", req.url));
+        return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 }
 
-export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
-};

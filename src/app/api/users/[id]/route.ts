@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { UserRole } from "@/lib/rbac";
+import bcrypt from "bcryptjs";
 
-// -------------------- GET /api/users/:id --------------------
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params;  // <-- await here
+type Params = {
+    params: Promise<{ id: string }>;
+};
+
+/* ======================= GET / UPDATE / DELETE USER BY ID ======================= */
+export async function GET(req: NextRequest, context: Params) {
+    const params = await context.params;
+    const { id } = params;
     if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
     try {
@@ -12,7 +19,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
             where: { id },
             include: { location: true },
         });
-
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         return NextResponse.json({ success: true, user });
@@ -22,30 +28,27 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     }
 }
 
-// -------------------- PUT /api/users/:id --------------------
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params;
+export async function PUT(req: NextRequest, context: Params) {
+    const params = await context.params;
+    const { id } = params;
     if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
     try {
         const currentUser = await getCurrentUser();
-        if (currentUser.role !== "ADMIN") {
+        if (!currentUser || currentUser.role !== UserRole.ADMIN) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const { fullName, role, isActive } = await req.json();
-
-        if (currentUser.id === id && role && role !== "ADMIN") {
-            return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 });
-        }
+        const { fullName, role, isActive, password } = await req.json();
+        const data: any = {};
+        if (fullName) data.fullName = fullName;
+        if (typeof isActive === "boolean") data.isActive = isActive;
+        if (role) data.role = role;
+        if (password) data.password = await bcrypt.hash(password, 12);
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: {
-                fullName: fullName ?? undefined,
-                role: role ?? undefined,
-                isActive: typeof isActive === "boolean" ? isActive : undefined,
-            },
+            data,
             include: { location: true },
         });
 
@@ -56,14 +59,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
 }
 
-// -------------------- DELETE /api/users/:id --------------------
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params;
+export async function DELETE(req: NextRequest, context: Params) {
+    const params = await context.params;
+    const { id } = params;
     if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
     try {
         const currentUser = await getCurrentUser();
-        if (currentUser.role !== "ADMIN") {
+        if (!currentUser || currentUser.role !== UserRole.ADMIN) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 

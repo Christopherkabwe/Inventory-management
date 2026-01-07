@@ -27,6 +27,8 @@ model User {
   fullName      String?
   role          UserRole @default(USER)
   password    String  // hashed password
+  passwordResetToken String?   // token
+  passwordResetExpires DateTime? // expiration
   stackAuthId   String?  @unique
   isActive      Boolean  @default(true)
   locationId  String?   // nullable for admins
@@ -34,6 +36,7 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  sessions           Session[]
   createdSales       Sale[]       @relation("SalesCreatedBy")
   createdTransfers   Transfer[]   @relation("TransfersCreatedBy")
   createdAdjustments Adjustment[] @relation("AdjustmentsCreatedBy")
@@ -54,6 +57,25 @@ enum UserRole {
   MANAGER
   USER
 }
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  revoked    Boolean  @default(false)
+  ipAddress  String?
+  userAgent  String?
+
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([revoked])
+  @@index([expiresAt])
+}
+
 
 // ==================== PRODUCTS ====================
 model ProductList {
@@ -89,6 +111,7 @@ model Location {
   name      String   @unique
   address   String?
   users     User[]
+  customers  Customer[]   //one location → many customers
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -132,12 +155,15 @@ model Customer {
   city      String
   createdById String
   createdBy User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   sales     Sale[]
   orders    SalesOrder[]
   quotations Quotation[]
+  
 }
 
 // ==================== TRANSPORTERS ====================

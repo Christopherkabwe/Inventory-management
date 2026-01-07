@@ -1,15 +1,15 @@
+export const runtime = "nodejs";
+
 import Image from "next/image";
 import ThemeToggle from "@/components/ThemeToggle";
-import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { stackServerApp } from "@/stack/server";
 
 export const metadata = {
   title: "Home Page",
 };
-
 export default async function Home() {
-  const user = await stackServerApp.getUser();
+  const user = await getCurrentUser();
 
   if (user) {
     redirect("/dashboard");

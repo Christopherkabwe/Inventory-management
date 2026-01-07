@@ -25,6 +25,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [isAuthorized, setIsAuthorized] = useState(false);
 
     useEffect(() => {
@@ -46,13 +47,19 @@ export default function UsersPage() {
                 if (authorized) {
                     const res = await fetch("/api/users");
                     const data = await res.json();
-                    if (data.success) setUsers(data.data);
+                    if (data.success && Array.isArray(data.users)) {
+                        setUsers(data.users);
+                    } else {
+                        setUsers([]); // fallback to empty array
+                    }
                 } else {
                     // Not authorized → show only self
                     setUsers([meData.user]);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
+                setError(err.message || "Failed to load users");
+                setUsers([]); // ensure users is always an array
             } finally {
                 setLoading(false);
             }
@@ -61,23 +68,30 @@ export default function UsersPage() {
         load();
     }, []);
 
-    if (loading) {
+    if (loading)
         return (
             <DashboardLayout>
-                <Loading message="Loading... Please wait" />
+                <Loading />
             </DashboardLayout>
         );
-    }
+
+    if (error)
+        return (
+            <DashboardLayout>
+                <p className="text-center mt-10 text-red-600">{error}</p>
+            </DashboardLayout>
+        );
 
     return (
         <DashboardLayout>
             <div className="p-8 max-w-5xl mx-auto">
                 <h1 className="text-2xl font-bold mb-6">Users</h1>
 
+                {users.length === 0 && (
+                    <p className="text-center text-gray-600">No users found.</p>
+                )}
+
                 {!isAuthorized ? (
-                    // --------------------------------------
-                    // Read-only cards for unauthorized users
-                    // --------------------------------------
                     users.map((user) => (
                         <div
                             key={user.id}
@@ -101,47 +115,80 @@ export default function UsersPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-700">Status</p>
-                                <p className="mt-1 text-gray-900">{user.isActive ? "Active" : "Inactive"}</p>
+                                <p className="mt-1 text-gray-900">
+                                    {user.isActive ? "Active" : "Inactive"}
+                                </p>
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-700">Created At</p>
                                 <p className="mt-1 text-gray-900">
-                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                                    {user.createdAt
+                                        ? new Date(user.createdAt).toLocaleDateString()
+                                        : "-"}
                                 </p>
                             </div>
                         </div>
                     ))
                 ) : (
-                    // --------------------------------------
-                    // Authorized users → table with actions
-                    // --------------------------------------
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse border border-gray-300">
                             <thead>
                                 <tr className="bg-gray-100">
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Full Name</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Email</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Role</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Location</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Created At</th>
-                                    <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Full Name
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Email
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Role
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Location
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Status
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Created At
+                                    </th>
+                                    <th className="border border-gray-300 px-4 py-2 text-left">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.map((user) => (
-                                    <tr key={user.id} className="whitespace-nowrap hover:bg-gray-50">
-                                        <td className="border border-gray-300 px-4 py-2">{user.fullName}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{user.email}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{user.role}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{user.location?.name || "-"}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{user.isActive ? "Active" : "Inactive"}</td>
+                                    <tr
+                                        key={user.id}
+                                        className="whitespace-nowrap hover:bg-gray-50"
+                                    >
                                         <td className="border border-gray-300 px-4 py-2">
-                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                                            {user.fullName}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                            {user.email}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                            {user.role}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                            {user.location?.name || "-"}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                            {user.isActive ? "Active" : "Inactive"}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                            {user.createdAt
+                                                ? new Date(user.createdAt).toLocaleDateString()
+                                                : "-"}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2">
                                             <div className="flex space-x-2">
-                                                <Link href={`/users/${user.id}/edit`} className="text-blue-600 hover:underline">
+                                                <Link
+                                                    href={`/users/user-data/${user.id}/edit`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
                                                     Edit
                                                 </Link>
                                                 <button

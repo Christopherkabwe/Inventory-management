@@ -1,19 +1,16 @@
-"use client";
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { BarChart3, Package, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function Dashboard() {
-    const router = useRouter();
+export default async function Dashboard() {
+    const user = await getCurrentUser();
+
+    if (!user) {
+        redirect("/sign-in");
+    }
 
     // Optional: Auto-redirect to inventory dashboard after 3 seconds
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            router.push('/dashboard/inventory');
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, [router]);
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -22,7 +19,7 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Link
-                    href=""
+                    href="/dashboard/sales"
                     className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex items-center space-x-4"
                 >
                     <div className="bg-purple-100 p-3 rounded-full">
@@ -47,7 +44,7 @@ export default function Dashboard() {
                     </div>
                 </Link>
                 <Link
-                    href=""
+                    href="/dashboard/inventory"
                     className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex items-center space-x-4"
                 >
                     <div className="bg-green-100 p-3 rounded-full">
@@ -59,7 +56,7 @@ export default function Dashboard() {
                     </div>
                 </Link>
                 <Link
-                    href=""
+                    href="/dashboard/inventory"
                     className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex items-center space-x-4"
                 >
                     <div className="bg-green-100 p-3 rounded-full">
@@ -71,7 +68,7 @@ export default function Dashboard() {
                     </div>
                 </Link>
                 <Link
-                    href=""
+                    href="/dashboard/inventory"
                     className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex items-center space-x-4"
                 >
                     <div className="bg-green-100 p-3 rounded-full">
@@ -83,7 +80,7 @@ export default function Dashboard() {
                     </div>
                 </Link>
                 <Link
-                    href=""
+                    href="/dashboard/inventory"
                     className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex items-center space-x-4"
                 >
                     <div className="bg-green-100 p-3 rounded-full">
@@ -95,10 +92,6 @@ export default function Dashboard() {
                     </div>
                 </Link>
             </div>
-
-            <p className="mt-8 text-sm text-gray-400">
-                Redirecting to Inventory Dashboard in 3 seconds...
-            </p>
         </div>
     );
 }

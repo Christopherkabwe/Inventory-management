@@ -58,8 +58,9 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Users",
         icon: User,
         subItems: [
-            { name: "User Management", href: "/users" },
             { name: "Create User", href: "/users/create-user" },
+            { name: "Update Password", href: "/update-password/request" },
+            { name: "User Management", href: "/users/user-data" },
         ],
     },
     { name: "Settings", href: "/settings", icon: Settings },

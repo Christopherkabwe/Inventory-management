@@ -1,5 +1,4 @@
 "use client";
-import { UserButton } from "@stackframe/stack";
 import {
     BarChart3, Package, Plus, Settings, Info,
     ShoppingCart, ChevronDown, Menu, X, User, MapPin,
@@ -9,8 +8,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { NAV_ITEMS } from "@/config/navItems"
-
+import { NAV_ITEMS } from "@/config/navItems";
+import UserInfo from "@/components/UserInfo";
 
 interface Props {
     sidebarOpen: boolean;
@@ -65,14 +64,14 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                         <RotateCw className="w-10 h-10" />
                         <div>
                             <span className="text-xl font-semibold">Biz360°</span>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <p className="text-sm text-gray-700 dark:text-white">
                                 Business Management
                             </p>
                         </div>
                     </div>
 
                     {/* Theme toggle */}
-                    <ThemeToggle />
+                    {/*<ThemeToggle />*/}
                 </div>
 
                 <hr className="border-gray-300 dark:border-gray-700 mb-4" />
@@ -103,8 +102,8 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                                                 <li key={subKey}>
                                                     <Link
                                                         href={subItem.href}
-                                                        className={`block py-1 px-2 rounded-lg text-sm
-                                                        ${isActive(subItem.href) ? "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300 hover:underline"}`}
+                                                        className={`block ml-5 py-1 px-2 text-sm
+                                                        ${isActive(subItem.href) ? "bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300 hover:underline"}`}
                                                     >
                                                         {subItem.name}
                                                     </Link>
@@ -131,7 +130,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                 </nav>
 
                 <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-300 dark:border-gray-700">
-                    <UserButton showUserInfo />
+                    <UserInfo />
                 </div>
             </div>
 

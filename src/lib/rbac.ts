@@ -12,11 +12,20 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 // -------------------- CURRENT USER TYPE --------------------
 export type CurrentUser = {
     id: string;
+    fullName: string | null;
     email: string | null;
     role: UserRole;
-    locationId: string | null;
+    createdAt: Date | null;
     isActive: boolean;
-};
+    locationId: string | null;
+    location: { id: string; name: string; } | null;
+    permissions: {
+        canCreate: boolean;
+        canRead: boolean;
+        canUpdate: boolean;
+        canDelete: boolean;
+    };
+}
 
 // -------------------- RBAC HELPERS --------------------
 
@@ -27,7 +36,7 @@ export type CurrentUser = {
 export function requireRole(user: CurrentUser, allowed: UserRole[]) {
     //console.log('User role:', user.role, 'Allowed roles:', allowed); // Add this line
     if (!allowed.includes(user.role)) {
-        throw new Error("Unauthorized: insufficient role");
+        throw new Error(`Unauthorized: role '${user.role}' not allowed. Allowed: ${allowed.join(', ')}`);
     }
 }
 
@@ -37,7 +46,7 @@ export function requireRole(user: CurrentUser, allowed: UserRole[]) {
  */
 
 export function requireSameLocation(user: CurrentUser, targetLocationId: string) {
-    //console.log('User location:', user.locationId, 'Target location:', targetLocationId); // Add this line
+    if (user.role === UserRole.ADMIN) return; // Admin can access all locations
     if (!user.locationId || user.locationId !== targetLocationId) {
         throw new Error("Unauthorized: invalid location access");
     }
@@ -47,6 +56,7 @@ export function requireSameLocation(user: CurrentUser, targetLocationId: string)
  * Combined role + location check.
  * Ensures user has one of the allowed roles AND is accessing the correct location.
  */
+
 export function requireRoleAndLocation(
     user: CurrentUser,
     allowedRoles: UserRole[],
@@ -54,4 +64,39 @@ export function requireRoleAndLocation(
 ) {
     requireRole(user, allowedRoles);
     requireSameLocation(user, targetLocationId);
+}
+
+// User permissions check
+
+export function checkPermissions(role: UserRole): CurrentUser['permissions'] {
+    switch (role) {
+        case UserRole.ADMIN:
+            return {
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: true,
+            };
+        case UserRole.MANAGER:
+            return {
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: false,
+            };
+        case UserRole.USER:
+            return {
+                canCreate: true,
+                canRead: true,
+                canUpdate: false,
+                canDelete: false,
+            };
+        default:
+            return {
+                canCreate: false,
+                canRead: false,
+                canUpdate: false,
+                canDelete: false,
+            };
+    }
 }

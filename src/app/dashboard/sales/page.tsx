@@ -12,6 +12,7 @@ import { DashboardSale } from "@/components/DashboardSale";
 import SalesTable from "@/components/SalesTable";
 import DashboardLayout from "@/components/DashboardLayout";
 import SalesByCategory from "@/components/SalesByCategory";
+import { redirect } from "next/navigation"
 
 interface ChartDataPoint {
     date: string;
@@ -34,7 +35,9 @@ export const metadata = {
 
 export default async function SalesDashboardPage() {
     const user = await getCurrentUser();
-    if (!user) return <div>Please log in.</div>;
+    if (!user) {
+        redirect("/sign-in");
+    }
     const userId = user.id;
 
     // Metrics

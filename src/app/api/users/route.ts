@@ -1,71 +1,134 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
+import { UserRole } from "@/lib/rbac";
 
-const SALT_ROUNDS = 10;
-
-// -------------------- GET /api/users --------------------
-export async function GET(req: NextRequest) {
+/* ======================= GET ALL USERS ======================= */
+export async function GET() {
     try {
         const currentUser = await getCurrentUser();
-        if (!["ADMIN", "MANAGER"].includes(currentUser.role)) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+        if (!currentUser) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const users = await prisma.user.findMany({
-            include: { location: true },
-            orderBy: { fullName: "asc" },
-        });
+        let users = [];
 
-        return NextResponse.json({ success: true, users });
-    } catch (error) {
-        console.error("Fetch users failed:", error);
+        if (currentUser.role === UserRole.ADMIN) {
+            users = await prisma.user.findMany({
+                include: { location: true },
+                orderBy: { fullName: "asc" },
+            });
+        } else if (currentUser.role === UserRole.MANAGER) {
+            if (!currentUser.locationId) {
+                return NextResponse.json(
+                    { error: "Manager has no location" },
+                    { status: 400 }
+                );
+            }
+
+            users = await prisma.user.findMany({
+                where: { locationId: currentUser.locationId },
+                include: { location: true },
+                orderBy: { fullName: "asc" },
+            });
+        } else {
+            const self = await prisma.user.findUnique({
+                where: { id: currentUser.id },
+                include: { location: true },
+            });
+            if (self) users = [self];
+        }
+
+        const sanitizedUsers = users.map((u) => ({
+            id: u.id,
+            fullName: u.fullName,
+            email: u.email,
+            role: u.role,
+            isActive: u.isActive,
+            createdAt: u.createdAt,
+            location: u.location
+                ? { id: u.location.id, name: u.location.name }
+                : null,
+        }));
+
+        return NextResponse.json({ success: true, users: sanitizedUsers });
+    } catch (err) {
+        console.error("Fetch users failed:", err);
         return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
 }
 
-// -------------------- POST /api/users --------------------
-
+/* ======================= CREATE USER ======================= */
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const { email, fullName, password, role, locationId } = body;
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-        // Validate required fields
+        if (![UserRole.ADMIN, UserRole.MANAGER].includes(currentUser.role)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const body = await req.json();
+        const email = body.email?.toLowerCase();
+        const { fullName, password, role, locationId } = body;
+
         if (!email || !fullName || !password || !role) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Check for existing user
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-            select: { id: true },
-        });
-
-        if (existingUser) {
-            return NextResponse.json(
-                { error: "User already exists", userId: existingUser.id },
-                { status: 409 }
-            );
+        if (!Object.values(UserRole).includes(role)) {
+            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        if (currentUser.role === UserRole.MANAGER) {
+            if (role !== UserRole.USER) {
+                return NextResponse.json({ error: "Managers can only create USER accounts" }, { status: 403 });
+            }
+            if (!currentUser.locationId) {
+                return NextResponse.json({ error: "Manager has no location assigned" }, { status: 400 });
+            }
+        }
 
-        // Create user
+        if (role === UserRole.ADMIN && currentUser.role !== UserRole.ADMIN) {
+            return NextResponse.json({ error: "Only ADMIN can create ADMIN users" }, { status: 403 });
+        }
+
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return NextResponse.json({ error: "User already exists" }, { status: 409 });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+
         const user = await prisma.user.create({
             data: {
                 email,
                 fullName,
-                role,
-                locationId: role === "ADMIN" || locationId === "" ? null : locationId,
                 password: hashedPassword,
+                role,
+                locationId:
+                    role === UserRole.ADMIN
+                        ? null
+                        : currentUser.role === UserRole.MANAGER
+                            ? currentUser.locationId
+                            : locationId ?? null,
                 isActive: true,
             },
         });
 
-        return NextResponse.json({ success: true, user });
+        return NextResponse.json({
+            success: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+            },
+        });
     } catch (error) {
         console.error("Create user failed:", error);
         return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
