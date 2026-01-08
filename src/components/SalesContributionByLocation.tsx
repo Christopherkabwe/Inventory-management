@@ -88,7 +88,7 @@ export default function SalesContributionByLocation() {
         const fetchSales = async () => {
             setLoading(true);
             try {
-                const res = await fetch("/api/sales");
+                const res = await fetch("/api/rbac/sales");
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
                 // Handle both plain array or wrapped { success, data } 

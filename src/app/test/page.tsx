@@ -11,10 +11,6 @@ import SalesValueByLocation from "@/components/SalesValueByLocation";
 import TopProducts from "@/components/TopProducts";
 import TopProductsByLocation from "@/components/TopProductsByLocation";
 import RecentSales from "@/components/RecentSales";
-import React, { useMemo, useState, useEffect } from "react";
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from "recharts";
 import TopCustomers from "@/components/TopCustomers";
 import LeastCustomers from "@/components/LeastCustomers";
 import SalesTable from "@/components/SalesTable";

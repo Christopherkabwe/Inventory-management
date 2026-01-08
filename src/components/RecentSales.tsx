@@ -28,11 +28,13 @@ export default function RecentSales({ userId }: { userId?: string }) {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const url = userId ? `/api/sales?userId=${userId}` : "/api/sales";
+                const url = userId ? `/api/rbac/sales?userId=${userId}` : "/api/rbac/sales";
                 const res = await fetch(url);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
                 const json = await res.json();
-                const data = json.sales || [];
+                const data: Sale[] = Array.isArray(json) ? json : json.sales || [];
+
                 const recent = data
                     .sort((a: Sale, b: Sale) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
                     .slice(0, 20);

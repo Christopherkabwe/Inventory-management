@@ -88,9 +88,17 @@ export default function SalesGrowthByLocation() {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales");
-                const json = await res.json();
-                const data: Sale[] = json.sales || [];
+
+                const res = await fetch("/api/rbac/sales");
+                const json = await res.json(); // ✅ read once
+
+                if (!Array.isArray(json)) {
+                    console.error("Unexpected API response:", json);
+                    setSales([]);
+                    return;
+                }
+
+                const data: Sale[] = json;
                 setSales(data);
 
                 if (data.length > 0) {

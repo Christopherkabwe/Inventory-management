@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Star } from "lucide-react";
+import { unitToKg } from "@/lib/UnitToKg";
 
 /* ---------------- TYPES ---------------- */
 interface SaleItem {
     product: {
         id: string;
         name: string;
-        weightValue?: number; // in kg
-        packSize?: number;    // units per pack
+        weightValue?: number;
+        packSize?: number;
+        weightUnit?: string;
     };
     quantity: number;
     price: number;
@@ -48,10 +50,11 @@ export default function TopProducts({
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales");
+                const res = await fetch("/api/rbac/sales");
                 const json = await res.json();
-                const data: Sale[] = json.sales || [];
+                const data: Sale[] = Array.isArray(json) ? json : json.sales || [];
                 setSales(data);
+
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
             } finally {
@@ -82,10 +85,17 @@ export default function TopProducts({
                     map.set(id, { id, name, qty: 0, totalValue: 0, tonnage: 0 });
                 }
 
+                const p = item.product;
+                const weightKg = unitToKg(
+                    p.weightValue ?? 0,
+                    p.weightUnit
+                )
+
+                const totalKg = weightKg * item.quantity * (p.packSize ?? 1);
                 const entry = map.get(id)!;
                 entry.qty += item.quantity;
                 entry.totalValue += item.quantity * item.price;
-                entry.tonnage += (weight * item.quantity * packSize) / 1000; // convert kg to tons
+                entry.tonnage += totalKg / 1000; // convert kg to tons
             });
         });
 

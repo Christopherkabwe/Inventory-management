@@ -48,19 +48,19 @@ export default function SalesByCategoryPie() {
     useEffect(() => {
         const fetchSales = async () => {
             try {
-                const res = await fetch(`/api/sales`);
-                //console.log('Response:', res);
-                const json = await res.json();
-                //console.log('JSON:', json);
-                const data: Sale[] = json.sales || []; // Fix here
-                //console.log('Data:', data);
+                const res = await fetch(`/api/rbac/sales`);
+                const json = await res.json(); // read body only once
+                const data: Sale[] = Array.isArray(json) ? json : [];
+
                 setSales(data);
+
                 if (data.length > 0) {
                     const oldest = new Date(
                         Math.min(...data.map((s) => new Date(s.saleDate).getTime()))
                     );
-                    setOldestDate(oldest.toISOString().split("T")[0]);
-                    setCategoryStartDate(oldest.toISOString().split("T")[0]);
+                    const oldestStr = oldest.toISOString().split("T")[0];
+                    setOldestDate(oldestStr);
+                    setCategoryStartDate(oldestStr);
                     setCategoryEndDate(today);
                 } else {
                     setOldestDate(today);

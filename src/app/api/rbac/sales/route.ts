@@ -6,15 +6,25 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const whereClause: any = {};
+    let whereClause: any = {};
 
-    // Apply RBAC
-    if (user.role === "MANAGER" || user.role === "USER") {
-        whereClause.OR = [
-            { createdById: user.id }, // data created by user
-            { locationId: user.locationId }, // data for user's location
-        ];
+    if (user.role === "ADMIN") {
+        // Admin sees everything
+        whereClause = {};
+    } else if (user.role === "MANAGER") {
+        // Manager sees sales they created or for their location
+        whereClause = {
+            OR: [
+                { createdById: user.id },
+                { locationId: user.locationId },
+            ],
+        };
+    } else if (user.role === "USER") {
+        // User sees **all sales for their location**, regardless of creator
+        whereClause = { locationId: user.locationId };
     }
+
+
 
     const sales = await prisma.sale.findMany({
         where: whereClause,

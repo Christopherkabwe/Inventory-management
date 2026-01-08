@@ -88,10 +88,18 @@ export default function SalesByLocation() {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales");
-                const json = await res.json();
-                const data: Sale[] = json.sales || [];
+
+                const res = await fetch("/api/rbac/sales");
+                const json = await res.json(); // read once
+
+                if (!Array.isArray(json)) {
+                    console.error("Unexpected API response:", json);
+                    return;
+                }
+
+                const data: Sale[] = json;
                 setSales(data);
+
                 if (data.length > 0) {
                     const oldest = new Date(
                         Math.min(...data.map((s) => new Date(s.saleDate).getTime()))

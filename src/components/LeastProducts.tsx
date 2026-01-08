@@ -36,9 +36,12 @@ export default function LeastProducts({ limit = 5 }: { limit?: number }) {
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales");
-                const json = await res.json();
-                setSales(json.sales || []);
+                const res = await fetch("/api/rbac/sales");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const data = await res.json();
+                // RBAC endpoint returns an array directly
+                setSales(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Failed to fetch sales:", err);
             } finally {

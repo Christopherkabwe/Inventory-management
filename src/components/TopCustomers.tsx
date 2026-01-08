@@ -42,9 +42,10 @@ export default function TopCustomers({
         const fetchSales = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("/api/sales"); // adjust endpoint if needed
+                const res = await fetch("/api/rbac/sales"); // adjust endpoint if needed
                 const data = await res.json();
-                setSales(data.sales || []);
+                const salesArray = Array.isArray(data) ? data : data.sales || [];
+                setSales(salesArray);
             } catch (err) {
                 console.error(err);
             } finally {

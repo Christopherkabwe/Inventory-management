@@ -64,11 +64,15 @@ export default function SalesTrend() {
 
     // ---------------- Fetch sales ----------------
     useEffect(() => {
-        fetch("/api/sales")
+        setLoading(true);
+        fetch("/api/rbac/sales")
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
-                    setSales(data.sales);
+                // API returns an array of sales directly
+                if (Array.isArray(data)) {
+                    setSales(data);
+                } else {
+                    console.error("Unexpected response:", data);
                 }
                 setLoading(false);
             })
