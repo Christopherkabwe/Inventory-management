@@ -8,7 +8,7 @@ import UserInfo from "@/components/UserInfo";
 // Skeleton component for loading states
 function Skeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+    <div className={`animate-pulse bg-gray-300 rounded ${className}`}></div>
   );
 }
 
@@ -24,13 +24,14 @@ function LoadingSidebar() {
   ];
 
   return (
-    <div className="fixed left-0 top-0 bg-gray-900 text-white w-64 min-h-screen p-6 z-10">
-      <div className="mb-8">
+    <div className="fixed top-0 left-0 h-full w-55 p-2 z-10 transform transition-transform duration-300 ease-in-out
+                bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <div className="mb-5 mt-5 flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <RotateCw className="w-10 h-10" />
           <div>
             <span className="text-xl font-semibold">Biz360°</span>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="text-sm text-gray-700 dark:text-white">
               Business Management
             </p>
           </div>
@@ -38,19 +39,16 @@ function LoadingSidebar() {
       </div>
 
       <nav className="space-y-1">
-        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Inventory
-        </div>
         {navigation.map((item) => {
           const IconComponent = item.icon;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors hover:bg-gray-300 text-gray-300"
             >
-              <IconComponent className="w-5 h-5" />
-              <span className="text-sm">{item.name}</span>
+              <IconComponent className="w-5 h-5 text-gray-600" />
+              <span className="text-sm text-gray-700">{item.name}</span>
             </Link>
           );
         })}
@@ -62,7 +60,7 @@ function LoadingSidebar() {
             <Skeleton className="h-4 w-16 mb-1" />
             <Skeleton className="h-3 w-24" />
           </div>
-          <div className="ml-3">
+          <div className="absolute bottom-0 left-5 right-0 p-6 border-t border-gray-300 dark:border-gray-700">
             <UserInfo />
           </div>
         </div>

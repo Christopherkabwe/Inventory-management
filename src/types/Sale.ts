@@ -27,6 +27,7 @@ export interface Location {
 export interface Customer {
     id: string;
     name: string;
+    user: string;
 }
 
 export interface Sale {
@@ -40,6 +41,7 @@ export interface Sale {
     transporterId?: string | null;
     saleDate: string; // ISO string
     createdBy: string;
+    createdById: string;
     createdAt: string;
     updatedAt: string;
     items: SaleItem[];

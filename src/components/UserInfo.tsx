@@ -12,6 +12,21 @@ interface User {
     role: string;
 }
 
+/* Small inline spinner */
+function UserInfoSpinner() {
+    return (
+        <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div className="hidden sm:block">
+                <div className="h-3 w-20 bg-gray-300 dark:bg-gray-600 rounded mb-1 animate-pulse" />
+                <div className="h-2 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+        </div>
+    );
+}
+
 export default function UserInfoDropdown() {
     const [user, setUser] = useState<User | null>(null);
     const [open, setOpen] = useState(false);
@@ -52,8 +67,10 @@ export default function UserInfoDropdown() {
         }
     };
 
-    if (!user) return <p className="text-sm text-gray-700">Loading...</p>;
-
+    /* 🔄 SHOW SPINNER WHILE LOADING */
+    if (!user) {
+        return <UserInfoSpinner />;
+    }
     return (
         <div className="relative" ref={dropdownRef}>
             {/* Profile button */}

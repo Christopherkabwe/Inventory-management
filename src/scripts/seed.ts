@@ -3,36 +3,18 @@ import { faker } from "@faker-js/faker";
 import { ClearDatabase } from "@/scripts/ClearDatabase";
 import { UserRole } from "@/lib/rbac";
 
-// -------------------- HELPER FUNCTIONS --------------------
+// -------------------- HELPERS --------------------
 const startDate = new Date("2024-01-01");
 const endDate = new Date();
 
-// Random date between startDate and endDate
 function randomDate() {
     return faker.date.between({ from: startDate, to: endDate });
 }
 
-// Pick a random element from an array
 function pickRandom<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Pick a random user by role and optional location
-// Pick a random user by role and optional location
-function pickRandomUserForTask(
-    users: any[],
-    locationId?: string,
-    roles: UserRole[] = ["USER", "MANAGER", "ADMIN"]
-) {
-    let eligible = users.filter(u => roles.includes(u.role));
-    if (locationId) {
-        // Admins are global, others must belong to location
-        eligible = eligible.filter(u => u.role === "ADMIN" ? true : u.locationId === locationId);
-    }
-    return pickRandom(eligible);
-}
-
-// Generate next sequence for documents
 async function getNextSequence(key: string): Promise<string> {
     const year = startDate.getFullYear();
     const seq = await prisma.sequence.upsert({
@@ -43,33 +25,64 @@ async function getNextSequence(key: string): Promise<string> {
     return `${key}${String(seq.value).padStart(6, "0")}`;
 }
 
+function filterUsersByRole(users: any[], roles: UserRole[]) {
+    return users.filter(u => roles.includes(u.role));
+}
+
 // -------------------- MAIN --------------------
 async function main() {
     await ClearDatabase();
+    console.log("Clearing Database")
 
-    // -------------------- USERS --------------------
-    console.log("👥 Fetching users...");
+    // -------------------- FETCH EXISTING USERS --------------------
     const users = await prisma.user.findMany();
-    if (users.length === 0) {
-        console.warn("⚠️ No users found! Users should exist via stackAuth.");
+    if (users.length === 0) throw new Error("No users found. Seed failed.");
+
+    const admins = filterUsersByRole(users, ["ADMIN"]);
+    const managers = filterUsersByRole(users, ["MANAGER"]);
+    const salesUsers = filterUsersByRole(users, ["USER"]);
+
+    if (managers.length === 0) throw new Error("At least one manager must exist");
+
+    console.log("Assigning Managers")
+    // Assign managers
+    for (const user of salesUsers) {
+        if (!user.managerId) {
+            const manager = pickRandom(managers);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { managerId: manager.id },
+            });
+        }
     }
 
-    const admins = users.filter(u => u.role === "ADMIN");
-    const managers = users.filter(u => u.role === "MANAGER");
-    const allRoles = users;
-
-    // -------------------- SEQUENCES --------------------
-    console.log("🔢 Creating sequences...");
-    const sequenceKeys = ["INV", "IBT", "PROD", "ADJ", "SO", "QUOTE", "DN", "CN", "RETURN"];
-    for (const key of sequenceKeys) {
-        await prisma.sequence.upsert({
-            where: { id_year: { id: key, year: startDate.getFullYear() } },
+    // -------------------- LOCATIONS --------------------
+    console.log("Creating Locations")
+    const locationNames = ["Lusaka", "Ndola", "Kitwe", "Livingstone", "Chipata"];
+    for (const name of locationNames) {
+        await prisma.location.upsert({
+            where: { name },
             update: {},
-            create: { id: key, year: startDate.getFullYear(), value: 0 },
+            create: { name },
         });
     }
+
+    const locations = await prisma.location.findMany();
+
+    for (const user of users) {
+        if (user.role === "USER") {
+            // assign a random location to the sales user
+            const randomLocation = pickRandom(locations);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { locationId: randomLocation.id },
+            });
+        }
+    }
+    const allLocations = await prisma.location.findMany();
+
     // -------------------- PRODUCTS --------------------
-    console.log("📦 Creating products...");
+    console.log("Creating Database")
     const categories = ["Electronics", "Fashion", "Home Goods", "Toys", "Food"];
     const productsData = Array.from({ length: 20 }).map((_, i) => ({
         sku: `SKU${String(i + 1).padStart(3, "0")}`,
@@ -84,28 +97,30 @@ async function main() {
     await prisma.productList.createMany({ data: productsData });
     const products = await prisma.productList.findMany();
 
-    // -------------------- LOCATIONS --------------------
-    const locations = await prisma.location.findMany();
-
     // -------------------- CUSTOMERS --------------------
-    console.log("👥 Creating customers...");
+    console.log("Creating Customers")
+    const salesUsersWithLocation = salesUsers.filter(u => u.locationId); // only users with location
+    if (!salesUsersWithLocation.length) throw new Error("No sales users have a location!");
+
     const customersData = Array.from({ length: 15 }).map((_, i) => {
-        const location = pickRandom(locations);
+        const user = pickRandom(salesUsersWithLocation); // pick only users with location
+        const location = allLocations.find(l => l.id === user.locationId)!; // safe now
         return {
             name: `Customer ${i + 1}`,
-            email: `customer${i + 1}@example.com`,
+            email: faker.internet.email(),
             phone: faker.phone.number(),
             country: "Zambia",
             city: pickRandom(["Lusaka", "Ndola", "Kitwe"]),
             locationId: location.id,
-            createdById: pickRandom([...admins, ...managers]).id,
+            userId: user.id,
+            createdById: user.managerId!, // manager must exist
         };
     });
     await prisma.customer.createMany({ data: customersData });
     const customers = await prisma.customer.findMany();
 
     // -------------------- TRANSPORTERS --------------------
-    console.log("🚛 Creating transporters...");
+    console.log("Creating Transporters")
     const transportersData = Array.from({ length: 5 }).map((_, i) => ({
         name: `Transporter ${i + 1}`,
         vehicleNumber: faker.vehicle.vin(),
@@ -115,80 +130,37 @@ async function main() {
     const transporters = await prisma.transporter.findMany();
 
     // -------------------- INVENTORY --------------------
-    console.log("📦 Creating inventory...");
+    console.log("Creating Inventory")
     const inventoryMap: Record<string, any> = {};
     for (const product of products) {
-        for (const location of locations) {
+        for (const location of allLocations) {
             const inv = await prisma.inventory.create({
                 data: {
                     productId: product.id,
                     locationId: location.id,
-                    quantity: faker.number.int({ min: 30, max: 120 }),
+                    quantity: faker.number.int({ min: 50, max: 150 }),
                     lowStockAt: 10,
-                    createdById: pickRandom([...admins, ...managers]).id,
+                    assignedUserId: pickRandom(managers).id,
+                    createdById: pickRandom(admins).id,
                 },
             });
             inventoryMap[`${product.id}-${location.id}`] = inv;
         }
     }
-    // -------------------- PRODUCTIONS --------------------
-    console.log("🏭 Creating productions...");
-    for (let i = 0; i < 10; i++) {
-        const location = pickRandom(locations);
-        const productionNo = await getNextSequence("PROD");
-        const production = await prisma.production.create({
-            data: {
-                productionNo,
-                locationId: location.id,
-                batchNumber: `BATCH${String(i + 1).padStart(4, "0")}`,
-                notes: faker.lorem.sentence(),
-                createdById: pickRandom([...admins, ...managers]).id,
-            },
-        });
-        const prodProducts = faker.helpers.arrayElements(products, 3);
-        for (const product of prodProducts) {
-            await prisma.productionItem.create({
-                data: {
-                    productionId: production.id,
-                    productId: product.id,
-                    quantity: faker.number.int({ min: 10, max: 50 }),
-                },
-            });
-        }
-    }
 
-    // -------------------- ADJUSTMENTS --------------------
-    console.log("⚠️ Creating adjustments...");
-    for (const key in inventoryMap) {
-        if (Math.random() > 0.7) {
-            const inv = inventoryMap[key];
-            const adjustmentNo = await getNextSequence("ADJ");
-            const adj = await prisma.adjustment.create({
-                data: {
-                    adjustmentNo,
-                    locationId: inv.locationId,
-                    type: pickRandom(["DAMAGED", "EXPIRED", "MANUAL"]),
-                    reason: "Random adjustment",
-                    createdById: pickRandom([...admins, ...managers]).id,
-                },
-            });
-            await prisma.adjustmentItem.create({
-                data: {
-                    adjustmentId: adj.id,
-                    productId: inv.productId,
-                    quantity: faker.number.int({ min: 1, max: 5 }),
-                },
-            });
-        }
-    }
-
-    // -------------------- SALES ORDERS --------------------
-    console.log("🧾 Creating sales orders...");
+    // -------------------- SALES ORDERS & SALES --------------------
+    console.log("Creating Sales & Invoices")
     const salesOrders: any[] = [];
+    const sales: any[] = [];
+
     for (let i = 0; i < 50; i++) {
-        const customer = pickRandom(customers);
-        const location = pickRandom(locations);
-        const user = pickRandomUserForTask(allRoles, location.id, ["MANAGER", "ADMIN"]);
+        const user = pickRandom(salesUsers);
+        const userCustomers = customers.filter(c => c.userId === user.id);
+        if (!userCustomers.length) continue;
+
+        const customer = pickRandom(userCustomers);
+        const location = allLocations.find(l => l.id === customer.locationId)!;
+
         const orderNumber = await getNextSequence("SO");
         const order = await prisma.salesOrder.create({
             data: {
@@ -199,6 +171,7 @@ async function main() {
                 status: "PENDING",
             },
         });
+
         const orderProducts = faker.helpers.arrayElements(products, 3);
         for (const product of orderProducts) {
             await prisma.salesOrderItem.create({
@@ -212,15 +185,11 @@ async function main() {
         salesOrders.push(order);
     }
 
-    // -------------------- SALES (INVOICES) & DELIVERY NOTES --------------------
-    console.log("💰 Creating sales (invoices)...");
-    const sales: any[] = [];
     for (let i = 0; i < 100; i++) {
         const order = pickRandom(salesOrders);
-        const customer = customers.find((c) => c.id === order.customerId)!;
-        const location = locations.find((l) => l.id === order.locationId)!;
-        const transporter = pickRandom(transporters);
-        const user = pickRandomUserForTask(allRoles, location.id, ["MANAGER", "ADMIN"]);
+        const customer = customers.find(c => c.id === order.customerId)!;
+        const location = allLocations.find(l => l.id === order.locationId)!;
+
         const invoiceNumber = await getNextSequence("INV");
         const sale = await prisma.sale.create({
             data: {
@@ -228,9 +197,8 @@ async function main() {
                 salesOrderId: order.id,
                 locationId: location.id,
                 customerId: customer.id,
-                transporterId: transporter?.id,
+                createdById: order.createdById,
                 saleDate: randomDate(),
-                createdById: user.id,
                 status: "PENDING",
             },
         });
@@ -249,83 +217,91 @@ async function main() {
             });
         }
 
-        // -------------------- DELIVERY NOTE RULES --------------------
-        // Only create DN if sale has invoice and simulate ADMIN created it
-        if (sale.invoiceNumber) {
-            const adminUser = pickRandom(admins); // Only ADMIN
-            const deliveryNoteNo = await getNextSequence("DN");
-
-            await prisma.deliveryNote.create({
-                data: {
-                    deliveryNoteNo, // ✅ correct field
-                    saleId: sale.id,
-                    salesOrderId: order.id,
-                    locationId: location.id,
-                    transporterId: transporter?.id,
-                    dispatchedAt: randomDate(),
-                    createdById: adminUser.id,
-                    items: {
-                        create: orderItems.map((i) => ({
-                            productId: i.productId,
-                            quantityDelivered: i.quantity,
-                        })),
-                    },
-                },
-            });
-
-            // -------------------- UPDATE SALE WITH DELIVERY NOTE --------------------
-            await prisma.sale.update({
-                where: { id: sale.id },
-                data: {
-                    deliveryNoteNo, // link the DN to the sale
-                },
-            });
-        }
+        // Delivery Notes
+        console.log("Creating Delivery Notes")
+        const deliveryNoteNo = await getNextSequence("DN");
+        await prisma.deliveryNote.create({
+            data: {
+                deliveryNoteNo,
+                saleId: sale.id,
+                salesOrderId: order.id,
+                locationId: location.id,
+                transporterId: pickRandom(transporters).id,
+                dispatchedAt: randomDate(),
+                createdById: order.createdById,
+                items: { create: orderItems.map(i => ({ productId: i.productId, quantityDelivered: i.quantity })) },
+            },
+        });
 
         sales.push(sale);
     }
 
-    // -------------------- UPDATE SALES ORDER STATUS --------------------
-    console.log("🔄 Updating sales order statuses...");
-    for (const order of salesOrders) {
-        const items = await prisma.salesOrderItem.findMany({ where: { salesOrderId: order.id } });
-        const invoices = await prisma.sale.findMany({ where: { salesOrderId: order.id }, include: { items: true } });
+    // -------------------- PRODUCTIONS --------------------
+    console.log("Creating Productions")
+    for (let i = 0; i < 10; i++) {
+        const location = pickRandom(allLocations);
+        const productionNo = await getNextSequence("PROD");
+        const production = await prisma.production.create({
+            data: {
+                productionNo,
+                locationId: location.id,
+                batchNumber: `BATCH${String(i + 1).padStart(4, "0")}`,
+                notes: faker.lorem.sentence(),
+                createdById: pickRandom(managers).id,
+            },
+        });
 
-        if (order.status === "CANCELLED") continue;
-
-        if (invoices.length === 0) {
-            await prisma.salesOrder.update({ where: { id: order.id }, data: { status: "PENDING" } });
-        } else {
-            const fullyInvoiced = items.every((i) => {
-                const invoicedQty = invoices.reduce((sum, s) => {
-                    const saleItem = s.items.find((si) => si.productId === i.productId);
-                    return sum + (saleItem?.quantity || 0);
-                }, 0);
-                return invoicedQty >= i.quantity;
+        const prodProducts = faker.helpers.arrayElements(products, 3);
+        for (const product of prodProducts) {
+            await prisma.productionItem.create({
+                data: {
+                    productionId: production.id,
+                    productId: product.id,
+                    quantity: faker.number.int({ min: 10, max: 50 }),
+                },
             });
-            await prisma.salesOrder.update({
-                where: { id: order.id },
-                data: { status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED" },
+        }
+    }
+
+    // -------------------- ADJUSTMENTS --------------------
+    console.log("Creating Adjustments")
+    for (const key in inventoryMap) {
+        if (Math.random() > 0.7) {
+            const inv = inventoryMap[key];
+            const adjustmentNo = await getNextSequence("ADJ");
+            const adj = await prisma.adjustment.create({
+                data: {
+                    adjustmentNo,
+                    locationId: inv.locationId,
+                    type: pickRandom(["DAMAGED", "EXPIRED", "MANUAL"]),
+                    reason: "Random adjustment",
+                    createdById: pickRandom(managers).id,
+                },
+            });
+            await prisma.adjustmentItem.create({
+                data: {
+                    adjustmentId: adj.id,
+                    productId: inv.productId,
+                    quantity: faker.number.int({ min: 1, max: 5 }),
+                },
             });
         }
     }
 
     // -------------------- QUOTATIONS --------------------
-    console.log("📝 Creating quotations...");
+    console.log("Creating Quotations")
     for (let i = 0; i < 50; i++) {
         const customer = pickRandom(customers);
-        const location = pickRandom(locations);
-        const quoteNumber = await getNextSequence("QUOTE");
+        const location = allLocations.find(l => l.id === customer.locationId)!;
         const quotation = await prisma.quotation.create({
             data: {
-                quoteNumber,
+                quoteNumber: await getNextSequence("QUOTE"),
                 customerId: customer.id,
                 locationId: location.id,
-                createdById: pickRandom(allRoles).id,
+                createdById: customer.userId!,
                 status: pickRandom(["PENDING", "APPROVED", "REJECTED"]),
             },
         });
-
         const quoteProducts = faker.helpers.arrayElements(products, 3);
         for (const product of quoteProducts) {
             const qty = faker.number.int({ min: 1, max: 20 });
@@ -342,76 +318,65 @@ async function main() {
     }
 
     // -------------------- CREDIT NOTES --------------------
-    console.log("💳 Creating credit notes...");
+    console.log("Creating Credit Notes")
     for (let i = 0; i < 30; i++) {
         const sale = pickRandom(sales);
-        const creditNoteNumber = await getNextSequence("CN");
         await prisma.creditNote.create({
             data: {
-                creditNoteNumber,
+                creditNoteNumber: await getNextSequence("CN"),
                 saleId: sale.id,
                 reason: "Random adjustment",
                 amount: faker.number.float({ min: 50, max: 500 }),
-                createdById: pickRandom(allRoles).id,
+                createdById: sale.createdById,
             },
         });
     }
 
     // -------------------- SALE RETURNS --------------------
-    console.log("↩️ Creating sale returns...");
+    console.log("Creating Sales Returns")
     for (let i = 0; i < 30; i++) {
         const sale = pickRandom(sales);
         const item = pickRandom(await prisma.saleItem.findMany({ where: { saleId: sale.id } }));
-        const returnNumber = await getNextSequence("RETURN");
         await prisma.saleReturn.create({
             data: {
-                returnNumber,
+                returnNumber: await getNextSequence("RETURN"),
                 saleId: sale.id,
                 productId: item.productId,
                 quantity: faker.number.int({ min: 1, max: item.quantity }),
                 reason: "Random return",
-                createdById: pickRandom(allRoles).id,
+                createdById: sale.createdById,
+                locationId: sale.locationId,
             },
         });
     }
 
-    // -------------------- TRANSFERS & RECEIPTS --------------------
-    console.log("📦 Creating transfers & receipts...");
+    // -------------------- TRANSFERS --------------------
+    console.log("Creating Transfers")
     for (let i = 0; i < 20; i++) {
-        const fromLocation = pickRandom(locations);
-        const toLocation = pickRandom(locations.filter((l) => l.id !== fromLocation.id));
-        const ibtNumber = await getNextSequence("IBT");
+        const from = pickRandom(allLocations);
+        const to = pickRandom(allLocations.filter(l => l.id !== from.id));
         const transfer = await prisma.transfer.create({
             data: {
-                ibtNumber,
-                fromLocationId: fromLocation.id,
-                toLocationId: toLocation.id,
-                transporterId: pickRandom(transporters)?.id,
+                ibtNumber: await getNextSequence("IBT"),
+                fromLocationId: from.id,
+                toLocationId: to.id,
+                transporterId: pickRandom(transporters).id,
                 transferDate: randomDate(),
-                createdById: pickRandom(allRoles).id,
+                createdById: pickRandom(managers).id,
                 status: pickRandom(["PENDING", "DISPATCHED", "RECEIVED"]),
             },
         });
-
         const transferProducts = faker.helpers.arrayElements(products, 3);
-        for (const product of transferProducts) {
+        for (const p of transferProducts) {
             await prisma.transferItem.create({
-                data: {
-                    transferId: transfer.id,
-                    productId: product.id,
-                    quantity: faker.number.int({ min: 1, max: 20 }),
-                },
+                data: { transferId: transfer.id, productId: p.id, quantity: faker.number.int({ min: 1, max: 20 }) },
             });
         }
 
         if (transfer.status === "RECEIVED") {
             const receipt = await prisma.transferReceipt.create({
-                data: {
-                    transferId: transfer.id,
-                    receivedById: pickRandom(allRoles).id,
-                },
+                data: { transferId: transfer.id, receivedById: pickRandom(managers).id },
             });
-
             const items = await prisma.transferItem.findMany({ where: { transferId: transfer.id } });
             for (const item of items) {
                 await prisma.transferReceiptItem.create({
@@ -432,8 +397,5 @@ async function main() {
 }
 
 main()
-    .catch((e) => {
-        console.error("❌ Seed failed:", e);
-        process.exit(1);
-    })
+    .catch(e => { console.error("❌ Seed failed:", e); process.exit(1); })
     .finally(() => prisma.$disconnect());

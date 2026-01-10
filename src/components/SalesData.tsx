@@ -5,9 +5,6 @@ import autoTable from "jspdf-autotable";
 import { Parser as Json2csvParser } from "json2csv";
 import DashboardLayout from "@/components/DashboardLayout";
 import Loading from "@/components/Loading";
-import { Clock } from "lucide-react";
-import { fetchSales } from "@/lib/fetchSales";
-import Link from "next/navigation"
 
 type Sale = {
     id: string;
@@ -35,34 +32,19 @@ type Sale = {
     deliveryNoteNo?: string | null;
 };
 
-export default function RecentSales() {
-    const [sales, setSales] = useState<Sale[]>([]);
+export default function SalesData({
+    sales = [],
+    loading = false,
+}: {
+    sales?: Sale[];
+    loading?: boolean;
+}) {
     const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
     const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const loadSales = async () => {
-            try {
-                setLoading(true);
-                const data = await fetchSales(); // backend respects user role automatically
-                const recent = data
-                    .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
-                    .slice(0, 20);
-                setSales(recent);
-            } catch (err: any) {
-                console.error(err);
-                setError(err.message || "Failed to fetch sales");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadSales();
-    }, []);
 
     useEffect(() => {
         const filtered = sales.filter((s) => {
@@ -201,15 +183,15 @@ export default function RecentSales() {
         doc.save("sales.pdf");
     };
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow mb-5">
-            <div className="mb-2">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-500" />
-                    Recent Sales Transactions
-                </h3>
+        <div>
+            <div>
+                <h1 className="text-3xl font-bold">Sales Data</h1>
+                <p className="text-gray-500 mt-1 mb-2">
+                    A comprehensive overview of sales transactions, including products, customers, and delivery details.
+                </p>
             </div>
             {/* Controls */}
-            <div className="mb-2 flex flex-wrap items-end gap-4 p-4">
+            <div className="mb-4 flex flex-wrap items-end gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
                 {/* Search */}
                 <div className="flex flex-col flex-1 min-w-[220px]">
                     <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -220,7 +202,7 @@ export default function RecentSales() {
                         placeholder="Customer, product, location, invoice, delivery note or transporter..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border px-3 py-2 rounded text-sm focus:ring-2 focus:ring-gray-300 outline-none dark:text-black  cursor-pointer"
+                        className="border px-3 py-2 rounded text-sm focus:ring-2 focus:ring-gray-300 outline-none dark:text-black"
                     />
                 </div>
 
@@ -233,7 +215,7 @@ export default function RecentSales() {
                         type="date"
                         value={startDate}
                         onChange={(e) => handleStartDateChange(e.target.value)}
-                        className="border px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black  cursor-pointer"
+                        className="border px-3 py-2 rounded text-sm hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black"
                     />
                 </div>
 
@@ -246,7 +228,7 @@ export default function RecentSales() {
                         type="date"
                         value={endDate}
                         onChange={(e) => handleEndDateChange(e.target.value)}
-                        className="border px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black  cursor-pointer"
+                        className="border px-3 py-2 rounded text-sm hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black"
                     />
                 </div>
 
@@ -254,14 +236,14 @@ export default function RecentSales() {
                 <div className="flex gap-2 ml-auto">
                     <button
                         onClick={exportCSV}
-                        className="px-4 py-2 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition  cursor-pointer"
+                        className="px-4 py-2 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition"
                     >
                         Export CSV
                     </button>
 
                     <button
                         onClick={exportPDF}
-                        className="px-4 py-2 rounded text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition  cursor-pointer"
+                        className="px-4 py-2 rounded text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition"
                     >
                         Export PDF
                     </button>
@@ -270,10 +252,10 @@ export default function RecentSales() {
             {/* Sales Table */}
             <div className="overflow-auto w-full max-h-[550px] bg-white dark:bg-gray-800">
                 <table className="min-w-full bg-white dark:bg-gray-800 border text-xs text-gray-900 dark:text-gray-200 w-full border-collapse whitespace-nowrap">
-                    <thead className="sticky p-2 top-0 bg-gray-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                    <thead className="sticky p-2 top-0 bg-blue-300 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                         <tr>
                             <th className="p-2 border border-gray-300 dark:border-gray-600">#</th>
-                            <th className="hidden p-2 border border-gray-300 dark:border-gray-600">Transaction Id</th>
+                            <th className="p-2 border border-gray-300 dark:border-gray-600">Transaction Id</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Customer Name</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Product Name</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Pack Size</th>
@@ -283,14 +265,13 @@ export default function RecentSales() {
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Sale Price</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Total Amount</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Tonnage</th>
-                            <th className="hidden p-2 border border-gray-300 dark:border-gray-600 text-left">Return</th>
+                            <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Return</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Invoice No.</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Delivery Note</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Transporter Name</th>
-                            <th className="hidden p-2 border border-gray-300 dark:border-gray-600 text-left">Vehicle Number</th>
-                            <th className="hidden p-2 border border-gray-300 dark:border-gray-600 text-left">Driver's Name</th>
+                            <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Vehicle Number</th>
+                            <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Driver's Name</th>
                             <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Date</th>
-                            <th className="p-2 border border-gray-300 dark:border-gray-600 text-left">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -316,7 +297,7 @@ export default function RecentSales() {
                                             return (
                                                 <tr key={`${s.id}-${item.product.name}-${rowNumber}`} className="even:bg-gray-100 dark:even:bg-gray-700">
                                                     <td className="p-2 border text-center">{rowNumber++}</td>
-                                                    <td className="hidden p-2 border w-20 max-w-[80px] truncate">{s.id}</td>
+                                                    <td className="p-2 border w-20 max-w-[80px] truncate">{s.id}</td>
                                                     <td className="p-2 border">{s.customer.name}</td>
                                                     <td className="p-2 border">{item.product.name}</td>
                                                     <td className="p-2 border">{item.product.packSize}</td>
@@ -326,21 +307,13 @@ export default function RecentSales() {
                                                     <td className="p-2 border">{item.price.toFixed(2)}</td>
                                                     <td className="p-2 border">{item.total.toFixed(2)}</td>
                                                     <td className="p-2 border">{tonnage.toFixed(2)}</td>
-                                                    <td className="hidden p-2 border">{s.isReturn ? "Yes" : "No"}</td>
+                                                    <td className="p-2 border">{s.isReturn ? "Yes" : "No"}</td>
                                                     <td className="p-2 border">{s.invoiceNumber}</td>
                                                     <td className="p-2 border whitespace-nowrap">{s.deliveryNoteNo ?? "-"}</td>
                                                     <td className="p-2 border">{s.transporter?.name ?? "-"}</td>
-                                                    <td className="hidden p-2 border">{s.transporter?.vehicleNumber ?? "-"}</td>
-                                                    <td className="hidden p-2 border truncate">{s.transporter?.driverName ?? "-"}</td>
+                                                    <td className="p-2 border">{s.transporter?.vehicleNumber ?? "-"}</td>
+                                                    <td className="p-2 border truncate">{s.transporter?.driverName ?? "-"}</td>
                                                     <td className="p-2 border">{new Date(s.saleDate).toLocaleDateString()}</td>
-                                                    <td className="p-2 border">
-                                                        <a
-                                                            href={`/sales/sales-data`}
-                                                            className="text-blue-600 hover:underline text-sm"
-                                                        >
-                                                            View All Sales
-                                                        </a>
-                                                    </td>
                                                 </tr>
                                             );
                                         })

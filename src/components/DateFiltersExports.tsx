@@ -1,25 +1,60 @@
 "use client";
-import { useState, useRef, useEffect, useMemo } from "react";
+
+import { useState, useRef, useEffect, useMemo, forwardRef } from "react";
 import { Sale } from "@/components/Sale";
+
+// ----------------- Types -----------------
+interface Location {
+    id: string;
+    name: string;
+    address?: string;
+}
+
+interface Category {
+    id: string;
+    name: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    category: string | null;
+}
+
+interface User {
+    id: string;
+    name: string;
+    locationId: string | null;
+}
 
 interface Props {
     startDate: Date | null;
     endDate: Date | null;
     setStartDate: (date: Date | null) => void;
     setEndDate: (date: Date | null) => void;
+
     selectedLocations: string[];
-    setSelectedLocations: (locations: string[]) => void;
+    setSelectedLocations: (ids: string[]) => void;
+
     selectedCategories: string[];
-    setSelectedCategories: (categories: string[]) => void;
+    setSelectedCategories: (ids: string[]) => void;
+
     selectedProducts: string[];
-    setSelectedProducts: (products: string[]) => void;
-    locationOptions: { value: string; label: string }[];
-    categoryOptions: { value: string; label: string }[];
-    productOptions: { id: string; name: string; category: string | null }[];
+    setSelectedProducts: (ids: string[]) => void;
+
+    selectedUsers: string[];
+    setSelectedUsers: (ids: string[]) => void;
+
+    locationOptions: Location[];
+    categoryOptions: string[]; // just array of strings
+    productOptions: Product[];
+    userOptions: User[];
+
     exportCSV: () => void;
     exportPDF: () => void;
 }
 
+// ----------------- Component -----------------
 const DateFiltersExports = ({
     startDate,
     endDate,
@@ -31,64 +66,55 @@ const DateFiltersExports = ({
     setSelectedCategories,
     selectedProducts,
     setSelectedProducts,
+    selectedUsers,
+    setSelectedUsers,
     locationOptions,
     categoryOptions,
     productOptions,
+    userOptions,
     exportCSV,
     exportPDF,
 }: Props) => {
     const [showLocations, setShowLocations] = useState(false);
     const [showCategories, setShowCategories] = useState(false);
     const [showProducts, setShowProducts] = useState(false);
+    const [showUsers, setShowUsers] = useState(false);
+
     const locationRef = useRef<HTMLDivElement>(null);
     const categoryRef = useRef<HTMLDivElement>(null);
     const productRef = useRef<HTMLDivElement>(null);
+    const userRef = useRef<HTMLDivElement>(null);
 
-    // Filter products based on selected categories
+    // ----------------- Filtered Products -----------------
     const filteredProducts = useMemo(() => {
-        if (selectedCategories.length > 0) {
-            return productOptions.filter((p) =>
-                selectedCategories.includes(p.category ?? "")
-            );
-        } else {
-            return productOptions;
-        }
+        if (selectedCategories.length === 0) return productOptions;
+        return productOptions.filter((p) => selectedCategories.includes(p.category ?? ""));
     }, [productOptions, selectedCategories]);
 
-    // Filter categories based on selected products
+    // ----------------- Filtered Categories -----------------
     const filteredCategories = useMemo(() => {
-        if (selectedProducts.length > 0) {
-            const categories = Array.from(
-                new Set(
-                    selectedProducts
-                        .map((id) =>
-                            productOptions.find((p) => p.id === id)?.category
-                        )
-                        .filter(Boolean)
-                )
-            ) as string[];
-            return categoryOptions.filter((c) => categories.includes(c.value));
-        } else {
-            return categoryOptions;
-        }
+        if (selectedProducts.length === 0) return categoryOptions;
+
+        const categoriesInProducts = new Set(
+            selectedProducts
+                .map((pid) => productOptions.find((p) => p.id === pid)?.category)
+                .filter(Boolean) as string[]
+        );
+
+        return categoryOptions.filter((c) => categoriesInProducts.has(c));
     }, [selectedProducts, productOptions, categoryOptions]);
 
     // ---------------- CLOSE DROPDOWNS ON OUTSIDE CLICK ----------------
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (locationRef.current && !locationRef.current.contains(event.target as Node)) {
-                setShowLocations(false);
-            }
-            if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
-                setShowCategories(false);
-            }
-            if (productRef.current && !productRef.current.contains(event.target as Node)) {
-                setShowProducts(false);
-            }
+            if (locationRef.current && !locationRef.current.contains(event.target as Node)) setShowLocations(false);
+            if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) setShowCategories(false);
+            if (productRef.current && !productRef.current.contains(event.target as Node)) setShowProducts(false);
+            if (userRef.current && !userRef.current.contains(event.target as Node)) setShowUsers(false);
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [locationRef, categoryRef, productRef]);
+    }, []);
 
     // ---------------- DATE HANDLERS ----------------
     const formatDateForInput = (date: Date | null) => {
@@ -98,14 +124,10 @@ const DateFiltersExports = ({
         const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     };
+    const handleStartDateChange = (value: string) => setStartDate(value ? new Date(`${value}T00:00:00`) : null);
+    const handleEndDateChange = (value: string) => setEndDate(value ? new Date(`${value}T23:59:59`) : null);
 
-    const handleStartDateChange = (value: string) => {
-        setStartDate(value ? new Date(`${value}T00:00:00`) : null);
-    };
-    const handleEndDateChange = (value: string) => {
-        setEndDate(value ? new Date(`${value}T23:59:59`) : null);
-    };
-
+    // ---------------- RENDER ----------------
     return (
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-2">
             {/* Date Pickers */}
@@ -119,7 +141,6 @@ const DateFiltersExports = ({
                         className="text-sm w-full min-w-0 hover:bg-gray-100 cursor-pointer"
                     />
                 </label>
-
                 <label className="flex items-center gap-2 border rounded py-1 px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
                     <span className="whitespace-nowrap text-sm">End :</span>
                     <input
@@ -130,124 +151,60 @@ const DateFiltersExports = ({
                     />
                 </label>
             </div>
+
             {/* Dropdown Filters */}
-            <div className="grid grid-cols-3 gap-2 sm:flex-nowrap w-full xl:w-auto">
-
+            <div className="grid grid-cols-4 gap-2 sm:flex-nowrap w-full xl:w-auto">
                 {/* Locations */}
-                <div ref={locationRef} className="relative flex-1 min-w-0 xl:flex-none">
-                    <button
-                        onClick={() => setShowLocations(!showLocations)}
-                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
-                    >
-                        Select Locations
-                    </button>
-
-                    {showLocations && (
-                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
-                            <button
-                                onClick={() => setSelectedLocations([])}
-                                className="text-sm text-blue-500 hover:underline mb-2"
-                            >
-                                Clear Selection
-                            </button>
-
-                            {locationOptions.map(option => (
-                                <label key={option.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedLocations.includes(option.value)}
-                                        onChange={(e) =>
-                                            e.target.checked
-                                                ? setSelectedLocations([...selectedLocations, option.value])
-                                                : setSelectedLocations(selectedLocations.filter(l => l !== option.value))
-                                        }
-                                    />
-                                    <span className="truncate">{option.label}</span>
-                                </label>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <DropdownFilter
+                    ref={locationRef}
+                    label="Locations"
+                    options={locationOptions}
+                    selected={selectedLocations}
+                    setSelected={setSelectedLocations}
+                    show={showLocations}
+                    setShow={setShowLocations}
+                />
 
                 {/* Categories */}
-                <div ref={categoryRef} className="relative flex-1 min-w-0 xl:flex-none">
-                    <button
-                        onClick={() => setShowCategories(!showCategories)}
-                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
-                    >
-                        Select Categories
-                    </button>
-
-                    {showCategories && (
-                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
-                            <button
-                                onClick={() => setSelectedCategories([])}
-                                className="text-sm text-blue-500 hover:underline mb-2"
-                            >
-                                Clear Selection
-                            </button>
-
-                            {filteredCategories.map(option => (
-                                <label key={option.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedCategories.includes(option.value)}
-                                        onChange={(e) =>
-                                            e.target.checked
-                                                ? setSelectedCategories([...selectedCategories, option.value])
-                                                : setSelectedCategories(selectedCategories.filter(c => c !== option.value))
-                                        }
-                                    />
-                                    <span className="truncate">{option.label}</span>
-                                </label>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <DropdownFilter
+                    ref={categoryRef}
+                    label="Categories"
+                    options={filteredCategories.map((c) => ({ id: c, name: c }))}
+                    selected={selectedCategories}
+                    setSelected={setSelectedCategories}
+                    show={showCategories}
+                    setShow={setShowCategories}
+                />
 
                 {/* Products */}
-                <div ref={productRef} className="relative flex-1 min-w-0 xl:flex-none">
-                    <button
-                        onClick={() => setShowProducts(!showProducts)}
-                        className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
-                    >
-                        Select Products
-                    </button>
+                <DropdownFilter
+                    ref={productRef}
+                    label="Products"
+                    options={filteredProducts}
+                    selected={selectedProducts}
+                    setSelected={setSelectedProducts}
+                    show={showProducts}
+                    setShow={setShowProducts}
+                />
 
-                    {showProducts && (
-                        <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
-                            <button
-                                onClick={() => setSelectedProducts([])}
-                                className="text-sm text-blue-500 hover:underline mb-2"
-                            >
-                                Clear Selection
-                            </button>
-
-                            {filteredProducts.map(option => (
-                                <label key={option.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedProducts.includes(option.id)}
-                                        onChange={(e) =>
-                                            e.target.checked
-                                                ? setSelectedProducts([...selectedProducts, option.id])
-                                                : setSelectedProducts(selectedProducts.filter(p => p !== option.id))
-                                        }
-                                    />
-                                    <span className="truncate">{option.name}</span>
-                                </label>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
+                {/* Users */}
+                <DropdownFilter
+                    ref={userRef}
+                    label="Users"
+                    options={userOptions}
+                    selected={selectedUsers}
+                    setSelected={setSelectedUsers}
+                    show={showUsers}
+                    setShow={setShowUsers}
+                />
             </div>
+
             {/* Export Buttons */}
             <div className="flex flex-row gap-2 w-full xl:w-auto">
-                <button onClick={exportCSV} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer" >
+                <button onClick={exportCSV} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer">
                     Export CSV
                 </button>
-                <button onClick={exportPDF} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer" >
+                <button onClick={exportPDF} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer">
                     Export PDF
                 </button>
             </div>
@@ -256,3 +213,58 @@ const DateFiltersExports = ({
 };
 
 export default DateFiltersExports;
+
+// ----------------- Generic DropdownFilter -----------------
+interface DropdownFilterProps<T extends { id: string; name: string }> {
+    label: string;
+    options: T[];
+    selected: string[];
+    setSelected: (ids: string[]) => void;
+    show: boolean;
+    setShow: (show: boolean) => void;
+}
+
+const DropdownFilter = forwardRef<HTMLDivElement, DropdownFilterProps<any>>(
+    ({ label, options, selected, setSelected, show, setShow }, ref) => {
+        const handleCheckboxChange = (id: string) => {
+            if (selected.includes(id)) {
+                setSelected(selected.filter((s) => s !== id));
+            } else {
+                setSelected([...selected, id]);
+            }
+        };
+
+        return (
+            <div ref={ref} className="relative flex-1 min-w-0 xl:flex-none">
+                <button
+                    onClick={() => setShow(!show)}
+                    className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                >
+                    Select {label}
+                </button>
+                {show && (
+                    <div className="absolute z-20 mt-1 w-full max-w-xs bg-white border rounded p-2 max-h-48 overflow-y-auto">
+                        <button
+                            onClick={() => setSelected([])}
+                            className="text-sm text-blue-500 hover:underline mb-2"
+                        >
+                            Clear Selection
+                        </button>
+                        {options.map((opt) => (
+                            <label key={opt.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={selected.includes(opt.id)}
+                                    onChange={() => handleCheckboxChange(opt.id)}
+                                />
+                                <span className="truncate">{opt.name}</span>
+                            </label>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+);
+
+DropdownFilter.displayName = "DropdownFilter";

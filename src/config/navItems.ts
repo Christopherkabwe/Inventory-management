@@ -63,6 +63,15 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "User Management", href: "/users/user-data" },
         ],
     },
+    {
+        name: "Test",
+        icon: User,
+        subItems: [
+            { name: "Test Page", href: "/test/test-pages" },
+            { name: "Test KPI", href: "/test/testKpi" },
+            { name: "Test RBAC", href: "/test/test-rbac" },
+        ],
+    },
     { name: "Settings", href: "/settings", icon: Settings },
     { name: "About Us", href: "/about-us", icon: Info },
 ];

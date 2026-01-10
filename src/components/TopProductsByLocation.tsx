@@ -9,16 +9,21 @@ interface SaleItem {
         name: string;
         weightValue: number;
         packSize: number;
-        price?: number; // optional price per unit
+        price?: number;
     };
 }
 
-interface Sale {
+export interface Sale {
     saleDate: string;
     items: SaleItem[];
     location: {
         name: string;
     } | null;
+}
+
+interface Props {
+    sales: Sale[];
+    loading: boolean;
 }
 
 interface ProductData {
@@ -33,9 +38,9 @@ interface LocationProducts {
     totalValue: number;
 }
 
-// -----------------------------
-// DATE RANGE SELECTOR
-// -----------------------------
+/* -----------------------------
+   DATE RANGE SELECTOR
+----------------------------- */
 const SimpleDateRangeSelector = ({
     start,
     end,
@@ -53,133 +58,133 @@ const SimpleDateRangeSelector = ({
 }) => (
     <div className="flex items-center justify-end w-full gap-2 mb-5">
         <span className="text-xs">Date Range:</span>
+
         <input
             type="date"
             value={start}
-            onChange={(e) => setStart(e.target.value || oldestDate)}
+            min={oldestDate}
+            max={today}
+            onChange={(e) => setStart(e.target.value)}
             className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
         />
+
         <span>-</span>
+
         <input
             type="date"
             value={end}
-            onChange={(e) => setEnd(e.target.value || today)}
+            min={start || oldestDate}
+            max={today}
+            onChange={(e) => setEnd(e.target.value)}
             className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
         />
     </div>
 );
 
-export default function TopProductsByLocation() {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function TopProductsByLocation({ sales, loading }: Props) {
+    const today = useMemo(
+        () => new Date().toISOString().split("T")[0],
+        []
+    );
 
-    const [startDate, setStartDate] = useState<string>("");
-    const [endDate, setEndDate] = useState<string>("");
-    const [oldestDate, setOldestDate] = useState<string>("");
+    const [oldestDate, setOldestDate] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
-    const today = new Date().toISOString().split("T")[0];
-
-    // -----------------------------
-    // FETCH SALES
-    // -----------------------------
+    /* -----------------------------
+       INITIALIZE DATE RANGE
+    ----------------------------- */
     useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch("/api/rbac/sales");
-                const json = await res.json(); // ✅ read once
+        if (!sales.length) return;
 
-                if (!Array.isArray(json)) {
-                    console.error("Unexpected API response:", json);
-                    setSales([]);
-                    return;
-                }
+        const oldest = new Date(
+            Math.min(...sales.map((s) => new Date(s.saleDate).getTime()))
+        );
 
-                const data: Sale[] = json;
-                setSales(data);
+        const oldestStr = oldest.toISOString().split("T")[0];
 
-                if (data.length > 0) {
-                    const oldest = new Date(
-                        Math.min(...data.map((s) => new Date(s.saleDate).getTime()))
-                    );
-                    const oldestStr = oldest.toISOString().split("T")[0];
-                    setOldestDate(oldestStr);
-                    setStartDate(oldestStr);
-                    setEndDate(today);
-                } else {
-                    setOldestDate(today);
-                    setStartDate(today);
-                    setEndDate(today);
-                }
-            } catch (err) {
-                console.error("Failed to fetch sales:", err);
-                setOldestDate(today);
-                setStartDate(today);
-                setEndDate(today);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSales();
-    }, [today]);
+        setOldestDate(oldestStr);
+        setStartDate((prev) => prev || oldestStr);
+        setEndDate((prev) => prev || today);
+    }, [sales, today]);
 
-    // -----------------------------
-    // COMPUTE TOP PRODUCTS BY LOCATION
-    // -----------------------------
+    /* -----------------------------
+       COMPUTE TOP PRODUCTS
+    ----------------------------- */
     const topProductsByLocation: LocationProducts[] = useMemo(() => {
-        if (!sales.length) return [];
+        if (!sales.length || !startDate || !endDate) return [];
 
-        const start = new Date(startDate || oldestDate);
-        const end = new Date(endDate || today);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
 
-        // Filter sales by date range
-        const filtered = sales.filter((s) => {
-            const saleDate = new Date(s.saleDate);
-            return saleDate >= start && saleDate <= end;
+        const filteredSales = sales.filter((s) => {
+            const d = new Date(s.saleDate);
+            return d >= start && d <= end;
         });
 
-        // Get all locations
-        const locations = Array.from(new Set(filtered.map((s) => s.location?.name || "Unknown")));
+        const locations = Array.from(
+            new Set(filteredSales.map((s) => s.location?.name || "Unknown"))
+        );
 
-        return locations.map((loc) => {
-            const locSales = filtered.filter((s) => (s.location?.name || "Unknown") === loc);
-
+        return locations.map((location) => {
             const productMap = new Map<string, ProductData>();
-            locSales.forEach((sale) => {
-                sale.items?.forEach((item) => {
-                    if (!item.product) return;
-                    const name = item.product.name || "Unknown";
-                    const tonnage = (item.product.weightValue * item.quantity * item.product.packSize) / 1000;
-                    const value = item.quantity * (item.product.price || 1);
 
-                    if (!productMap.has(name)) {
-                        productMap.set(name, { name, tonnage, value });
-                    } else {
-                        const existing = productMap.get(name)!;
-                        existing.tonnage += tonnage;
-                        existing.value += value;
-                    }
+            filteredSales
+                .filter((s) => (s.location?.name || "Unknown") === location)
+                .forEach((sale) => {
+                    sale.items.forEach((item) => {
+                        const product = item.product;
+                        if (!product) return;
+
+                        const name = product.name;
+                        const tonnage =
+                            (product.weightValue *
+                                product.packSize *
+                                item.quantity) /
+                            1000;
+
+                        const value =
+                            item.quantity * (product.price ?? 0);
+
+                        const existing = productMap.get(name);
+
+                        if (existing) {
+                            existing.tonnage += tonnage;
+                            existing.value += value;
+                        } else {
+                            productMap.set(name, {
+                                name,
+                                tonnage,
+                                value,
+                            });
+                        }
+                    });
                 });
-            });
 
             const products = Array.from(productMap.values())
                 .sort((a, b) => b.tonnage - a.tonnage)
                 .slice(0, 5);
 
-            const totalValue = products.reduce((sum, p) => sum + p.value, 0);
-
-            return { location: loc, products, totalValue };
+            return {
+                location,
+                products,
+                totalValue: products.reduce(
+                    (sum, p) => sum + p.value,
+                    0
+                ),
+            };
         });
-    }, [sales, startDate, endDate, oldestDate, today]);
+    }, [sales, startDate, endDate]);
 
-    // -----------------------------
-    // RENDER
-    // -----------------------------
+    /* -----------------------------
+       RENDER
+    ----------------------------- */
     return (
         <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" /> Top Products by Location
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Top Products by Location
             </h3>
 
             <SimpleDateRangeSelector
@@ -203,22 +208,40 @@ export default function TopProductsByLocation() {
                 ) : (
                     <div className="space-y-4">
                         {topProductsByLocation.map((loc) => (
-                            <div key={loc.location} className="border rounded-lg p-3">
-                                <h4 className="font-semibold text-sm mb-1">{loc.location}</h4>
+                            <div
+                                key={loc.location}
+                                className="border rounded-lg p-3"
+                            >
+                                <h4 className="font-semibold text-sm mb-1">
+                                    {loc.location}
+                                </h4>
+
                                 <table className="w-full text-xs">
                                     <thead>
                                         <tr className="border-b">
-                                            <th className="text-left py-1 text-sm font-normal">Product</th>
-                                            <th className="text-right py-1 text-sm font-normal">Tonnage</th>
-                                            <th className="text-right py-1 text-sm font-normal">Value</th>
+                                            <th className="text-left py-1 font-normal">
+                                                Product
+                                            </th>
+                                            <th className="text-right py-1 font-normal">
+                                                Tonnage
+                                            </th>
+                                            <th className="text-right py-1 font-normal">
+                                                Value
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {loc.products.map((p) => (
                                             <tr key={p.name}>
-                                                <td className="py-1">{p.name}</td>
-                                                <td className="text-right py-1">{p.tonnage.toFixed(2)}</td>
-                                                <td className="text-right py-1">{p.value.toFixed(2)}</td>
+                                                <td className="py-1">
+                                                    {p.name}
+                                                </td>
+                                                <td className="text-right py-1">
+                                                    {p.tonnage.toFixed(2)}
+                                                </td>
+                                                <td className="text-right py-1">
+                                                    {p.value.toFixed(2)}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

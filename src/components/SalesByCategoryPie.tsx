@@ -5,6 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import CustomTooltip from "./CustomTooltip";
 import { Package } from "lucide-react";
 
+/* ---------------- TYPES ---------------- */
 interface SaleItem {
     quantity: number;
     product: {
@@ -24,9 +25,16 @@ interface CategoryData {
     tonnage: number;
 }
 
-export default function SalesByCategoryPie() {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loading, setLoading] = useState(true);
+/* ---------------- COMPONENT ---------------- */
+export default function SalesByCategoryPie({
+    sales,
+    loading,
+    oldestDate,
+}: {
+    sales?: Sale[];
+    loading?: boolean;
+    oldestDate?: string | null;
+}) {
     const COLORS = [
         "#2563eb",
         "#16a34a",
@@ -36,58 +44,26 @@ export default function SalesByCategoryPie() {
         "#ec4899",
     ];
 
-    const [categoryStartDate, setCategoryStartDate] = useState<string>("");
-    const [categoryEndDate, setCategoryEndDate] = useState<string>("");
+    const today = new Date().toISOString().split("T")[0];
 
-    const [oldestDate, setOldestDate] = useState<string>(""); // oldest sale date
-    const today = new Date().toISOString().split("T")[0]; // always today
+    /* ---------------- UI STATE ---------------- */
+    const [categoryStartDate, setCategoryStartDate] = useState("");
+    const [categoryEndDate, setCategoryEndDate] = useState(today);
 
-    // -----------------------------
-    // FETCH SALES
-    // -----------------------------
+    /* ---------------- SYNC DATE RANGE ---------------- */
     useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                const res = await fetch(`/api/rbac/sales`);
-                const json = await res.json(); // read body only once
-                const data: Sale[] = Array.isArray(json) ? json : [];
+        if (!oldestDate) return;
+        setCategoryStartDate(oldestDate);
+        setCategoryEndDate(today);
+    }, [oldestDate, today]);
 
-                setSales(data);
-
-                if (data.length > 0) {
-                    const oldest = new Date(
-                        Math.min(...data.map((s) => new Date(s.saleDate).getTime()))
-                    );
-                    const oldestStr = oldest.toISOString().split("T")[0];
-                    setOldestDate(oldestStr);
-                    setCategoryStartDate(oldestStr);
-                    setCategoryEndDate(today);
-                } else {
-                    setOldestDate(today);
-                    setCategoryStartDate(today);
-                    setCategoryEndDate(today);
-                }
-            } catch (err) {
-                console.error("Failed to fetch sales:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSales();
-    }, [today]);
-
-    useEffect(() => {
-        //console.log('Sales:', sales);
-    }, [sales]);
-
-    // -----------------------------
-    // COMPUTE TONNAGE BY CATEGORY
-    // -----------------------------
+    /* ---------------- COMPUTE TONNAGE ---------------- */
     const categoryData: CategoryData[] = useMemo(() => {
-        if (!sales.length) return [];
+        if (!sales || !Array.isArray(sales) || !sales.length || !categoryStartDate) return [];
+
         const map: Record<string, number> = {};
-        const start = categoryStartDate ? new Date(categoryStartDate) : new Date(oldestDate);
-        const end = categoryEndDate ? new Date(categoryEndDate) : new Date(today);
+        const start = new Date(categoryStartDate);
+        const end = new Date(categoryEndDate);
         end.setHours(23, 59, 59, 999);
 
         for (const sale of sales) {
@@ -96,7 +72,9 @@ export default function SalesByCategoryPie() {
 
             for (const item of sale.items) {
                 const category = item.product.category || "Uncategorized";
-                const tonnage = (item.product.weightValue * item.quantity * item.product.packSize) / 1000;
+                const tonnage =
+                    (item.product.weightValue * item.quantity * item.product.packSize) / 1000;
+
                 map[category] = (map[category] || 0) + tonnage;
             }
         }
@@ -105,67 +83,40 @@ export default function SalesByCategoryPie() {
             category,
             tonnage: Number(tonnage.toFixed(2)),
         }));
-    }, [sales, categoryStartDate, categoryEndDate, oldestDate, today]);
+    }, [sales, categoryStartDate, categoryEndDate]);
 
     const totalTonnage = categoryData.reduce((s, d) => s + d.tonnage, 0);
 
-    // -----------------------------
-    // DATE RANGE SELECTOR
-    // -----------------------------
-    const SimpleDateRangeSelector = ({
-        start,
-        end,
-        setStart,
-        setEnd,
-        oldestDate,
-        today,
-    }: {
-        start: string;
-        end: string;
-        setStart: (s: string) => void;
-        setEnd: (s: string) => void;
-        oldestDate: string;
-        today: string;
-    }) => (
+    /* ---------------- DATE PICKER ---------------- */
+    const SimpleDateRangeSelector = () => (
         <div className="flex items-center justify-end w-full gap-2 mb-5">
             <span className="text-xs">Date Range:</span>
             <input
                 type="date"
-                value={start}
-                onChange={(e) => setStart(e.target.value || oldestDate)}
+                value={categoryStartDate}
+                onChange={(e) => setCategoryStartDate(e.target.value || oldestDate || today)}
                 className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
             />
             <span>-</span>
             <input
                 type="date"
-                value={end}
-                onChange={(e) => setEnd(e.target.value || today)}
+                value={categoryEndDate}
+                onChange={(e) => setCategoryEndDate(e.target.value || today)}
                 className="border rounded px-2 py-1 text-xs hover:bg-gray-100"
             />
         </div>
     );
 
-    // -----------------------------
-    // RENDER
-    // -----------------------------
+    /* ---------------- RENDER ---------------- */
     return (
         <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
-            {/* Header */}
             <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Package className="h-5 w-5 text-green-600" /> Sales by Category
+                <Package className="h-5 w-5 text-green-600" />
+                Sales by Category
             </h3>
 
-            {/* Date Selector */}
-            <SimpleDateRangeSelector
-                start={categoryStartDate}
-                end={categoryEndDate}
-                setStart={setCategoryStartDate}
-                setEnd={setCategoryEndDate}
-                oldestDate={oldestDate}
-                today={today}
-            />
+            <SimpleDateRangeSelector />
 
-            {/* Chart Container */}
             <div className="relative flex-1">
                 {loading ? (
                     <div className="flex justify-center items-center h-[250px]">
@@ -199,7 +150,7 @@ export default function SalesByCategoryPie() {
                         {/* Legend */}
                         <div className="flex flex-wrap justify-center gap-2 mt-2 text-xs">
                             {categoryData.map((d, i) => (
-                                <div key={d.category} className="flex items-center gap-1">
+                                <div key={d.category} className="flex items-center gap-2">
                                     <span
                                         className="w-2 h-2 rounded-full"
                                         style={{ backgroundColor: COLORS[i % COLORS.length] }}

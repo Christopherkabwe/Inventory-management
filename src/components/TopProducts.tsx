@@ -1,23 +1,24 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Star } from "lucide-react";
 import { unitToKg } from "@/lib/UnitToKg";
 
 /* ---------------- TYPES ---------------- */
-interface SaleItem {
-    product: {
-        id: string;
-        name: string;
-        weightValue?: number;
-        packSize?: number;
-        weightUnit?: string;
-    };
+export interface Product {
+    id: string;
+    name: string;
+    weightValue?: number;
+    packSize?: number;
+    weightUnit?: string;
+}
+
+export interface SaleItem {
+    product: Product | null;
     quantity: number;
     price: number;
 }
 
-interface Sale {
+export interface Sale {
     saleDate: string;
     items: SaleItem[];
 }
@@ -31,6 +32,8 @@ interface ProductRow {
 }
 
 interface Props {
+    sales: Sale[];
+    loading: boolean;
     title?: string;
     iconColor?: string;
     limit?: number;
@@ -38,33 +41,12 @@ interface Props {
 
 /* ---------------- COMPONENT ---------------- */
 export default function TopProducts({
+    sales,
+    loading,
     title = "Top Selling Products (Last 30 Days)",
     iconColor = "text-yellow-400",
     limit = 5,
 }: Props) {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    /* ---------------- FETCH SALES ---------------- */
-    useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch("/api/rbac/sales");
-                const json = await res.json();
-                const data: Sale[] = Array.isArray(json) ? json : json.sales || [];
-                setSales(data);
-
-            } catch (err) {
-                console.error("Failed to fetch sales:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSales();
-    }, []);
-
     /* ---------------- COMPUTE TOP PRODUCTS (LAST 30 DAYS) ---------------- */
     const topProducts: ProductRow[] = useMemo(() => {
         const map = new Map<string, ProductRow>();
@@ -76,23 +58,20 @@ export default function TopProducts({
             if (saleDate < cutoffDate) return; // Only last 30 days
 
             sale.items?.forEach(item => {
+                if (!item.product) return;
+
                 const id = item.product.id;
                 const name = item.product.name;
-                const weight = item.product.weightValue || 0;
-                const packSize = item.product.packSize || 1;
+                const p = item.product;
 
                 if (!map.has(id)) {
                     map.set(id, { id, name, qty: 0, totalValue: 0, tonnage: 0 });
                 }
 
-                const p = item.product;
-                const weightKg = unitToKg(
-                    p.weightValue ?? 0,
-                    p.weightUnit
-                )
-
+                const weightKg = unitToKg(p.weightValue ?? 0, p.weightUnit);
                 const totalKg = weightKg * item.quantity * (p.packSize ?? 1);
                 const entry = map.get(id)!;
+
                 entry.qty += item.quantity;
                 entry.totalValue += item.quantity * item.price;
                 entry.tonnage += totalKg / 1000; // convert kg to tons
@@ -127,7 +106,6 @@ export default function TopProducts({
                                 <th className="px-2 py-1 border-r text-center">Quantity</th>
                                 <th className="px-2 py-1 border-r text-center">Tonnage</th>
                                 <th className="px-2 py-1 border-r text-center">Total Value</th>
-
                             </tr>
                         </thead>
                         <tbody>

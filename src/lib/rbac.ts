@@ -25,6 +25,11 @@ export type CurrentUser = {
         canUpdate: boolean;
         canDelete: boolean;
     };
+    manager: {
+        id: string;
+        fullName: string | null;
+        email: string | null;
+    } | null;
 }
 
 // -------------------- RBAC HELPERS --------------------

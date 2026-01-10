@@ -1,6 +1,6 @@
 "use client";
+import React, { useMemo } from "react"
 
-import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "lucide-react";
 
 interface SaleItem {
@@ -27,37 +27,15 @@ interface CategoryData {
     avgOrderValue: number;
 }
 
-export default function SalesByCategory() {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loading, setLoading] = useState(true);
+interface Props {
+    sales: Sale[];       // received from parent
+    loading: boolean;    // loading state from parent
+}
 
-    // Fetch sales data
-    useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-
-                const res = await fetch("/api/rbac/sales");
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const json = await res.json();
-
-                const data: Sale[] = Array.isArray(json) ? json : json.sales || [];
-                setSales(data);
-
-            } catch (err) {
-                console.error("Failed to fetch sales:", err);
-                setSales([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSales();
-    }, []);
-
+export default function SalesByCategory({ sales, loading }: Props) {
     // Calculate sales by category for last 30 days
-    const salesByCategory: Record<string, CategoryData> = useMemo(() => {
-        if (!sales.length) return {};
+    const salesByCategory: Record<string, CategoryData> = React.useMemo(() => {
+        if (!sales?.length) return {};
 
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 30);
@@ -83,7 +61,7 @@ export default function SalesByCategory() {
     }, [sales]);
 
     // Compute average order value per category
-    const salesByCategoryWithAvg = useMemo(() => {
+    const salesByCategoryWithAvg = React.useMemo(() => {
         return Object.entries(salesByCategory).reduce((acc, [category, data]) => {
             acc[category] = {
                 ...data,

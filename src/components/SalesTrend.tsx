@@ -50,10 +50,13 @@ interface ChartDataPoint {
 
 type ViewMode = "daily" | "monthly" | "yearly";
 
-export default function SalesTrend() {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [loading, setLoading] = useState(true);
-
+export default function SalesTrend({
+    sales = [],
+    loading = false,
+}: {
+    sales?: Sale[];
+    loading?: boolean;
+}) {
     const [valueStartDate, setValueStartDate] = useState("");
     const [valueEndDate, setValueEndDate] = useState("");
     const [tonnageStartDate, setTonnageStartDate] = useState("");
@@ -61,26 +64,6 @@ export default function SalesTrend() {
 
     const [valueView, setValueView] = useState<ViewMode>("monthly");
     const [tonnageView, setTonnageView] = useState<ViewMode>("monthly");
-
-    // ---------------- Fetch sales ----------------
-    useEffect(() => {
-        setLoading(true);
-        fetch("/api/rbac/sales")
-            .then(res => res.json())
-            .then(data => {
-                // API returns an array of sales directly
-                if (Array.isArray(data)) {
-                    setSales(data);
-                } else {
-                    console.error("Unexpected response:", data);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
-    }, []);
 
     // ---------------- Compute daily sales trend ----------------
     const salesTrendData: ChartDataPoint[] = useMemo(() => {

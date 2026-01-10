@@ -7,7 +7,8 @@ import ViewSelector from "./ViewSelector";
 import DateFiltersExports from "./DateFiltersExports";
 import { Sale } from "@/types/Sale";
 
-type View = "location" | "customer" | "product";
+type View = "location" | "customer" | "product" | "salesperson" | "manager";
+
 type SortKey =
     | "name"
     | "saleCount"
@@ -28,6 +29,11 @@ interface AggregatedRow {
     contribution: number;
 }
 
+interface CurrentUser {
+    id: string;
+    role: "ADMIN" | "MANAGER" | "USER";
+}
+
 export default function SalesTable() {
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +51,41 @@ export default function SalesTable() {
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
 
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+    /** ----------------- Fetch Current User ----------------- */
+    useEffect(() => {
+        const fetchCurrentUser = async () => {
+            try {
+                const res = await fetch("/api/users/me");
+                if (!res.ok) throw new Error("Failed to fetch current user");
+                const data = await res.json();
+                setCurrentUser(data.user);
+            } catch (err) {
+                console.error("Failed to fetch current user:", err);
+                setCurrentUser({ id: "unknown", role: "USER" });
+            }
+        };
+        fetchCurrentUser();
+    }, []);
+
+    /** ----------------- Fetch Sales ----------------- */
+    useEffect(() => {
+        const fetchSales = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("/api/rbac/sales");
+                const data = await res.json();
+                setSales(data || []);
+            } catch (err) {
+                console.error("Fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSales();
+    }, []);
+
     /** ----------------- Sorting ----------------- */
     const toggleSort = (key: SortKey) => {
         if (key === sortKey) {
@@ -58,8 +99,7 @@ export default function SalesTable() {
     const Header = ({ label, column, align = "left" }: any) => (
         <th
             onClick={() => toggleSort(column)}
-            className={`py-2 px-3 cursor-pointer border-r select-none hover:text-blue-600 ${align === "right" ? "text-right" : "text-left"
-                }`}
+            className={`py-2 px-3 cursor-pointer border-r select-none hover:text-blue-600 ${align === "right" ? "text-right" : "text-left"}`}
         >
             <span className="inline-flex items-center gap-1">
                 {label}
@@ -69,153 +109,139 @@ export default function SalesTable() {
         </th>
     );
 
-    /** ----------------- Fetch Data ----------------- */
-    useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch("/api/rbac/sales");
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                const data = await res.json();
-                setSales(data || []);
-            } catch (err) {
-                console.error("Fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSales();
-    }, []);
-
-    /** ----------------- Users ----------------- */
+    /** ----------------- Users (Customer Owners) ----------------- */
     const users = useMemo(() => {
-        const map = new Map<string, { id: string; name: string; locationId: string | null }>();
-
+        const map = new Map<string, { id: string; name: string }>();
         sales.forEach((sale) => {
-            const customerUser = sale.customer?.user;
-            if (customerUser && !map.has(customerUser.id)) {
-                map.set(customerUser.id, {
-                    id: customerUser.id,
-                    name: customerUser.fullName ?? "Unknown User",
-                    locationId: customerUser.locationId ?? null,
-                });
-            }
+            const user = sale.customer?.user;
+            if (!user) return;
 
-            const creator = sale.createdBy;
-            if (creator && !map.has(creator.id)) {
-                map.set(creator.id, {
-                    id: creator.id,
-                    name: creator.fullName ?? "Unknown User",
-                    locationId: creator.locationId ?? null,
-                });
+            if (currentUser?.role === "MANAGER" && user.manager?.id !== currentUser.id) return;
+
+            if (!map.has(user.id)) {
+                map.set(user.id, { id: user.id, name: user.fullName ?? "Unknown User" });
             }
         });
-
         return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-    }, [sales]);
-
-    const userOptions = users;
+    }, [sales, currentUser]);
 
     /** ----------------- Locations ----------------- */
     const locations = useMemo(() => {
-        const map = new Map<string, { id: string; name: string; address?: string }>();
+        const map = new Map<string, { id: string; name: string }>();
         sales.forEach((sale) => {
             if (sale.location && !map.has(sale.locationId)) {
-                map.set(sale.locationId, {
-                    id: sale.locationId,
-                    name: sale.location.name,
-                    address: sale.location?.address,
-                });
+                map.set(sale.locationId, { id: sale.locationId, name: sale.location.name });
             }
         });
         return Array.from(map.values());
     }, [sales]);
-
-    const locationOptions = locations;
 
     /** ----------------- Categories ----------------- */
     const categories = useMemo(() => {
-        const categorySet = new Set<string>();
+        const set = new Set<string>();
         sales.forEach((sale) =>
             sale.items.forEach((item) => {
-                if (item.product?.category) categorySet.add(item.product.category);
+                if (item.product?.category) set.add(item.product.category);
             })
         );
-        return Array.from(categorySet).sort();
+        return Array.from(set);
     }, [sales]);
-
-    const categoryOptions = categories;
 
     /** ----------------- Products ----------------- */
     const products = useMemo(() => {
-        const map = new Map<string, { id: string; name: string; category: string | null }>();
+        const map = new Map<string, { id: string; name: string }>();
         sales.forEach((sale) =>
             sale.items.forEach((item) => {
                 if (item.product && !map.has(item.productId)) {
-                    map.set(item.productId, {
-                        id: item.productId,
-                        name: item.product.name,
-                        category: item.product.category ?? null,
-                    });
+                    map.set(item.productId, { id: item.productId, name: item.product.name });
                 }
             })
         );
         return Array.from(map.values());
     }, [sales]);
 
-    const productOptions = products;
-
     /** ----------------- Filtered Sales ----------------- */
     const filteredSales = useMemo(() => {
-        const userLocationMap = new Map(users.map((u) => [u.id, u.locationId]));
-
-        const matchesSelectedUser = (sale: Sale) =>
-            selectedUsers.some(
-                (userId) =>
-
-                    sale.customer?.user?.id === userId ||
-                    userLocationMap.get(userId) === sale.locationId ||
-                    sale.createdBy?.id === userId
-            );
-
+        if (!currentUser) return [];
         return sales.filter((sale) => {
+            const user = sale.customer?.user;
             const date = new Date(sale.saleDate);
             if (startDate && date < startDate) return false;
             if (endDate && date > endDate) return false;
+            if (currentUser.role === "ADMIN") {
+                // Admin sees everything
+            } else if (currentUser.role === "MANAGER") {
+                // Manager sees:
+                // 1️⃣ Sales they created
+                // 2️⃣ Sales for customers assigned to users they manage
+                // 3️⃣ Sales happening in their location(s)
+                if (
+                    sale.createdById !== currentUser.id && // sales created by manager
+                    (!user || user.managerId !== currentUser.id) && // customers assigned to managed users
+                    sale.locationId !== currentUser.locationId // sales in manager's location
+                ) return false;
+            } else if (currentUser.role === "USER") {
+                // User sees sales they created + sales for their assigned customers
+                if (
+                    sale.createdById !== currentUser.id && // sales created by user
+                    (!user || user.id !== currentUser.id) // sales for user's assigned customers
+                ) return false;
+            }
 
-            if (selectedUsers.length && !matchesSelectedUser(sale)) return false;
+            if (selectedUsers.length && user && !selectedUsers.includes(user.id)) return false;
             if (selectedLocations.length && !selectedLocations.includes(sale.locationId)) return false;
-
             if (selectedCategories.length) {
-                const categoriesInSale = sale.items.map((i) => i.product?.category).filter(Boolean);
-                if (!categoriesInSale.some((c) => selectedCategories.includes(c!))) return false;
+                const saleCategories = sale.items.map((i) => i.product?.category).filter(Boolean);
+                if (!saleCategories.some((c) => selectedCategories.includes(c!))) return false;
             }
-
             if (selectedProducts.length) {
-                const productIdsInSale = sale.items.map((i) => i.productId);
-                if (!productIdsInSale.some((id) => selectedProducts.includes(id))) return false;
+                const ids = sale.items.map((i) => i.productId);
+                if (!ids.some((id) => selectedProducts.includes(id))) return false;
             }
-
             return true;
         });
-    }, [sales, startDate, endDate, selectedUsers, users, selectedLocations, selectedCategories, selectedProducts]);
+    }, [
+        sales,
+        startDate,
+        endDate,
+        selectedUsers,
+        selectedLocations,
+        selectedCategories,
+        selectedProducts,
+        currentUser,
+    ]);
 
+    console.log(currentUser)
     /** ----------------- Aggregation ----------------- */
     const aggregatedData = useMemo(() => {
         const map: Record<string, AggregatedRow> = {};
+
         filteredSales.forEach((sale) => {
+            const user = sale.customer?.user;
+
             sale.items.forEach((item) => {
-                let id: string, name: string;
+                let id: string;
+                let name: string;
+
                 if (view === "location") {
                     id = sale.locationId;
-                    name = sale.location?.name || "Unknown Location";
+                    name = sale.location?.name ?? "Unknown Location";
                 } else if (view === "customer") {
                     id = sale.customerId;
-                    name = sale.customer?.name || "Unknown Customer";
-                } else {
+                    name = sale.customer?.name ?? "Unknown Customer";
+                } else if (view === "product") {
                     id = item.productId;
-                    name = item.product?.name || "Unknown Product";
-                }
+                    name = item.product?.name ?? "Unknown Product";
+                } else if (view === "salesperson") {
+                    if (!user) return;
+                    id = user.id;
+                    name = user.fullName ?? "Unknown User";
+                } else if (view === "manager") {
+                    if (!user) return;
+                    const manager = user.manager;
+                    id = manager?.id ?? "no-manager";
+                    name = manager?.fullName ?? "No Manager";
+                } else return;
 
                 if (!map[id]) {
                     map[id] = {
@@ -249,17 +275,15 @@ export default function SalesTable() {
         }));
     }, [filteredSales, view]);
 
+    /** ----------------- Sorting Aggregated Data ----------------- */
     const sortedData = useMemo(() => {
         return [...aggregatedData].sort((a, b) => {
             const aVal = a[sortKey];
             const bVal = b[sortKey];
-
-            if (aVal === undefined || bVal === undefined) return 0;
-
-            if (typeof aVal === "string" && typeof bVal === "string") return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-
-            if (typeof aVal === "number" && typeof bVal === "number") return sortDir === "asc" ? aVal - bVal : bVal - aVal;
-
+            if (typeof aVal === "string" && typeof bVal === "string")
+                return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            if (typeof aVal === "number" && typeof bVal === "number")
+                return sortDir === "asc" ? aVal - bVal : bVal - aVal;
             return 0;
         });
     }, [aggregatedData, sortKey, sortDir]);
@@ -268,6 +292,7 @@ export default function SalesTable() {
     return (
         <div className="bg-white p-6 rounded-xl border hover:shadow-md">
             <h2 className="px-2 font-semibold mb-5">Sales Summary</h2>
+
             <ViewSelector view={view} setView={setView} />
 
             <div className="flex justify-start items-center mb-2 mt-2">
@@ -293,12 +318,12 @@ export default function SalesTable() {
                     setSelectedProducts={setSelectedProducts}
                     selectedUsers={selectedUsers}
                     setSelectedUsers={setSelectedUsers}
-                    locationOptions={locationOptions}
-                    categoryOptions={categoryOptions}
-                    productOptions={productOptions}
-                    userOptions={userOptions}
-                    exportCSV={() => console.log("Export CSV clicked")}
-                    exportPDF={() => console.log("Export PDF clicked")}
+                    locationOptions={locations}
+                    categoryOptions={categories}
+                    productOptions={products}
+                    userOptions={users}
+                    exportCSV={() => { }}
+                    exportPDF={() => { }}
                 />
             </div>
 
@@ -306,14 +331,27 @@ export default function SalesTable() {
                 <table className="w-full text-sm border border-gray-200">
                     <thead className="sticky top-0 bg-gray-200">
                         <tr>
-                            <th className="py-2 px-3 border-r text-center font-small">#</th>
-                            <Header label={view === "location" ? "Location" : view === "customer" ? "Customer" : "Product"} column="name" />
-                            <Header label="Orders" column="saleCount" align="center" />
-                            <Header label="Quantity" column="quantity" align="center" />
-                            <Header label="Tonnage" column="totalTonnage" align="center" />
-                            <Header label="Avg Order Value" column="avgOrderValue" align="center" />
-                            <Header label="Revenue" column="totalSalesValue" align="center" />
-                            <Header label="Contribution" column="contribution" align="center" />
+                            <th className="py-2 px-3 border-r text-center">#</th>
+                            <Header
+                                label={
+                                    view === "location"
+                                        ? "Location"
+                                        : view === "customer"
+                                            ? "Customer"
+                                            : view === "product"
+                                                ? "Product"
+                                                : view === "salesperson"
+                                                    ? "Sales Rep"
+                                                    : "Manager"
+                                }
+                                column="name"
+                            />
+                            <Header label="Orders" column="saleCount" />
+                            <Header label="Quantity" column="quantity" />
+                            <Header label="Tonnage" column="totalTonnage" />
+                            <Header label="Avg Order Value" column="avgOrderValue" />
+                            <Header label="Revenue" column="totalSalesValue" />
+                            <Header label="Contribution" column="contribution" />
                         </tr>
                     </thead>
                     <tbody>
@@ -323,12 +361,6 @@ export default function SalesTable() {
                                     Loading...
                                 </td>
                             </tr>
-                        ) : sortedData.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} className="py-6 text-center text-gray-500 italic">
-                                    No data available
-                                </td>
-                            </tr>
                         ) : (
                             sortedData.map((d, i) => (
                                 <tr key={d.id} className={i % 2 ? "bg-gray-50" : ""}>
@@ -336,10 +368,10 @@ export default function SalesTable() {
                                     <td className="py-2 px-3 border-r">{d.name}</td>
                                     <td className="py-2 px-3 border-r">{d.saleCount}</td>
                                     <td className="py-2 px-3 border-r">{d.quantity}</td>
-                                    <td className="py-2 px-3 border-r">{(d.totalTonnage ?? 0).toFixed(2)}</td>
-                                    <td className="py-2 px-3 border-r">K{(d.avgOrderValue ?? 0).toFixed(0)}</td>
-                                    <td className="py-2 px-3 border-r">K{(d.totalSalesValue ?? 0).toFixed(0)}</td>
-                                    <td className="py-2 px-3 border-r">{(d.contribution ?? 0).toFixed(1)}%</td>
+                                    <td className="py-2 px-3 border-r">{d.totalTonnage.toFixed(2)}</td>
+                                    <td className="py-2 px-3 border-r">K{d.avgOrderValue.toFixed(0)}</td>
+                                    <td className="py-2 px-3 border-r">K{d.totalSalesValue.toFixed(0)}</td>
+                                    <td className="py-2 px-3 border-r">{d.contribution.toFixed(1)}%</td>
                                 </tr>
                             ))
                         )}

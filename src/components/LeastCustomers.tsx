@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 interface Product {
@@ -17,40 +16,28 @@ interface SaleItem {
     quantity: number;
 }
 
-interface CustomerSale {
+export interface CustomerSale {
     id: string;
     customer: { id: string; name: string };
     items: SaleItem[];
     saleDate: string;
 }
 
+interface Props {
+    sales: CustomerSale[];
+    loading: boolean;
+    title?: string;
+    iconColor?: string;
+    limit?: number;
+}
+
 export default function LeastCustomers({
-    title = "Least Active Customers (Last 3 Months",
+    sales,
+    loading,
+    title = "Least Active Customers (Last 3 Months)",
     iconColor = "text-red-500",
     limit = 5,
-}: { title?: string; iconColor?: string; limit?: number } = {}) {
-    const [sales, setSales] = useState<CustomerSale[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch("/api/rbac/sales");
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const data = await res.json();
-                // RBAC endpoint returns an array directly
-                setSales(Array.isArray(data) ? data : []);
-            } catch (err) {
-                console.error("Failed to fetch sales:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSales();
-    }, []);
-
+}: Props) {
     const L3Months = new Date();
     L3Months.setDate(L3Months.getDate() - 90);
 
@@ -92,7 +79,9 @@ export default function LeastCustomers({
     );
 
     // Sort by least tonnage
-    const sortedCustomers = customersWithStats.sort((a, b) => a.totalTonnage - b.totalTonnage);
+    const sortedCustomers = customersWithStats.sort(
+        (a, b) => a.totalTonnage - b.totalTonnage
+    );
     const displayedCustomers = sortedCustomers.slice(0, limit);
 
     return (

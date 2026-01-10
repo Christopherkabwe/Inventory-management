@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 
 interface Product {
@@ -25,43 +24,27 @@ interface CustomerSale {
 }
 
 interface Props {
-    title: string;
-    iconColor: string;
+    sales: CustomerSale[];       // now received from parent
+    loading: boolean;            // loading state from parent
+    title?: string;
+    iconColor?: string;
     limit?: number;
 }
 
 export default function TopCustomers({
-    title = "Top Active Customers {Last 3 Months)",
+    sales,
+    loading,
+    title = "Top Active Customers (Last 3 Months)",
     iconColor = "text-yellow-500",
     limit = 5,
-}: Partial<Props> = {}) {
-    const [sales, setSales] = useState<CustomerSale[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchSales = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch("/api/rbac/sales"); // adjust endpoint if needed
-                const data = await res.json();
-                const salesArray = Array.isArray(data) ? data : data.sales || [];
-                setSales(salesArray);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSales();
-    }, []);
+}: Props) {
 
     const L3Months = new Date();
     L3Months.setDate(L3Months.getDate() - 90);
 
     // Aggregate sales by customer
     const customersWithStats = Object.values(
-        sales
+        (sales || [])
             .filter((s) => new Date(s.saleDate) >= L3Months)
             .reduce((acc: Record<string, any>, sale) => {
                 const custId = sale.customer.id;
@@ -146,7 +129,7 @@ export default function TopCustomers({
                     </table>
                 </div>
             )}
-            {sales.length > limit && (
+            {customersWithStats.length > limit && (
                 <p className="text-sm text-gray-500 mt-2">
                     Showing top {limit} customers.
                 </p>
