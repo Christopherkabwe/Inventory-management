@@ -11,6 +11,9 @@ export interface Product {
     createdBy: string;
     createdAt: Date;
     updatedAt: Date;
+    assignedUserId?: string | null;
+    lowStockAt?: number;
+    expiryDate?: string | null;
 }
 export interface Inventory {
     id: string;

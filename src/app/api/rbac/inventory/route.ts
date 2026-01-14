@@ -6,14 +6,31 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const whereClause: any = {};
+    let whereClause: any = {};
 
-    // Apply RBAC
-    if (user.role === "MANAGER" || user.role === "USER") {
-        whereClause.OR = [
-            { createdById: user.id }, // data created by user
-            { locationId: user.locationId }, // data for user's location
-        ];
+    if (user.role === "ADMIN") {
+        whereClause = {}; // sees everything
+    } else if (user.role === "MANAGER") {
+        const managedUserIds = await prisma.user
+            .findMany({ where: { managerId: user.id }, select: { id: true } })
+            .then((res) => res.map((u) => u.id));
+
+        whereClause = {
+            OR: [
+                { createdById: user.id }, // inventory created by manager
+                { assignedUserId: { in: managedUserIds } }, // inventory assigned to users they manage
+                { locationId: user.locationId }, // inventory in manager's location
+
+            ],
+        };
+    } else if (user.role === "USER") {
+        whereClause = {
+            OR: [
+                { createdById: user.id }, // inventory they created
+                { assignedUserId: user.id }, // inventory assigned to them
+                { locationId: user.locationId }, // inventory in location
+            ],
+        };
     }
 
     const inventories = await prisma.inventory.findMany({
@@ -34,6 +51,13 @@ export async function GET(req: NextRequest) {
                 },
             },
             location: true,
+            assignedUser: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    managerId: true,
+                },
+            },
             createdBy: true,
         },
     });

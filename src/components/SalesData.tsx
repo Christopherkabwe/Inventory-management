@@ -277,9 +277,7 @@ export default function SalesData({
                     <tbody>
                         {loading ? (
                             <tr>
-                                <td colSpan={18} className="p-6 text-center">
-                                    <Loading message="Loading sales data. Please wait..." />
-                                </td>
+                                <Loading message="Loading sales" colSpan={18} />
                             </tr>
                         ) : (
                             (() => {

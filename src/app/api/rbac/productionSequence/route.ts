@@ -1,0 +1,25 @@
+import { prisma } from "@/lib/prisma";
+import { NextRequest } from "next/server";
+import { nextSequence } from "@/lib/sequence";
+
+export async function GET(req: NextRequest) {
+    try {
+        // Generate PROD and BATCH sequences
+        const productionNo = await nextSequence("PROD", false);
+        const batchNumber = await nextSequence("BATCH", false);
+
+        return new Response(
+            JSON.stringify({ data: { productionNo, batchNumber } }),
+            { headers: { "Content-Type": "application/json" } }
+        );
+    } catch (err) {
+        console.error("Failed to fetch sequence:", err);
+        return new Response(
+            JSON.stringify({ error: "Failed to fetch sequence" }),
+            {
+                status: 500,
+                headers: { "Content-Type": "application/json" },
+            }
+        );
+    }
+}

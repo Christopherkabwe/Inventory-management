@@ -13,11 +13,12 @@ import TopProducts from "@/components/TopProducts";
 import TopProductsByLocation from "@/components/TopProductsByLocation";
 import TopCustomers from "@/components/TopCustomers";
 import LeastCustomers from "@/components/LeastCustomers";
-import SalesTable from "@/components/SalesTableTest";
-import SalesPersonSummary from "@/components/SalesPersonSummary"
+import SalesTable from "@/components/SalesTable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { fetchSales } from "@/lib/fetchSales";
 import SalesData from "@/components/SalesData";
+import InventorySummary from "@/components/InventorySummary";
+import InventoryTable from "@/components/InventoryTableTest";
 
 
 export default function Page() {
@@ -73,6 +74,10 @@ export default function Page() {
                     <SalesData sales={sales} loading={loading} />
                 </div>
                 <SalesTable />
+                <InventorySummary
+                    title="Inventory Summary"
+                    iconColor="text-blue-600"
+                />
             </div>
         </DashboardLayout>
     );

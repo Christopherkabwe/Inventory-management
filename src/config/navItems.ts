@@ -34,13 +34,21 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Inventory",
         icon: Package,
         subItems: [
-            { name: "Inventory Summary", href: "/inventory/inventory" },
+            { name: "Inventory Management", href: "/inventory/inventory-management" },
             { name: "Add Product", href: "/inventory/add-product" },
-            { name: "Production", href: "/inventory/production" },
             { name: "Stock Transfers", href: "/inventory/stock-transfers" },
             { name: "Stock adjustments", href: "/inventory/stock-adjustments" },
             { name: "Stock Reports", href: "/inventory/stock-reports" },
             { name: "Inventory Data", href: "/inventory/inventory-data" },
+        ],
+    },
+    {
+        name: "Production",
+        icon: Package,
+        subItems: [
+            { name: "Add Productions", href: "/production/add-productions" },
+            { name: "Production Data", href: "/production/production-data" },
+            { name: "Production Report", href: "/production/production-reports" },
         ],
     },
     {
@@ -70,6 +78,8 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "Test Page", href: "/test/test-pages" },
             { name: "Test KPI", href: "/test/testKpi" },
             { name: "Test RBAC", href: "/test/test-rbac" },
+            { name: "Test Inventory", href: "/test/test2" },
+            { name: "Test Filters", href: "/test/test-filters" },
         ],
     },
     { name: "Settings", href: "/settings", icon: Settings },

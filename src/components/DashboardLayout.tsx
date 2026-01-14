@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
 
             {/* Main content */}
-            <main className="flex-1 p-8 overflow-x-hidden">
+            <main className="flex-1 px-5 py-5 overflow-x-hidden">
 
                 {/* Mobile menu */}
                 <button

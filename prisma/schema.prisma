@@ -93,6 +93,7 @@ model ProductList {
   sku         String   @unique
   name        String
   price       Float
+  costPerBag  Float?
   packSize    Int
   category    String?
   weightValue Float
@@ -445,6 +446,11 @@ model Production {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @default(now())
   items        ProductionItem[]
+
+  @@index([createdAt])
+  @@index([locationId])
+  @@index([batchNumber])
+
 }
 
 model ProductionItem {
@@ -456,6 +462,7 @@ model ProductionItem {
   quantity     Int
   updatedAt    DateTime    @default(now()) @updatedAt
 }
+
 
 // ==================== ADJUSTMENTS ====================
 model Adjustment {
@@ -501,4 +508,10 @@ enum SaleStatus {
   CONFIRMED
   PARTIALLY_INVOICED
   CANCELLED
+}
+
+enum ProductionStatus {
+  DRAFT
+  CONFIRMED
+  LOCKED
 }

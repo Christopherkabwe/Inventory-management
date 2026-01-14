@@ -1,6 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
 import SalesTrendChart from "@/components/SalesTrendChart";
-import SalesTable from "@/components/SalesTable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { redirect } from "next/navigation"
 import { fetchDashboardData } from "@/lib/fetchData";
@@ -32,6 +31,7 @@ import {
     PendingTransfersKPI,
 } from "@/components/kpi"
 import RecentSales from "@/components/RecentSales";
+import SalesTable from "@/components/SalesTable";
 
 
 
@@ -52,7 +52,7 @@ export default async function SalesDashboardPage() {
                     <p className="text-gray-500 mt-1 mb-2">Track your sales performance and trends</p>
                 </div>
                 {/* KPIs */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 my-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-2 my-4">
                     <TotalSalesKPI value={kpis.totalSales} />
                     <TotalOrdersKPI value={kpis.totalOrders} />
                     <AvgOrderValueKPI value={kpis.avgOrderValue} />

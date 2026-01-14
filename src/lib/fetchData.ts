@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { TonnageYTDKPI } from "@/components/kpi/kpis";
 
 export async function fetchDashboardData() {
     const user = await getCurrentUser();

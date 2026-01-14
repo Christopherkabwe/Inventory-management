@@ -1,26 +1,29 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Package, ArrowUpDown } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { unitToKg } from "@/lib/UnitToKg";
-import Link from 'next/link';
+import Link from "next/link";
+import { fetchInventory } from "@/lib/fetchInventory";
+import { fetchSales } from "@/lib/fetchSales";
+import FiltersExports from "./FilterExports";
+import Loading from "@/components/Loading";
 
-type SortKey =
-    | "name"
-    | "quantity"
-    | "value"
-    | "tonnage"
-    | "price"
-    | "lowStockAt";
+
+type SortKey = "name" | "quantity" | "value" | "tonnage" | "price" | "lowStockAt";
 
 interface InventoryItem {
     id: string;
     quantity: number;
     lowStockAt: number;
-    expiryDate?: Date | null;
     updatedAt: Date;
+    assignedUser: {
+        id: string,
+        fullName: string,
+        managerId: string,
+    };
     product: {
         id: string;
         name: string;
@@ -29,7 +32,7 @@ interface InventoryItem {
         packSize: number;
         weightValue: number;
         weightUnit: string;
-        category?: { name: string } | null;
+        category?: string | null;
     };
     location: { name: string };
 }
@@ -38,111 +41,185 @@ interface Sale {
     id: string;
     createdBy: string;
     saleDate: Date;
-    items: {
-        product: {
-            id: string;
-            price: number;
-        };
-        quantity: number;
-    }[];
+    items: { product: { id: string; price: number }; quantity: number }[];
 }
 
+interface CurrentUser {
+    id: string;
+    role: "ADMIN" | "MANAGER" | "USER";
+}
 
 interface Props {
-    inventory: InventoryItem[];
-    sales: Sale[];
     title: string;
     iconColor: string;
 }
 
-export default function InventorySummary({
-    inventory,
-    sales = [],
-    title,
-    iconColor,
-}: Props) {
+export default function InventorySummary({ title, iconColor }: Props) {
+    /* ---------------- STATE ---------------- */
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [sortKey, setSortKey] = useState<SortKey>("quantity");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+    /* ---------------- FILTER STATE ---------------- */
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState("all");
-    const [selectedCategory, setSelectedCategory] = useState("all");
 
-    const [showProducts, setShowProducts] = useState(false);
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-    const productRef = useRef<HTMLDivElement>(null);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]); // optional if needed
 
     const [showFilters, setShowFilters] = useState(true);
 
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-    /* ---------------- FILTER OPTIONS ---------------- */
-    const locations = useMemo(
-        () => Array.from(new Set(inventory.map((i) => i.location.name))),
-        [inventory]
-    );
-
-    const categories = useMemo(
-        () =>
-            Array.from(
-                new Set(
-                    inventory.map((i) => i.product.category?.name || "Uncategorized")
-                )
-            ),
-        [inventory]
-    );
-    const products = useMemo(
-        () =>
-            Array.from(
-                new Set(
-                    inventory.map((i) => i.product.name)
-                )
-            ),
-        [inventory]
-    );
-
-    // Close product dropdown
-
+    /** ----------------- Fetch Current User ----------------- */
     useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (productRef.current && !productRef.current.contains(e.target as Node)) {
-                setShowProducts(false);
+        const fetchCurrentUser = async () => {
+            try {
+                const res = await fetch("/api/users/me");
+                if (!res.ok) throw new Error("Failed to fetch current user");
+                const data = await res.json();
+                setCurrentUser(data.user);
+            } catch (err) {
+                console.error("Failed to fetch current user:", err);
+                setCurrentUser({ id: "unknown", role: "USER" });
             }
         };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
+        fetchCurrentUser();
     }, []);
 
+    /* ---------------- FETCH INVENTORY & SALES ---------------- */
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                setLoading(true);
+
+                const [inventoryData, salesData] = await Promise.all([
+                    fetchInventory(),
+                    fetchSales(),
+                ]);
+
+                setInventory(inventoryData);
+                setSales(salesData);
+                setError(null);
+            } catch (err: any) {
+                console.error(err);
+                setError(err.message || "Failed to fetch data");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, []);
+
+
+    /* ---------------- FILTER OPTIONS ---------------- */
+    const locationOptions = useMemo(() => {
+        const uniqueNames = Array.from(new Set(inventory.map((i) => i.location.name)));
+        return uniqueNames.map((name) => ({ id: name, name }));
+    }, [inventory]);
+
+    const categoryOptions = useMemo(
+        () =>
+            Array.from(new Set(inventory.map((i) => i.product.category ?? "Uncategorized"))),
+        [inventory]
+    );
+
+    const productOptions = useMemo(() => {
+        const map = new Map<string, { id: string; name: string; }>();
+        inventory.forEach((i) => {
+            if (!map.has(i.product.name)) {
+                map.set(i.product.name, {
+                    id: i.product.name,
+                    name: i.product.name,
+                });
+            }
+        });
+        return Array.from(map.values());
+    }, [inventory]);
+
+    const users = useMemo(() => {
+        const map = new Map<string, { id: string; name: string }>();
+
+        inventory.forEach((item) => {
+            const user = item.assignedUser;
+            if (!user) return;
+
+            // ADMIN: see all users
+            if (currentUser?.role === "ADMIN") {
+                map.set(user.id, { id: user.id, name: user.fullName ?? "Unknown User" });
+                return;
+            }
+
+            // MANAGER: only users they manage
+            if (currentUser?.role === "MANAGER" && user.managerId === currentUser.id) {
+                map.set(user.id, { id: user.id, name: user.fullName ?? "Unknown User" });
+                return;
+            }
+
+            // USER: only themselves
+            if (currentUser?.role === "USER" && user.id === currentUser.id) {
+                map.set(user.id, { id: user.id, name: user.fullName ?? "Unknown User" });
+                return;
+            }
+        });
+
+        // Optional: allow filtering unassigned inventory only if ADMIN or MANAGER
+        if (currentUser?.role !== "USER") {
+            map.set("UNASSIGNED", { id: "UNASSIGNED", name: "Unassigned" });
+        }
+
+        return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }, [inventory, currentUser]);
+
+
+    const userOptions = (users); // Add users if you have user data
 
     /* ---------------- FILTER INVENTORY ---------------- */
     const filteredInventory = useMemo(() => {
         return inventory.filter((i) => {
-            if (startDate && i.updatedAt < startDate) return false;
-            if (endDate && i.updatedAt > endDate) return false;
-            if (selectedLocation !== "all" && i.location.name !== selectedLocation)
-                return false;
-            if (
-                selectedCategory !== "all" &&
-                (i.product.category ?? "Uncategorized") !== selectedCategory
-            )
-                return false;
-            if (
-                selectedProducts.length > 0 &&
-                !selectedProducts.includes(i.product.name)
-            )
-                return false;
+            // Date filters
+            if (startDate && new Date(i.updatedAt) < startDate) return false;
+            if (endDate && new Date(i.updatedAt) > endDate) return false;
+
+            // Location filter
+            if (selectedLocations.length && !selectedLocations.includes(i.location.name)) return false;
+
+            // Category filter
+            const category = i.product.category ?? "Uncategorized";
+            if (selectedCategories.length && !selectedCategories.includes(category)) return false;
+
+            // Product filter
+            if (selectedProducts.length && !selectedProducts.includes(i.product.name)) return false;
+
+            // User filter
+            if (selectedUsers.length) {
+                const isUnassigned = !i.assignedUser;
+                const userId = i.assignedUser?.id;
+
+                if (!((isUnassigned && selectedUsers.includes("UNASSIGNED"))
+                    || (userId && selectedUsers.includes(userId)))) {
+                    return false;
+                }
+            }
+
             return true;
         });
-    }, [inventory, startDate, endDate, selectedLocation, selectedCategory, selectedProducts]);
-
+    }, [inventory, startDate, endDate, selectedLocations, selectedCategories, selectedProducts, selectedUsers]);
     /* ---------------- SALES MAP ---------------- */
     const salesMap = useMemo(() => {
         const map: Record<string, number> = {};
-        sales.forEach((sale) => {
+        sales.forEach((sale) =>
             sale.items.forEach((item) => {
                 map[item.product.id] = (map[item.product.id] || 0) + item.quantity;
-            });
-        });
+            })
+        );
         return map;
     }, [sales]);
 
@@ -165,14 +242,15 @@ export default function InventorySummary({
                     value: 0,
                     tonnage: 0,
                     lowStockAt: item.lowStockAt,
-                    soldQuantity: 0, // <- new
+                    soldQuantity: 0,
                 };
             }
 
             map[p.id].quantity += item.quantity;
             map[p.id].value += item.quantity * p.price;
-            map[p.id].tonnage += (item.quantity * p.packSize * unitToKg(item.product.weightValue, item.product.weightUnit)) / 1000;
-            map[p.id].soldQuantity += salesMap[p.id] || 0; // <- populate from sales
+            map[p.id].tonnage +=
+                (item.quantity * p.packSize * unitToKg(item.product.weightValue, item.product.weightUnit)) / 1000;
+            map[p.id].soldQuantity += salesMap[p.id] || 0;
         });
 
         return Object.values(map);
@@ -184,24 +262,16 @@ export default function InventorySummary({
             const aVal = a[sortKey];
             const bVal = b[sortKey];
 
-            // String sorting
             if (typeof aVal === "string" && typeof bVal === "string") {
-                return sortDir === "asc"
-                    ? aVal.localeCompare(bVal)
-                    : bVal.localeCompare(aVal);
+                return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
             }
-
-            // Numeric sorting
-            return sortDir === "asc"
-                ? Number(aVal) - Number(bVal)
-                : Number(bVal) - Number(aVal);
+            return sortDir === "asc" ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
         });
     }, [data, sortKey, sortDir]);
 
     const toggleSort = (key: SortKey) => {
-        if (key === sortKey) {
-            setSortDir(sortDir === "asc" ? "desc" : "asc");
-        } else {
+        if (key === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+        else {
             setSortKey(key);
             setSortDir("desc");
         }
@@ -220,7 +290,7 @@ export default function InventorySummary({
         </th>
     );
 
-    /* ---------------- EXPORT CSV ---------------- */
+    /* ---------------- EXPORT ---------------- */
     const exportCSV = () => {
         const headers = [
             "Product",
@@ -239,12 +309,7 @@ export default function InventorySummary({
 
         const rows = sortedData.map((p) => {
             const status =
-                p.quantity === 0
-                    ? "Out of Stock"
-                    : p.quantity < p.lowStockAt
-                        ? "Low Stock"
-                        : "Available";
-
+                p.quantity === 0 ? "Out of Stock" : p.quantity < p.lowStockAt ? "Low Stock" : "Available";
             return [
                 p.name,
                 p.id,
@@ -261,11 +326,9 @@ export default function InventorySummary({
             ];
         });
 
-
         const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement("a");
         a.href = url;
         a.download = "inventory_summary.csv";
@@ -273,7 +336,6 @@ export default function InventorySummary({
         URL.revokeObjectURL(url);
     };
 
-    /* ---------------- EXPORT PDF ---------------- */
     const exportPDF = () => {
         const doc = new jsPDF();
         const start = startDate ? startDate.toLocaleDateString() : "N/A";
@@ -281,11 +343,8 @@ export default function InventorySummary({
 
         doc.setFontSize(16);
         doc.text(title, doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
-
         doc.setFontSize(10);
-        doc.text(`Date Range: ${start} - ${end}`, doc.internal.pageSize.getWidth() / 2, 23, {
-            align: "center",
-        });
+        doc.text(`Date Range: ${start} - ${end}`, doc.internal.pageSize.getWidth() / 2, 23, { align: "center" });
 
         autoTable(doc, {
             startY: 30,
@@ -308,12 +367,7 @@ export default function InventorySummary({
             ],
             body: sortedData.map((p, i) => {
                 const status =
-                    p.quantity === 0
-                        ? "Out of Stock"
-                        : p.quantity < p.lowStockAt
-                            ? "Low Stock"
-                            : "Available";
-
+                    p.quantity === 0 ? "Out of Stock" : p.quantity < p.lowStockAt ? "Low Stock" : "Available";
                 return [
                     i + 1,
                     p.name,
@@ -340,13 +394,13 @@ export default function InventorySummary({
 
     /* ---------------- RENDER ---------------- */
     return (
-        <div className="bg-white p-4 rounded-xl border hover:shadow-md transition-shadow">
+        <div className="bg-white opacity-80 p-4 rounded-xl border hover:shadow-md transition-shadow">
             <h3 className="font-semibold flex items-center gap-2">
                 <Package className={`h-5 w-5 ${iconColor}`} />
                 {title}
             </h3>
-            <div className="flex justify-start items-center mb-2 mt-2">
 
+            <div className="flex justify-start items-center mb-2 mt-2">
                 <button
                     onClick={() => setShowFilters(!showFilters)}
                     className="text-sm px-2 py-1 border rounded hover:bg-gray-100"
@@ -354,73 +408,26 @@ export default function InventorySummary({
                     {showFilters ? "Hide Filters" : "Show Filters"}
                 </button>
             </div>
-            {/* FILTER BAR */}
+
             {showFilters && (
-                <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-2">
-                        <div className="grid gap-2 w-full grid-cols-[auto_1fr_1fr_1fr]  sm:flex sm:w-auto">
-                            <div>
-                                <label className="flex flex-wrap items-center gap-2">
-                                    <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
-                                        <option value="all">Select location</option>
-                                        {locations.map((loc) => (
-                                            <option key={loc} value={loc}>
-                                                {loc}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            </div>
-                            <div>
-                                <label className="flex flex-wrap items-center gap-2">
-                                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer">
-                                        <option value="all">Select Category</option>
-                                        {categories.map((cat) => (
-                                            <option key={cat} value={cat}>
-                                                {cat}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            </div>
-                            <div>
-                                <div ref={productRef} className="relative inline-block whitespace-nowrap">
-                                    <button onClick={() => setShowProducts((v) => !v)} className="px-3 h-8 border rounded bg-white hover:bg-gray-100 text-sm">
-                                        {selectedProducts.length === 0 ? "Select Products" : `${selectedProducts.length} selected`}
-                                    </button>
-                                    {showProducts && (
-                                        <div className="absolute left-0 mt-2 bg-white border rounded shadow-lg z-50 w-64 max-h-56 overflow-y-auto p-2">
-                                            <button onClick={() => setSelectedProducts([])} className="text-xs text-blue-600 hover:underline mb-2 block">
-                                                Clear Selection
-                                            </button>
-                                            {products.map((p) => (
-                                                <label key={p} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
-                                                    <input type="checkbox" checked={selectedProducts.includes(p)} onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedProducts([...selectedProducts, p]);
-                                                        } else {
-                                                            setSelectedProducts(selectedProducts.filter((x) => x !== p));
-                                                        }
-                                                    }} className="w-4 h-4" />
-                                                    {p}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={exportCSV} className="text-sm h-8 px-2 py-1 rounded border hover:bg-gray-100">
-                                Export CSV
-                            </button>
-                            <button onClick={exportPDF} className="text-sm h-8 px-2 py-1 rounded border hover:bg-gray-100">
-                                Export PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <FiltersExports
+                    selectedLocations={selectedLocations}
+                    setSelectedLocations={setSelectedLocations}
+                    selectedCategories={selectedCategories}
+                    setSelectedCategories={setSelectedCategories}
+                    selectedProducts={selectedProducts}
+                    setSelectedProducts={setSelectedProducts}
+                    selectedUsers={selectedUsers}
+                    setSelectedUsers={setSelectedUsers}
+                    locationOptions={locationOptions}
+                    categoryOptions={categoryOptions}
+                    productOptions={productOptions}
+                    userOptions={userOptions}
+                    exportCSV={exportCSV}
+                    exportPDF={exportPDF}
+                />
             )}
+
             {/* TABLE */}
             <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm border border-gray-200">
@@ -442,7 +449,11 @@ export default function InventorySummary({
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedData.length > 0 ? (
+                        {loading ? (
+                            <tr>
+                                <Loading message="Loading Inventory" colSpan={13} />
+                            </tr>
+                        ) : sortedData.length ? (
                             <>
                                 {sortedData.map((p, i) => {
                                     const status =
@@ -473,8 +484,12 @@ export default function InventorySummary({
                                             <td className="py-2 px-3 border-r max-w-[180px] truncate">{p.name}</td>
                                             <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.sku || "-"}</td>
                                             <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.packSize}</td>
-                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.weightValue}</td>
-                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">{p.weightUnit || '-'}</td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">
+                                                {p.weightValue.toFixed(2)}
+                                            </td>
+                                            <td className="hidden xl:table-cell py-2 px-3 border-r text-center">
+                                                {p.weightUnit || "-"}
+                                            </td>
                                             <td className="py-2 px-3 border-r text-center">{p.quantity}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.tonnage.toFixed(2)}</td>
                                             <td className="py-2 px-3 border-r text-center">{p.price.toFixed(2)}</td>
@@ -493,9 +508,9 @@ export default function InventorySummary({
                                     );
                                 })}
 
-                                {/* Total Row */}
+                                {/* TOTAL ROW */}
                                 <tr className="hidden xl:table-row bg-gray-200 font-semibold">
-                                    <td className="py-2 px-3 border-r text-center" colSpan={6}>
+                                    <td colSpan={6} className="py-2 px-3 border-r text-center">
                                         Total
                                     </td>
                                     <td className="py-2 px-3 border-r text-center">
@@ -515,14 +530,14 @@ export default function InventorySummary({
                             </>
                         ) : (
                             <tr>
-                                <td colSpan={12} className="py-2 px-3 text-center text-gray-500">
-                                    No data available for the selected location and category
+                                <td colSpan={13} className="py-4 text-center text-gray-500">
+                                    No data available for the selected filters
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
-        </div >
+        </div>
     );
 }

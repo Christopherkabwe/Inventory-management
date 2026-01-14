@@ -13,6 +13,8 @@ interface Location {
 interface Category {
     id: string;
     name: string;
+    category: string | null;
+
 }
 
 interface Product {
@@ -46,7 +48,7 @@ interface Props {
     setSelectedUsers: (ids: string[]) => void;
 
     locationOptions: Location[];
-    categoryOptions: string[]; // just array of strings
+    categoryOptions: Category[]; // just array of strings
     productOptions: Product[];
     userOptions: User[];
 

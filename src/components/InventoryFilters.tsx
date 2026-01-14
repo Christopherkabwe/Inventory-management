@@ -1,57 +1,138 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import LocationDropdown from "@/components/LocationDropdown";
-import ClearFiltersButton from "@/components/ClearFiltersButton";
-import { Input } from "@/components/ui/input";
 
-interface Props {
+import MultiSelect from "@/components/Dropdowns/MultiSelect";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+export default function InventoryFilters({
+    uniqueLocations,
+    products,
+    categories,
+    query,
+    setQuery,
+    locations,
+    setLocations,
+    selectedProducts,
+    setSelectedProducts,
+    selectedCategories,
+    setSelectedCategories,
+    inventoryData,
+}: {
     uniqueLocations: { id: string; name: string }[];
-    initialQ: string;
-    initialLocations: string[];
-}
+    products: { id: string; name: string }[];
+    categories: { id: string; name: string }[];
+    query: string;
+    setQuery: (q: string) => void;
+    locations: string[];
+    setLocations: (l: string[]) => void;
+    selectedProducts: string[];
+    setSelectedProducts: (p: string[]) => void;
+    selectedCategories: string[];
+    setSelectedCategories: (c: string[]) => void;
+    inventoryData: any[];
+}) {
+    const exportCSV = () => {
+        if (!inventoryData || !inventoryData.length) return;
 
-export default function InventoryFilters({ uniqueLocations, initialQ, initialLocations }: Props) {
-    const router = useRouter();
-    const [q, setQ] = useState(initialQ);
-    const [locations, setLocations] = useState<string[]>(initialLocations);
+        const csvContent = [
+            "Product,SKU,PackSize,WeightValue,WeightUnit,Category,Location,Price,Quantity,Tonnage,Value,LowStockAt,ExpiryDate,AssignedUser,CreatedBy,CreatedAt,UpdatedAt",
+            ...inventoryData.map((i) =>
+                [
+                    i.product?.name ?? "",
+                    i.product?.sku ?? "",
+                    i.product?.packSize ?? 0,
+                    (i.product?.weightValue ?? 0).toFixed(2),
+                    i.product?.weightUnit ?? "kg",
+                    i.product?.category ?? "",
+                    i.location?.name ?? "",
+                    (i.product?.price ?? 0).toFixed(2),
+                    i.quantity ?? 0,
+                    (i.tonnage ?? 0).toFixed(2),
+                    (i.value ?? 0).toFixed(2),
+                    i.lowStockAt ?? "",
+                    i.expiryDate ?? "",
+                    i.assignedUser?.fullName ?? "",
+                    i.createdBy?.fullName ?? "",
+                    new Date(i.createdAt).toLocaleDateString(),
+                    new Date(i.updatedAt).toLocaleDateString(),
+                ].join(",")
+            ),
+        ].join("\n");
 
-    const handleLocationsChange = (newLocations: string[]) => {
-        setLocations(newLocations);
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "inventory_filtered.csv";
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
-    const handleClearFilters = () => {
-        setQ("");
-        setLocations([]);
-        router.push("/inventory", { shallow: true });
+    const exportPDF = () => {
+        if (!inventoryData || !inventoryData.length) return;
+
+        const doc = new jsPDF();
+        autoTable(doc, {
+            head: [["Product", "SKU", "PackSize", "WeightValue", "WeightUnit", "Category", "Location", "Price", "Quantity", "Tonnage", "Value", "LowStockAt", "ExpiryDate", "AssignedUser", "CreatedBy", "CreatedAt", "UpdatedAt"]],
+            body: inventoryData.map((i) => [
+                i.product?.name ?? "",
+                i.product?.sku ?? "",
+                i.product?.packSize ?? 0,
+                (i.product?.weightValue ?? 0).toFixed(2),
+                i.product?.weightUnit ?? "kg",
+                i.product?.category ?? "",
+                i.location?.name ?? "",
+                (i.product?.price ?? 0).toFixed(2),
+                i.quantity ?? 0,
+                (i.tonnage ?? 0).toFixed(2),
+                (i.value ?? 0).toFixed(2),
+                i.lowStockAt ?? "",
+            ]),
+        });
+        doc.save("inventory_filtered.pdf");
     };
 
     return (
-        <div className="bg-white border border-gray-200 rounded-lg p-2">
-            <form action="/inventory/inventory" method="GET" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <Input
-                            name="q"
-                            placeholder="Search Products..."
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            className="w-full h-8 px-2 py-1 border border-gray-300 rounded-lg focus:outline focus:ring-2 focus:ring-gray-500"
-                        />
-                    </div>
-                    <LocationDropdown
-                        uniqueLocations={uniqueLocations}
-                        selectedLocations={locations}
-                        onLocationsChange={handleLocationsChange}
-                    />
-                    <div className="">
-                        <button type="submit" className="w-35 h-8 px-2 py-1 mr-4 bg-purple-600 text-white rounded-sm hover:bg-purple-700 cursor-pointer">
-                            Apply Filters
-                        </button>
-                        <ClearFiltersButton onClear={handleClearFilters} />
-                    </div>
+        <div className="p-2 space-y-2">
+            {/* Search */}
+
+            {/*
+            <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search product..."
+                className="border border-gray-200 bg-white rounded-md px-3 py-2 w-full"
+            />
+            */}
+
+            {/* Filters */}
+            <div className="font-bold">
+                <h2>Filters and Exports</h2>
+            </div>
+            <div className="flex flex-wrap gap-4">
+                <MultiSelect label="Locations" options={uniqueLocations || []} value={locations} onChange={setLocations} />
+                <MultiSelect label="Products" options={products || []} value={selectedProducts} onChange={setSelectedProducts} />
+                <MultiSelect label="Categories" options={categories || []} value={selectedCategories} onChange={setSelectedCategories} />
+
+                {/* Export Buttons */}
+                <div className="mt-6">
+                    <button
+                        onClick={exportCSV}
+                        className="px-4 py-2 border rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                    >
+                        Export CSV
+                    </button>
                 </div>
-            </form>
+
+                <div className="mt-6">
+                    <button
+                        onClick={exportPDF}
+                        className="px-4 py-2 border rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                    >
+                        Export PDF
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

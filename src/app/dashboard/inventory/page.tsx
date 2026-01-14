@@ -1,7 +1,3 @@
-
-
-import Sidebar from "@/components/sidebar";
-//import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -21,6 +17,7 @@ import { redirect } from "next/navigation";
 export const metadata = {
     title: "Inventory Dashboard",
 };
+
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
@@ -327,10 +324,8 @@ export default async function DashboardPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-5">
                     <InventorySummary
-                        inventory={inventory}
-                        sales={sales}
                         title="Inventory Summary"
-                        iconColor="text-green-600"
+                        iconColor="text-blue-600"
                     />
                 </div>
                 {/* LOW STOCK BY LOCATION (COLUMNS) */}
