@@ -6,7 +6,10 @@ import {
     ShoppingCart,
     Settings,
     Info,
-    User
+    User,
+    Factory,
+    Ship,
+    Truck
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -31,6 +34,15 @@ export const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        name: "Production",
+        icon: Factory,
+        subItems: [
+            { name: "Add Productions", href: "/production/add-productions" },
+            { name: "Production Data", href: "/production/production-data" },
+            { name: "Production Report", href: "/production/production-reports" },
+        ],
+    },
+    {
         name: "Inventory",
         icon: Package,
         subItems: [
@@ -43,12 +55,14 @@ export const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
-        name: "Production",
-        icon: Package,
+        name: "Transfers",
+        icon: Truck,
         subItems: [
-            { name: "Add Productions", href: "/production/add-productions" },
-            { name: "Production Data", href: "/production/production-data" },
-            { name: "Production Report", href: "/production/production-reports" },
+            { name: "Create Transfer", href: "/transfers/create-transfer" },
+            { name: "Dispatch Transfer", href: "/transfers/dispatch-transfer" },
+            { name: "Receive Transfer", href: "/transfers/receive-transfer" },
+            { name: "Manage Transfers", href: "/transfers" },
+            { name: "Transfers Data", href: "/transfers/transfer-data" },
         ],
     },
     {
@@ -73,7 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
     },
     {
         name: "Test",
-        icon: User,
+        icon: Ship,
         subItems: [
             { name: "Test Page", href: "/test/test-pages" },
             { name: "Test KPI", href: "/test/testKpi" },

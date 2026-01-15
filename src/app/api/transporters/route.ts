@@ -1,37 +1,52 @@
+// pages/api/transporters.js
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { z } from "zod";
+
+// Define a schema for the transporter data
+const transporterSchema = z.object({
+    name: z.string().min(1).max(255),
+    vehicleNumber: z.string().optional(),
+    driverName: z.string().optional(),
+});
 
 // -------------------- GET /api/transporters --------------------
 export async function GET(req: NextRequest) {
     try {
-        const user = await getCurrentUser(); // ensure logged-in
+        const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
         const { searchParams } = new URL(req.url);
         const page = Number(searchParams.get("page") || 1);
         const limit = Number(searchParams.get("limit") || 20);
+        const transporters = await prisma.transporter.findMany({
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                name: true,
+                vehicleNumber: true,
+                driverName: true,
+            },
+        });
+        const uniqueTransporters = transporters.reduce((acc, current) => {
+            if (!acc.find((transporter) => transporter.name === current.name)) {
+                return [...acc, current];
+            }
+            return acc;
+        }, []);
         const skip = (page - 1) * limit;
-
-        const [transporters, total] = await Promise.all([
-            prisma.transporter.findMany({
-                skip,
-                take: limit,
-                orderBy: { createdAt: "desc" },
-            }),
-            prisma.transporter.count(),
-        ]);
-
+        const paginatedTransporters = uniqueTransporters.slice(skip, skip + limit);
+        const total = uniqueTransporters.length;
         return NextResponse.json({
             success: true,
-            data: transporters,
+            data: paginatedTransporters,
             pagination: {
                 page,
                 limit,
-                total,
+                total: total,
                 totalPages: Math.ceil(total / limit),
             },
-        });
+        }, { status: 200 });
     } catch (error) {
         console.error("Fetch transporters failed:", error);
         return NextResponse.json({ error: "Failed to fetch transporters", details: (error as Error).message }, { status: 500 });
@@ -44,16 +59,12 @@ export async function POST(req: NextRequest) {
         const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        // Only ADMIN or MANAGER can create transporters
         if (!["ADMIN", "MANAGER"].includes(user.role)) {
             return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
         }
 
-        const { name, vehicleNumber, driverName } = await req.json();
-
-        if (!name) {
-            return NextResponse.json({ error: "Transporter name is required" }, { status: 400 });
-        }
+        const data = await req.json();
+        const { name, vehicleNumber, driverName } = transporterSchema.parse(data);
 
         const transporter = await prisma.transporter.create({
             data: {
@@ -65,6 +76,10 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, transporter }, { status: 201 });
     } catch (error) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json({ error: "Invalid request data", details: error.issues }, { status: 400 });
+        }
+
         console.error("Create transporter failed:", error);
         return NextResponse.json({ error: "Failed to create transporter", details: (error as Error).message }, { status: 500 });
     }

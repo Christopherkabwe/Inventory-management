@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Loading from "@/components/Loading";
 import ProductionCharts from "@/components/charts/ProductionCharts";
+import InventorySummary from "@/components/InventorySummary";
 
 
 interface ProductSummary {
@@ -151,14 +152,24 @@ export default function ProductionReportsPage() {
                 <h1 className="text-2xl font-bold">Production Reports</h1>
 
                 {/* --- Charts --- */}
-                <div>
-                    {!loading && (byProduct.length > 0 || byLocation.length > 0) && (
+                {loading ? (
+                    <div className=" border border-gray-300 rounded-lg overflow-hidden">
+                        <Loading message="Loading Charts..." colSpan={20}
+                            className="w-full flex justify-center items-center bg-white"
+                        />
+                    </div>
+                ) : (
+                    <>
                         <ProductionCharts
                             byProduct={byProduct}
                             byLocation={byLocation}
                         />
-                    )}
-                </div>
+                    </>
+                )}
+                <InventorySummary
+                    title="Inventory Levels"
+                    iconColor="text-blue-600"
+                />
 
                 {/* --- Product Summary --- */}
                 <div className="bg-white p-4 rounded border space-y-2">

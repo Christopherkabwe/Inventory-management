@@ -138,7 +138,6 @@ export default function ProductionReportsPage() {
         <DashboardLayout>
             <div className="p-6 space-y-6">
                 <h1 className="text-2xl font-bold">Production Reports</h1>
-
                 {/* --- Product Summary --- */}
                 <div className="bg-white p-4 rounded border space-y-2">
                     <h2 className="font-semibold mb-2">Production Summary by Product</h2>

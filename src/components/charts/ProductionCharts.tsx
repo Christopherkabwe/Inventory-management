@@ -12,8 +12,10 @@ import {
 } from "chart.js";
 import { Bar, Pie } from "react-chartjs-2";
 import PieCard from "./ProductionPieChart";
-import { Factory, Package } from "lucide-react";
+import { BarChart3, Factory, Package } from "lucide-react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import InventorySummary from "../InventorySummary";
+import Loading from "../Loading";
 
 
 ChartJS.register(
@@ -188,6 +190,7 @@ export default function ProductionCharts({
 }) {
 
     const [productions, setProductions] = useState<Production[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     // Fetch productions once
     useEffect(() => {
@@ -272,10 +275,12 @@ export default function ProductionCharts({
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-
                 {/* Tonnage by Location */}
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">Production by Location (Tonage)</h3>
+                    <h3 className="font-semibold mb-3">
+                        <Factory className="inline-block h-5 w-5 mr-2 text-blue-600" />
+                        Production by Location (Tonage)
+                    </h3>
                     <div className="h-[300px]">
                         <Bar data={locationTonnageData} options={baseBarOptions} />
                     </div>
@@ -283,7 +288,10 @@ export default function ProductionCharts({
 
                 {/* Quantity by Product */}
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">Production by Product (Quantity)</h3>
+                    <h3 className="font-semibold mb-3">
+                        <Factory className="inline-block h-5 w-5 mr-2 text-blue-600" />
+                        Production by Product (Quantity)
+                    </h3>
                     <div className="h-[300px]">
                         <Bar data={productQtyData} options={baseBarOptions} />
                     </div>
@@ -291,7 +299,9 @@ export default function ProductionCharts({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">Monthly Production Trend (Tonnage)</h3>
+                    <h3 className="font-semibold mb-3">
+                        <BarChart3 className="inline-block h-5 w-5 mr-2 text-blue-600" />
+                        Monthly Production Trend (Tonnage)</h3>
                     <div className="h-[320px]">
                         <Bar
                             data={monthlyTrendData}
@@ -323,7 +333,9 @@ export default function ProductionCharts({
                     </div>
                 </div>
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">Daily Production Trend (Tonnage)</h3>
+                    <h3 className="font-semibold mb-3">
+                        <BarChart3 className="inline-block h-5 w-5 mr-2 text-blue-600" />
+                        Production Trend (Tonnage)</h3>
                     <div className="h-[320px] overflow-x-auto">
                         <Bar
                             data={dailyTrendData}
@@ -372,8 +384,7 @@ export default function ProductionCharts({
                     dataKey="tonnage"
                     nameKey="name"
                 />
-
             </div>
         </div>
     );
-}
+};

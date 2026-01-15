@@ -1,8 +1,14 @@
 // lib/reports.ts
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "./auth";
+import { NextResponse } from "next/server";
+import { getInventoryAccessControl } from "./Access-Control/InventoryAccessControl";
 
 export type StockReportRow = {
     productName: string;
+    sku: string;
+    category: string | null;
+    weightValue: number;
     location: string;
     openingStock: number;
     production: number;
@@ -16,8 +22,13 @@ export type StockReportRow = {
     salesQty: number;
     closingStock: number;
 };
+
+
 export async function getStockReport(): Promise<StockReportRow[]> {
+    const whereClause = await getInventoryAccessControl();
+
     const inventories = await prisma.inventory.findMany({
+        where: whereClause,
         include: {
             product: {
                 include: {
@@ -90,6 +101,9 @@ export async function getStockReport(): Promise<StockReportRow[]> {
 
         return {
             productName: product.name,
+            sku: product.sku,
+            category: product.category,
+            weightValue: Number(product.weightValue.toFixed(2)),
             location: location.name,
             openingStock,
             production,

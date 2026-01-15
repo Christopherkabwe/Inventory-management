@@ -51,7 +51,7 @@ export default function PieCard<T extends Record<string, any>>({
                         Loading...
                     </div>
                 ) : (
-                    <div className="h-[260px] flex flex-col">
+                    <div className="h-[300px] flex flex-col">
                         {/* Chart */}
                         <div className="flex justify-center items-center flex-1">
                             <ResponsiveContainer width="100%" height={200}>

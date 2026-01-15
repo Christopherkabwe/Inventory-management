@@ -17,7 +17,7 @@ const PUBLIC_ROUTES = [
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
-    //console.log("🔥 MIDDLEWARE HIT:", req.nextUrl.pathname);
+    const isApiRoute = pathname.startsWith("/api");
 
     // Allow public routes
     if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
@@ -34,9 +34,15 @@ export async function middleware(req: NextRequest) {
 
     const token = req.cookies.get("auth_token")?.value;
 
-    console.log("MIDDLEWARE TOKEN:", req.cookies.get("auth_token"));
-
+    // ❌ No token
     if (!token) {
+        if (isApiRoute) {
+            return NextResponse.json(
+                { success: false, error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
         return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
@@ -44,7 +50,13 @@ export async function middleware(req: NextRequest) {
         await jwtVerify(token, AUTH_JWT_SECRET);
         return NextResponse.next();
     } catch {
+        if (isApiRoute) {
+            return NextResponse.json(
+                { success: false, error: "Invalid token" },
+                { status: 401 }
+            );
+        }
+
         return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 }
-
