@@ -266,13 +266,12 @@ const CreateTransferPage: React.FC = () => {
                     </div>
                     {/* Actions */}
                     <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={() => router.back()}
-                            className="px-4 py-2 border rounded-md"
+                        <a
+                            href="/transfers"
+                            className="px-4 py-2 bg-red-500 border text-white rounded-md hover:bg-red-600"
                         >
                             Cancel
-                        </button>
+                        </a>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"

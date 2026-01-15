@@ -1,4 +1,5 @@
-// pages/api/transporters.js
+// -------------------- GET /api/transporters --------------------
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -16,9 +17,7 @@ export async function GET(req: NextRequest) {
     try {
         const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const { searchParams } = new URL(req.url);
-        const page = Number(searchParams.get("page") || 1);
-        const limit = Number(searchParams.get("limit") || 20);
+
         const transporters = await prisma.transporter.findMany({
             orderBy: { createdAt: "desc" },
             select: {
@@ -26,27 +25,18 @@ export async function GET(req: NextRequest) {
                 name: true,
                 vehicleNumber: true,
                 driverName: true,
+                driverPhoneNumber: true,
             },
         });
+
         const uniqueTransporters = transporters.reduce((acc, current) => {
             if (!acc.find((transporter) => transporter.name === current.name)) {
                 return [...acc, current];
             }
             return acc;
         }, []);
-        const skip = (page - 1) * limit;
-        const paginatedTransporters = uniqueTransporters.slice(skip, skip + limit);
-        const total = uniqueTransporters.length;
-        return NextResponse.json({
-            success: true,
-            data: paginatedTransporters,
-            pagination: {
-                page,
-                limit,
-                total: total,
-                totalPages: Math.ceil(total / limit),
-            },
-        }, { status: 200 });
+
+        return NextResponse.json({ success: true, data: uniqueTransporters }, { status: 200 });
     } catch (error) {
         console.error("Fetch transporters failed:", error);
         return NextResponse.json({ error: "Failed to fetch transporters", details: (error as Error).message }, { status: 500 });

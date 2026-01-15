@@ -59,8 +59,6 @@ export const NAV_ITEMS: NavItem[] = [
         icon: Truck,
         subItems: [
             { name: "Create Transfer", href: "/transfers/create-transfer" },
-            { name: "Dispatch Transfer", href: "/transfers/dispatch-transfer" },
-            { name: "Receive Transfer", href: "/transfers/receive-transfer" },
             { name: "Manage Transfers", href: "/transfers" },
             { name: "Transfers Data", href: "/transfers/transfer-data" },
         ],

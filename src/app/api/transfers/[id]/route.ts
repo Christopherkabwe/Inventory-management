@@ -28,7 +28,9 @@ export async function PUT(request, { params }: { params: Promise<{ id: string }>
         data: {
             fromLocation: { connect: { id: fromLocationId } },
             toLocation: { connect: { id: toLocationId } },
-            transporter: { connect: { id: transporterId } },
+            transporter: {
+                connect: { id: transporterId },
+            },
             items: {
                 deleteMany: {},
                 create: items.map((item) => ({

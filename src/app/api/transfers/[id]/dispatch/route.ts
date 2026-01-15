@@ -15,8 +15,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             where: { id: String(id) },
             data: {
                 status: 'DISPATCHED',
-                transporter: { connect: { id: transporterId } },
-                driverName,
+                transporter: {
+                    update: {
+                        driverName,
+                    },
+                },
             },
         });
         return NextResponse.json(transfer);

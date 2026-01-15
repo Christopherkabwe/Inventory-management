@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import DashboardLayout from '@/components/DashboardLayout';
+import { ArrowLeft } from 'lucide-react';
 
 interface Transfer {
     id: string;
@@ -11,6 +12,13 @@ interface Transfer {
     fromLocation: { name: string };
     toLocation: { name: string };
     status: string;
+    transporter?: {
+        id: string;
+        name: string;
+        vehicleNumber: string;
+        driverName: string;
+        driverPhoneNumber: string;
+    };
     items: {
         product: {
             name: string;
@@ -24,32 +32,71 @@ interface Transfer {
     }[];
 }
 
+interface Transporter {
+    id: string;
+    name: string;
+    vehicleNumber: string;
+    driverName: string;
+    driverPhoneNumber: string;
+}
+
 const DispatchTransferPage = () => {
-    const [transfer, setTransfer] = useState<Transfer | null>(null);
-    const [transporterId, setTransporterId] = useState('');
-    const [driverName, setDriverName] = useState('');
+
     const router = useRouter();
     const { id } = useParams<{ id: string }>();
+    const [transfer, setTransfer] = useState<Transfer | null>(null);
+    const [transporterId, setTransporterId] = useState('');
+    const [transporters, setTransporters] = useState<Transporter[]>([]);
+    const [selectedTransporter, setSelectedTransporter] = useState('');
+    const [vehicleNumber, setVehicleNumber] = useState('');
+    const [driverName, setDriverName] = useState('');
+    const [driverPhoneNumber, setDriverPhoneNumber] = useState('');
+
 
     useEffect(() => {
         const fetchTransfer = async () => {
             const response = await fetch(`/api/transfers/${id}`);
             const data = await response.json();
             setTransfer(data);
+            if (data.transporter) {
+                setTransporterId(data.transporter.id);
+                setSelectedTransporter(data.transporter.id);
+                setVehicleNumber(data.transporter.vehicleNumber);
+                setDriverName(data.transporter.driverName);
+                setDriverPhoneNumber(data.transporter.driverPhoneNumber);
+            }
         };
         fetchTransfer();
     }, [id]);
 
+    const handleVehicleNumberChange = (e) => {
+        const selectedVehicleNumber = e.target.value;
+        setVehicleNumber(selectedVehicleNumber);
+        const selectedTransporter = transporters.find((transporter) => transporter.vehicleNumber === selectedVehicleNumber);
+        if (selectedTransporter) {
+            setTransporterId(selectedTransporter.id);
+            setSelectedTransporter(selectedTransporter.id);
+            setDriverName(selectedTransporter.driverName);
+            setDriverPhoneNumber(selectedTransporter.driverPhoneNumber);
+        }
+    };
+
+
+    // Handle Submit
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const response = await fetch(`/api/transfers/${id}/dispatch`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ transporterId, driverName }),
+                body: JSON.stringify({
+                    transporterId: selectedTransporter,
+                    driverName,
+                }),
             });
+
             if (response.ok) {
                 toast.success('Transfer dispatched successfully');
                 router.push('/transfers');
@@ -79,7 +126,17 @@ const DispatchTransferPage = () => {
     return (
         <DashboardLayout>
             <div className="max-w-6xl p-5 space-y-2">
+                <div className="mb-2">
+                    <button
+                        onClick={() => router.back()}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 cursor-pointer"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to transfers
+                    </button>
+                </div>
                 <div className='bg-white p-5 rounded-sm hover:shadow-lg'>
+                    <a> </a>
                     <div className='flex flex-col w-full items-center'>
                         <h1 className="text-3xl font-semibold text-zinc-900 mb-3">
                             DISPATCH TRANSFER
@@ -90,26 +147,26 @@ const DispatchTransferPage = () => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className='flex flex-row gap-5'>
                             <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">
-                                    Transporter Id
-                                </label>
-                                <input
-                                    type="text"
-                                    value={transporterId}
-                                    onChange={(e) => setTransporterId(e.target.value)}
-                                    className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+                                <label className="block text-sm font-medium text-zinc-700">Transporter</label>
+                                <select value={selectedTransporter} onChange={(e) => setSelectedTransporter(e.target.value)} className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" >
+                                    <option value="">Select Transporter</option>
+                                    {transfer.transporter && (
+                                        <option key={transfer.transporter.id} value={transfer.transporter.id}>
+                                            {transfer.transporter.name}
+                                        </option>
+                                    )}
+                                </select>
                             </div>
                             <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">
-                                    Transporter Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={transporterId}
-                                    onChange={(e) => setTransporterId(e.target.value)}
-                                    className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+                                <label className="block text-sm font-medium text-zinc-700">Vehicle No.</label>
+                                <select value={vehicleNumber} onChange={handleVehicleNumberChange} className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" >
+                                    <option value="">Select Vehicle Number</option>
+                                    {transfer.transporter && (
+                                        <option key={transfer.transporter.id} value={transfer.transporter.vehicleNumber}>
+                                            {transfer.transporter.vehicleNumber}
+                                        </option>
+                                    )}
+                                </select>
                             </div>
                             <div className='w-full'>
                                 <label className="block text-sm font-medium text-zinc-700">
@@ -128,7 +185,7 @@ const DispatchTransferPage = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    value={driverName}
+                                    value={driverPhoneNumber}
                                     onChange={(e) => setDriverName(e.target.value)}
                                     className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
@@ -214,6 +271,7 @@ const DispatchTransferPage = () => {
                             >
                                 Dispatch Transfer
                             </button>
+
                         </div>
                     </form>
                 </div>

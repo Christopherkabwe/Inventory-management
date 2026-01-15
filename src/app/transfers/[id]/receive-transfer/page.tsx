@@ -9,7 +9,7 @@ interface Transfer {
     fromLocation: { name: string };
     toLocation: { name: string };
     status: string;
-    items: { product: { id: string; name: string }; quantity: number }[];
+    items: { product: { id: string; name: string; weightValue: number; packSize: number }; quantity: number }[];
 }
 
 export default function ReceiveTransferPage() {
@@ -110,21 +110,31 @@ export default function ReceiveTransferPage() {
                         {transfer.fromLocation.name} → {transfer.toLocation.name}
                     </p>
                 </div>
-                <span className="rounded-full border bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {transfer.status.replace('_', ' ')}
-                </span>
+
+                <div className='flex flex-rowg gap-2'>
+                    <p className='text-gray-500'>Status: </p>
+                    <span className="rounded-lg border bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                        {transfer.status.replace('_', ' ')}
+                    </span>
+                </div>
             </div>
             {/* Receiver */}
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
-                <label className="block text-sm font-medium text-black">
-                    Received By
-                </label>
-                <input
-                    type="text"
-                    value={currentUser?.id || ''}
-                    disabled
-                    className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100"
-                />
+            <div className='px-5 py-2 rounded-lg border bg-white shadow-sm'>
+                <h1 className='mb-2'>Receiver's Details</h1>
+                <div className="flex flex-row gap-5 ">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500"> Full Name </label>
+                        <input type="text" value={currentUser?.fullName} disabled className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500"> Role</label>
+                        <input type="text" value={currentUser?.role} disabled className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500"> Received At</label>
+                        <input type="text" value={new Date().toLocaleString()} disabled className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100" />
+                    </div>
+                </div>
             </div>
             {/* Items Table */}
             <div className="rounded-lg border bg-white shadow-sm">
@@ -141,15 +151,21 @@ export default function ReceiveTransferPage() {
                         <thead className="bg-zinc-100">
                             <tr>
                                 <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700">
-                                    Product
+                                    Product Name
+                                </th>
+                                <th className="border-b px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                                    Dispatched (Qty)
+                                </th>
+                                <th className="border-b px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                                    Received (Qty)
                                 </th>
                                 <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-700">
-                                    Received
+                                    Received (Tons)
                                 </th>
-                                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                                <th className="border-b px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-700">
                                     Damaged
                                 </th>
-                                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                                <th className="border-b px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-700">
                                     Expired
                                 </th>
                                 <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700">
@@ -159,48 +175,29 @@ export default function ReceiveTransferPage() {
                         </thead>
                         <tbody>
                             {items.map((item, index) => (
-                                <tr
-                                    key={index}
-                                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50'} hover:bg-blue-50`}
-                                >
+                                <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50'} hover:bg-blue-50`}>
                                     <td className="border-b px-4 py-3 font-medium text-zinc-900">
                                         {transfer.items[index].product.name}
                                     </td>
-                                    {['quantityReceived', 'quantityDamaged', 'quantityExpired'].map(
-                                        (field) => (
-                                            <td key={field} className="border-b px-4 py-3 text-right">
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={(item as any)[field]}
-                                                    onChange={(e) =>
-                                                        setItems((prev) =>
-                                                            prev.map((p, i) =>
-                                                                i === index
-                                                                    ? { ...p, [field]: Number(e.target.value) }
-                                                                    : p,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="w-20 rounded-md border px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                />
-                                            </td>
-                                        ),
-                                    )}
+                                    <td className="border-b px-4 py-3 text-center">
+                                        <input type="number" min={0} value={(item as any)['quantityReceived']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityReceived']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                    </td>
+
+                                    <td className="border-b px-4 py-3 text-center">
+                                        <input type="number" min={0} value={(item as any)['quantityDamaged']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityDamaged']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                    </td>
+                                    <td className="border-b px-4 py-3 text-center">
+                                        {((transfer.items[index].product.weightValue) * (transfer.items[index].product.packSize) * (item as any)['quantityReceived'] / 1000).toFixed(2)} MT
+                                    </td>
+                                    <td className="border-b px-4 py-3 text-center">
+                                        <input type="number" min={0} value={(item as any)['quantityExpired']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityExpired']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                    </td>
+                                    <td className="border-b px-4 py-3 text-center">
+                                        {transfer.items[index].quantity}
+                                    </td>
+
                                     <td className="border-b px-4 py-3">
-                                        <input
-                                            type="text"
-                                            value={item.comment}
-                                            onChange={(e) =>
-                                                setItems((prev) =>
-                                                    prev.map((p, i) =>
-                                                        i === index ? { ...p, comment: e.target.value } : p,
-                                                    ),
-                                                )
-                                            }
-                                            className="w-full rounded-md border px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            placeholder="Optional"
-                                        />
+                                        <input type="text" value={item.comment} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, comment: e.target.value } : p,),)} className="w-full rounded-md border px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Optional" />
                                     </td>
                                 </tr>
                             ))}
@@ -208,6 +205,12 @@ export default function ReceiveTransferPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Warning */}
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                Confirming receipt will mark this transfer as <strong>received and cannot be undone</strong>. Ensure product details, quantites, transporter and driver details are correct.
+            </div>
+
             {/* Actions */}
             <div className="flex justify-end gap-3">
                 <button
