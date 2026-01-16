@@ -3,13 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import Pagination from "@/components/pagination";
 import EditInventoryButton from "@/components/EditInventoryButton";
-import DeleteInventoryButton from "@/components/DeleteInventoryButton";
 import InventoryFilters from "@/components/InventoryFilters";
 import { unitToKg } from "@/lib/UnitToKg";
-import DashboardLayout from "@/components/DashboardLayout";
 import { fetchInventory } from "@/lib/fetchInventory";
 import Loading from "@/components/Loading";
-import InventorySummary from "@/components/InventorySummary";
 import DeleteFromInventoryButton from "@/components/DeleteInventoryButton";
 
 const pageSize = 10;
@@ -75,6 +72,7 @@ export default function ManageInventory() {
             return matchQuery && matchLocation && matchProduct && matchCategory;
         }).map((inv) => {
             const quantity = inv.quantity || 0;
+            const inTransit = inv.intransit || 0;
             const packSize = inv.product?.packSize || 1;
             const weightValue = inv.product?.weightValue || 0;
             const weightUnit = inv.product?.weightUnit || "kg";
@@ -94,6 +92,7 @@ export default function ManageInventory() {
 
         return items.map((inventory) => {
             const quantity = inventory.quantity || 0;
+            const inTransit = inventory.intransit || 0;
             const packSize = inventory.product?.packSize || 1;
             const weightValue = inventory.product?.weightValue || 0;
             const weightUnit = inventory.product?.weightUnit || "kg";
@@ -150,6 +149,7 @@ export default function ManageInventory() {
                                     <th className="py-2 px-3 border-r text-center font-semibold">Quantity</th>
                                     <th className="py-2 px-3 border-r text-center font-semibold">Tonnage</th>
                                     <th className="py-2 px-3 border-r text-center font-semibold">Value</th>
+                                    <th className="py-2 px-3 border-r text-center font-semibold">In Transit</th>
                                     <th className="py-2 px-3 border-r text-center font-semibold">Low Stock At</th>
                                     <th className="py-2 px-3 border-r text-center font-semibold">Actions</th>
                                 </tr>
@@ -174,6 +174,7 @@ export default function ManageInventory() {
                                             <td className="px-3 py-2 border-r text-center">{inv.quantity}</td>
                                             <td className="px-3 py-2 border-r text-center">{inv.tonnage.toFixed(2)}</td>
                                             <td className="px-3 py-2 border-r text-center">{inv.value.toFixed(2)}</td>
+                                            <td className="px-3 py-2 border-r text-center">{inv.inTransit}</td>
                                             <td className="px-3 py-2 border-r text-center">{inv.lowStockAt}</td>
                                             <td className="flex px-3 py-2 border-r items-center justify-center gap-2">
                                                 <EditInventoryButton

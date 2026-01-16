@@ -110,7 +110,7 @@ async function main() {
             email: faker.internet.email(),
             phone: faker.phone.number(),
             country: "Zambia",
-            city: pickRandom(["Lusaka", "Ndola", "Kitwe"]),
+            city: location.name,
             locationId: location.id,
             userId: user.id,
             createdById: user.managerId!, // manager must exist
@@ -218,7 +218,7 @@ async function main() {
         }
 
         // Delivery Notes
-        console.log("Creating Delivery Notes")
+        console.log("Creating Delivery Notes");
         const deliveryNoteNo = await getNextSequence("DN");
         await prisma.deliveryNote.create({
             data: {

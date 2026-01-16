@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  output          = "../src/generated/prisma"
 }
 
 datasource db {
@@ -39,9 +40,9 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  sessions             Session[]
-  createdSales         Sale[]            @relation("SalesCreatedBy")
-  customers            Customer[] // customers assigned to this User
+  sessions     Session[]
+  createdSales Sale[]     @relation("SalesCreatedBy")
+  customers    Customer[] // customers assigned to this User
 
   createdTransfers     Transfer[]        @relation("TransfersCreatedBy")
   createdAdjustments   Adjustment[]      @relation("AdjustmentsCreatedBy")
@@ -58,8 +59,8 @@ model User {
 
   // 🔹 HIERARCHY
   managerId String?
-  manager   User?  @relation("UserManager", fields: [managerId], references: [id])
-  users     User[] @relation("UserManager")
+  manager   User?   @relation("UserManager", fields: [managerId], references: [id])
+  users     User[]  @relation("UserManager")
 
   // 🔹 INVENTORY
   assignedInventory Inventory[] @relation("InventoryAssignedUser")
@@ -118,6 +119,7 @@ model ProductList {
 
   deliveryNoteItems    DeliveryNoteItem[]
   transferReceiptItems TransferReceiptItem[]
+  inventoryHistories   InventoryHistory[]
 }
 
 // ==================== LOCATIONS ====================
@@ -130,16 +132,17 @@ model Location {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  inventories   Inventory[]
-  sales         Sale[]
-  orders        SalesOrder[]
-  transfersFrom Transfer[]     @relation("TransfersFrom")
-  transfersTo   Transfer[]     @relation("TransfersTo")
-  adjustments   Adjustment[]
-  productions   Production[]
-  deliveryNotes DeliveryNote[]
-  quotations    Quotation[]
-  saleReturns   SaleReturn[]
+  inventories        Inventory[]
+  sales              Sale[]
+  orders             SalesOrder[]
+  transfersFrom      Transfer[]         @relation("TransfersFrom")
+  transfersTo        Transfer[]         @relation("TransfersTo")
+  adjustments        Adjustment[]
+  productions        Production[]
+  deliveryNotes      DeliveryNote[]
+  quotations         Quotation[]
+  saleReturns        SaleReturn[]
+  inventoryHistories InventoryHistory[]
 }
 
 // ==================== INVENTORY ====================
@@ -151,18 +154,30 @@ model Inventory {
   location    Location    @relation(fields: [locationId], references: [id])
   quantity    Int
   lowStockAt  Int
+  inTransit   Int?        @default(0)
   expiryDate  DateTime?
   createdById String
 
   assignedUserId String?
-  assignedUser   User? @relation("InventoryAssignedUser", fields: [assignedUserId], references: [id])
+  assignedUser   User?   @relation("InventoryAssignedUser", fields: [assignedUserId], references: [id])
 
-  createdBy   User        @relation("InventoryCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy User     @relation("InventoryCreatedBy", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([productId, locationId])
-  @@index([productId])
+}
+
+model InventoryHistory {
+  id         String      @id @default(cuid())
+  productId  String
+  product    ProductList @relation(fields: [productId], references: [id])
+  locationId String
+  location   Location    @relation(fields: [locationId], references: [id])
+  date       DateTime
+  quantity   Int
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 // ==================== CUSTOMERS ====================
@@ -175,7 +190,7 @@ model Customer {
   city        String
   createdById String
   userId      String?
-  user        User?     @relation(fields: [userId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
   createdBy   User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
   locationId  String
   location    Location @relation(fields: [locationId], references: [id])
@@ -189,13 +204,13 @@ model Customer {
 
 // ==================== TRANSPORTERS ====================
 model Transporter {
-  id            String   @id @default(cuid())
-  name          String
-  vehicleNumber String?
-  driverName    String?
+  id                String   @id @default(cuid())
+  name              String
+  vehicleNumber     String?
+  driverName        String?
   driverPhoneNumber String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
 
   sales         Sale[]
   transfers     Transfer[]
@@ -455,7 +470,6 @@ model Production {
   @@index([createdAt])
   @@index([locationId])
   @@index([batchNumber])
-
 }
 
 model ProductionItem {
@@ -467,7 +481,6 @@ model ProductionItem {
   quantity     Int
   updatedAt    DateTime    @default(now()) @updatedAt
 }
-
 
 // ==================== ADJUSTMENTS ====================
 model Adjustment {

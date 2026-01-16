@@ -92,8 +92,9 @@ const DispatchTransferPage = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    transporterId: selectedTransporter,
+                    transporterId,
                     driverName,
+                    driverPhoneNumber,
                 }),
             });
 
@@ -186,7 +187,7 @@ const DispatchTransferPage = () => {
                                 <input
                                     type="text"
                                     value={driverPhoneNumber}
-                                    onChange={(e) => setDriverName(e.target.value)}
+                                    onChange={(e) => setDriverPhoneNumber(e.target.value)}
                                     className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>

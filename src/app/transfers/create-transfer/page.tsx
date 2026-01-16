@@ -5,7 +5,7 @@ import Loading from "@/components/Loading";
 import DashboardLayout from "@/components/DashboardLayout";
 import toast, { Toaster } from 'react-hot-toast';
 import withRole from "@/components/withRole";
-import UnauthorizedAccess from "@/components/UnauthorizedAccess";
+import { useUser } from "@/app/context/UserContext";
 
 interface Location {
     id: string;
@@ -39,32 +39,13 @@ const CreateTransferPage: React.FC = () => {
     const [transporters, setTransporters] = useState<Transporter[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState(true);
     const [success, setSuccess] = useState(false);
     const router = useRouter();
 
     const [isCreating, setIsCreating] = useState(false);
-    const [user, setUser] = useState(null);
 
-    // Fetch User Info
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await fetch('/api/users/me');
-                const data = await response.json();
-                if (data.success) {
-                    setUser(data.user);
-                } else {
-                    console.error(data.error);
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUser();
-    }, []);
+    const user = useUser();
 
     // Fetch Locations, Transporters, and Products
     useEffect(() => {

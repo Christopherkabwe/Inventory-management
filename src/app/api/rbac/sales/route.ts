@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { getSalesAccessControl } from "@/lib/Access-Control/SalesAccessControl copy";
 
 // ---------------- GET all sales ----------------

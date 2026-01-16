@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { ToasterProvider } from '@/components/Toaster';
 import ThemeProviderWrapper from "@/components/ThemeProviderWrapper";
+import { getCurrentUser } from "@/lib/auth";
+import { UserProvider } from "./context/UserContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,19 +37,22 @@ export const metadata: Metadata = {
   authors: [{ name: "Biz360" }],
   creator: "Biz360",
 };
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  const user = await getCurrentUser();
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       ><ThemeProviderWrapper>
           <ToasterProvider>
-
-            {children}
+            <UserProvider user={user}>
+              {children}
+            </UserProvider>
             {/* Only one Toaster instance */}
             <Toaster position="bottom-right" />
           </ToasterProvider>

@@ -77,13 +77,13 @@ export default function TransferPage() {
         <DashboardLayout>
             {/* Back */}
             <div className="mb-2">
-                <button
-                    onClick={() => router.back()}
+                <a
+                    href="/transfers"
                     className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 cursor-pointer"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to transfers
-                </button>
+                </a>
             </div>
 
             {/* Header */}

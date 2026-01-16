@@ -1,3 +1,5 @@
+import "server-only";
+
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";

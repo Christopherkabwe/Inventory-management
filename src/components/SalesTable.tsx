@@ -7,6 +7,7 @@ import ViewSelector from "./ViewSelector";
 import DateFiltersExports from "./DateFiltersExports";
 import { Sale } from "@/types/Sale";
 import Loading from "@/components/Loading";
+import { useUser } from "@/app/context/UserContext";
 
 type View = "location" | "customer" | "product" | "salesperson" | "manager";
 
@@ -52,23 +53,11 @@ export default function SalesTable() {
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
 
-    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
 
     /** ----------------- Fetch Current User ----------------- */
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            try {
-                const res = await fetch("/api/users/me");
-                if (!res.ok) throw new Error("Failed to fetch current user");
-                const data = await res.json();
-                setCurrentUser(data.user);
-            } catch (err) {
-                console.error("Failed to fetch current user:", err);
-                setCurrentUser({ id: "unknown", role: "USER" });
-            }
-        };
-        fetchCurrentUser();
-    }, []);
+    const user = useUser();
+    const currentUser = user;
 
     /** ----------------- Fetch Sales ----------------- */
     useEffect(() => {

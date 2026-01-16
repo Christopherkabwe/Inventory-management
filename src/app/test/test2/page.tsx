@@ -1,267 +1,125 @@
-// app/transfers/[id]/dispatch/page.tsx
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import toast, { Toaster } from 'react-hot-toast';
-import DashboardLayout from '@/components/DashboardLayout';
-
-interface Transfer {
-    id: string;
-    ibtNumber: string;
-    fromLocation: { name: string };
-    toLocation: { name: string };
-    status: string;
-    items: {
-        product: {
-            name: string;
-            sku: string;
-            category: string;
-            packSize: number;
-            weightValue: number;
-            weightUnit: string;
-        };
-        quantity: number;
-    }[];
-}
-<style jsx global>{`
-@media print {
-    body {
-        background: white;
-    }
-    button, .no-print {
-        display: none !important;
-    }
-    table {
-        font-size: 11px;
-    }
-}
-`}</style>
-
-const DispatchTransferPage = () => {
-    const [transfer, setTransfer] = useState<Transfer | null>(null);
-    const [transporterId, setTransporterId] = useState('');
-    const [driverName, setDriverName] = useState('');
-    const router = useRouter();
-    const { id } = useParams<{ id: string }>();
-
-    useEffect(() => {
-        const fetchTransfer = async () => {
-            const response = await fetch(`/api/transfers/${id}`);
-            const data = await response.json();
-            setTransfer(data);
-        };
-        fetchTransfer();
-    }, [id]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const response = await fetch(`/api/transfers/${id}/dispatch`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+export async function getStockReport(): Promise<StockReportRow[]> {
+    const whereClause = await getInventoryAccessControl();
+    const inventories = await prisma.inventory.findMany({
+        where: whereClause,
+        include: {
+            product: {
+                include: {
+                    productionItems: {
+                        include: {
+                            production: true
+                        }
+                    },
+                    transferItems: {
+                        include: {
+                            transfer: true
+                        }
+                    },
+                    adjustmentItems: {
+                        include: {
+                            adjustment: true
+                        }
+                    },
+                    saleItems: {
+                        include: {
+                            sale: true
+                        }
+                    },
                 },
-                body: JSON.stringify({ transporterId, driverName }),
-            });
-            if (response.ok) {
-                toast.success('Transfer dispatched successfully');
-                router.push('/transfers');
-            } else {
-                const errorData = await response.json();
-                toast.error(errorData.message || 'Error dispatching transfer');
-            }
-        } catch (error) {
-            toast.error('Error dispatching transfer');
-            console.error(error);
-        }
-    };
+            },
+            location: true,
+        },
+    });
 
-    if (!transfer) {
-        return (
-            <div className="py-24 text-center text-sm text-zinc-500">
-                Loading transfer…
-            </div>
+    const report = inventories.map((inv) => {
+        const product = inv.product;
+        const location = inv.location;
+
+        // Get the first day of the month
+        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+        // Get the inventory history for the first day of the month
+        const openingStock = await getInventoryQuantityAsOfDate(inv.productId, inv.locationId, firstDayOfMonth);
+
+        const production = product.productionItems
+            .filter((pi) => pi.production?.locationId === location.id && pi.production?.date >= firstDayOfMonth)
+            .reduce((sum, pi) => sum + (pi.quantity || 0), 0);
+
+        const ibtIssued = product.transferItems
+            .filter((ti) => ti.transfer?.fromLocationId === location.id && ti.transfer?.date >= firstDayOfMonth)
+            .reduce((sum, ti) => sum + (ti.quantity || 0), 0);
+
+        const ibtReceived = product.transferItems
+            .filter((ti) => ti.transfer?.toLocationId === location.id && ti.transfer?.date >= firstDayOfMonth)
+            .reduce((sum, ti) => sum + (ti.quantity || 0), 0);
+
+        const adjustmentItems = product.adjustmentItems.filter(
+            (ai) => ai.adjustment?.locationId === location.id && ai.adjustment?.date >= firstDayOfMonth
         );
-    }
 
-    // Total Qty & Tonnage
+        const rebagGain = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "REBAG_GAIN")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
 
-    const totalQuantity = transfer.items.reduce((acc, item) => acc + item.quantity, 0);
-    const totalTonnage = transfer.items.reduce((acc, item) => acc + (item.product.weightValue * item.quantity / 1000), 0).toFixed(2);
+        const rebagLoss = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "REBAG_LOSS")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
 
-    return (
-        <DashboardLayout>
-            <div className="max-w-6xl p-5 space-y-2">
-                <div className='bg-white p-5 rounded-sm hover:shadow-lg'>
-                    <div className='flex flex-col w-full items-center'>
-                        <h1 className="text-3xl font-semibold text-zinc-900 mb-3">
-                            DISPATCH TRANSFER
-                        </h1>
-                        <span className='mb-5'>IBT Number: {transfer.ibtNumber}</span>
-                    </div>
-                    <hr className="w-full border-t border-black mb-5" />
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className='flex flex-row gap-5'>
-                            <div className="w-full">
-                                <label className="block text-sm font-medium text-zinc-700">
-                                    Transporter
-                                </label>
+        const damaged = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "DAMAGED")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
 
-                                <select
-                                    value={transporterId}
-                                    onChange={(e) => setTransporterId(e.target.value)}
-                                    required
-                                    className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                >
-                                    <option value="">Select transporter</option>
-                                    {transporters.map((t) => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">
-                                    Transporter Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={transporterId}
-                                    onChange={(e) => setTransporterId(e.target.value)}
-                                    className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">Transporter</label>
-                                <select value={selectedTransporter} onChange={(e) => setSelectedTransporter(e.target.value)} className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" >
-                                    <option value="">Select Transporter</option>
-                                    {transfer.transporter && (
-                                        <option key={transfer.transporter.id} value={transfer.transporter.id}>
-                                            {transfer.transporter.name}
-                                        </option>
-                                    )}
-                                </select>
-                            </div>
-                            <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">Vehicle No.</label>
-                                <input type="text" value={vehicleNumber} readOnly className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                            </div>
-                            <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">Driver's Name</label>
-                                <input type="text" value={driverName} readOnly className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                            </div>
-                            <div className='w-full'>
-                                <label className="block text-sm font-medium text-zinc-700">Driver's Contact</label>
-                                <input type="text" value={driverPhoneNumber} readOnly className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                            </div>
+        const expired = adjustmentItems
+            .filter((ai) => ai.adjustment?.type === "EXPIRED")
+            .reduce((sum, ai) => sum + (ai.quantity || 0), 0);
 
-                            <div className="w-full">
-                                <label className="block text-sm font-medium text-zinc-700">
-                                    Dispatch Time
-                                </label>
-                                <input
-                                    type="text"
-                                    value={dispatchTime.toLocaleString()}
-                                    readOnly
-                                    className="mt-2 w-full rounded-md border bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
-                                />
-                            </div>
-                        </div>
+        const saleItems = product.saleItems.filter((si) => si.sale?.locationId === location.id && si.sale?.date >= firstDayOfMonth);
 
-                        {/* Transfer Details */}
-                        <div className="rounded-md border border-zinc-200 bg-zinc-50 space-y-1 text-sm text-zinc-600">
-                            <div className="flex flex-row gap-5 justify-between px-5 py-2">
-                                <div className=''>
-                                    <h3 className='text-left mb-2 text-md'>From</h3>
-                                    <span className="font-medium">{transfer.fromLocation.name}</span>
-                                </div>
-                                <div>
-                                    <h3 className='text-left mb-2 text-md'>To</h3>
-                                    <span className="font-medium">{transfer.toLocation.name}</span>
-                                </div>
-                                <div>
-                                    <h3 className='text-left mb-2 text-md'>Status</h3>
-                                    <span className="font-medium">{transfer.status.replace('_', ' ')}</span>
-                                </div>
-                            </div>
-                        </div>
+        const salesQty = saleItems.reduce((sum, si) => sum + (si.quantity || 0), 0);
 
-                        {/* Items */}
-                        <div className="rounded-md">
-                            <table className="mt-2 w-full text-sm">
-                                <thead className="bg-zinc-50 font-bold border border-zinc-200">
-                                    <tr >
-                                        <th className="border border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Product</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">SKU</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Category</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Pack Size</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">UoM</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Weight</th>
-                                        <th className="border-r border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Quantity</th>
-                                        <th className="border border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">Tonnage</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transfer.items.map((item, index) => (
-                                        <tr key={index}
-                                            className="divide-y divide-zinc-200"
-                                        >
-                                            <td className="border border-zinc-300 px-6 py-4 text-zinc-900">{item.product.name}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.sku}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.category}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.packSize}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">Bags</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{(item.product.weightValue).toFixed(2)} {item.product.weightUnit}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.quantity}</td>
-                                            <td className="border border-zinc-300 px-6 py-4 text-zinc-900">{(item.product.weightValue * item.quantity / 1000).toFixed(2)} MT</td>
-                                        </tr>
-                                    ))}
+        const returns = saleItems
+            .filter((si) => si.sale?.isReturn)
+            .reduce((sum, si) => sum + (si.quantity || 0), 0);
 
-                                    {/* Totals */}
-                                    <tr className="bg-zinc-50 font-bold border border-zinc-200">
-                                        <td className="border-b border-zinc-200 px-6 py-4 text-zinc-900 text-center" colSpan={6}>Total</td>
-                                        <td className="border-b border-zinc-200 px-6 py-4 text-zinc-900">{totalQuantity}</td>
-                                        <td className="border-b border-zinc-200 px-6 py-4 text-zinc-900">{totalTonnage} MT</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+        const closingStock = openingStock + production + ibtReceived + rebagGain + returns - ibtIssued - salesQty - damaged - expired - rebagLoss;
 
-                        {/* Warning */}
-                        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                            Confirming dispatch will mark this transfer as <strong>in transit</strong>. Ensure transporter and driver details are correct.
-                        </div>
+        return {
+            productName: product.name,
+            sku: product.sku,
+            category: product.category,
+            weightValue: Number(product.weightValue.toFixed(2)),
+            location: location.name,
+            openingStock,
+            production,
+            ibtReceived,
+            ibtIssued,
+            rebagGain,
+            rebagLoss,
+            damaged,
+            expired,
+            returns,
+            salesQty,
+            closingStock,
+        };
+    });
 
-                        {/* Actions */}
-                        <div className="flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => router.back()}
-                                className="rounded-md bg-red-500 px-5 py-2 text-sm font-medium text-white hover:bg-red-600"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                            >
-                                Dispatch Transfer
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => window.print()}
-                                className="rounded-md border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-                            >
-                                Print Dispatch Note
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <Toaster position="bottom-left" />
-            </div>
-        </DashboardLayout>
-    );
-};
+    return report;
+}
 
-export default DispatchTransferPage;
+// Helper function to get inventory quantity as of a specific date
+async function getInventoryQuantityAsOfDate(productId: string, locationId: string, date: Date) {
+    const inventoryHistory = await prisma.inventoryHistory.findFirst({
+        where: {
+            productId,
+            locationId,
+            date: {
+                lte: date,
+            },
+        },
+        orderBy: {
+            date: 'desc',
+        },
+    });
+
+    return inventoryHistory ? inventoryHistory.quantity : 0;
+}

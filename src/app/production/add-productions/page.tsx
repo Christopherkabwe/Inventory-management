@@ -6,6 +6,7 @@ import { ProductDropdown } from "@/components/Dropdowns/ProductDropdown";
 import Loading from "@/components/Loading";
 import { Package } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useUser } from "@/app/context/UserContext";
 
 interface Product {
     id: string;
@@ -37,6 +38,8 @@ interface Production {
 }
 
 export default function ProductionPage() {
+    const user = useUser();
+
     const [productions, setProductions] = useState<Production[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
@@ -139,7 +142,7 @@ export default function ProductionPage() {
                 locationId,
                 notes,
                 items: safeItems,
-                createdById: "cmk40hu1n00013ooqrcrur0ny", // replace with actual logged-in user ID
+                createdById: user?.id, // replace with actual logged-in user ID
             };
 
             if (editingId) {

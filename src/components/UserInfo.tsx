@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, Key } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useUser } from "@/app/context/UserContext";
 
 interface User {
     id: string;
@@ -28,23 +29,11 @@ function UserInfoSpinner() {
 }
 
 export default function UserInfoDropdown() {
-    const [user, setUser] = useState<User | null>(null);
+    const user = useUser();
+
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        async function loadUser() {
-            try {
-                const res = await fetch("/api/users/me");
-                const data = await res.json();
-                if (data.success) setUser(data.user);
-            } catch (err) {
-                console.error("Failed to load user:", err);
-            }
-        }
-        loadUser();
-    }, []);
 
     // Close dropdown on outside click
     useEffect(() => {

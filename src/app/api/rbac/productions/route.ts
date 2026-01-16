@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { nextSequence } from "@/lib/sequence";
+import { updateInventoryHistory } from "@/lib/updateInventoryHistory";
 
 // ---------------- GET all productions ----------------
 export async function GET() {
@@ -25,7 +26,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const { locationId, notes, items, createdById } = await req.json();
-        console.log('Received data:', { locationId, notes, items, createdById });
 
         if (!locationId || !items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -66,19 +66,32 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Update inventory
-        for (const item of safeItems) {
-            await prisma.inventory.upsert({
-                where: { productId_locationId: { productId: item.productId, locationId } },
-                update: { quantity: { increment: item.quantity } },
-                create: {
-                    productId: item.productId,
-                    locationId,
-                    quantity: item.quantity,
-                    lowStockAt: 10,
-                    createdById: userId
-                },
-            });
+        try {
+            // Update inventory
+            for (const item of safeItems) {
+                await prisma.inventory.upsert({
+                    where: {
+                        productId_locationId: {
+                            productId: item.productId,
+                            locationId
+                        }
+                    },
+                    update: {
+                        quantity: { increment: item.quantity }
+                    },
+                    create: {
+                        productId: item.productId,
+                        locationId,
+                        quantity: item.quantity,
+                        lowStockAt: 10,
+                        createdById: userId
+                    },
+                });
+
+                await updateInventoryHistory(item.productId, locationId, item.quantity, new Date());
+            }
+        } catch (error) {
+            console.error('Error updating inventory history:', error);
         }
 
         return NextResponse.json({ data: production });

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import { useUser } from '@/app/context/UserContext';
 
 interface Transfer {
     id: string;
@@ -13,11 +14,13 @@ interface Transfer {
 }
 
 export default function ReceiveTransferPage() {
-    const [currentUser, setCurrentUser] = useState(null);
+    const user = useUser();
+    const currentUser = user;
+    const receivedById = user.id;
+
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const [transfer, setTransfer] = useState<Transfer | null>(null);
-    const [receivedById, setReceivedById] = useState('');
     const [items, setItems] = useState<
         {
             productId: string;
@@ -27,16 +30,6 @@ export default function ReceiveTransferPage() {
             comment: string;
         }[]
     >([]);
-
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            const response = await fetch('/api/users/me');
-            const data = await response.json();
-            setCurrentUser(data.user);
-            setReceivedById(data.user.id);
-        };
-        fetchCurrentUser();
-    }, []);
 
     useEffect(() => {
         async function load() {
@@ -70,11 +63,13 @@ export default function ReceiveTransferPage() {
         }
         try {
             const res = await fetch(`/api/transfers/${id}/receive`, {
+
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ receivedById, items }),
+
             });
 
             if (res.ok) {
@@ -123,8 +118,8 @@ export default function ReceiveTransferPage() {
                 <h1 className='mb-2'>Receiver's Details</h1>
                 <div className="flex flex-row gap-5 ">
                     <div>
-                        <label className="block text-sm font-medium text-gray-500"> Full Name </label>
-                        <input type="text" value={currentUser?.fullName} disabled className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100" />
+                        <label className="block text-sm font-medium text-gray-500"> Received By Id </label>
+                        <input type="text" value={currentUser?.id} disabled className="mt-2 w-full max-w-sm rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500"> Role</label>

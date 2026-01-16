@@ -76,7 +76,7 @@ const TransfersPage: React.FC = () => {
                     </div>
 
                     <button
-                        onClick={() => router.push("/transfers/create")}
+                        onClick={() => router.push("/transfers/create-transfer")}
                         className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
                     >
                         <Plus size={16} />

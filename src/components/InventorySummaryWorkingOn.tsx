@@ -12,6 +12,7 @@ import FiltersExports from "./FilterExports";
 import Loading from "@/components/Loading";
 import FiltersClient from "./FiltersClient";
 import FilterExports from "./FilterExports";
+import { useUser } from "@/app/context/UserContext";
 
 
 type SortKey = "name" | "quantity" | "value" | "tonnage" | "price" | "lowStockAt";
@@ -77,23 +78,8 @@ export default function InventorySummaryWorkingOn({ title, iconColor }: Props) {
 
     const [showFilters, setShowFilters] = useState(true);
 
-    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-
-    /** ----------------- Fetch Current User ----------------- */
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            try {
-                const res = await fetch("/api/users/me");
-                if (!res.ok) throw new Error("Failed to fetch current user");
-                const data = await res.json();
-                setCurrentUser(data.user);
-            } catch (err) {
-                console.error("Failed to fetch current user:", err);
-                setCurrentUser({ id: "unknown", role: "USER" });
-            }
-        };
-        fetchCurrentUser();
-    }, []);
+    const user = useUser();
+    const currentUser = user;
 
     /* ---------------- FETCH INVENTORY & SALES ---------------- */
     useEffect(() => {

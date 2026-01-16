@@ -46,3 +46,24 @@ export function ProductDropdown({
         </div>
     );
 }
+
+{/*
+
+const [productId, setProductId] = useState("");
+const [locationId, setLocationId] = useState("");
+const [categories, setCategories] = useState<string[]>([]);
+
+useEffect(() => {
+  const params = new URLSearchParams();
+
+  if (productId) params.set("productId", productId);
+  if (locationId) params.set("locationId", locationId);
+  categories.forEach(c => params.append("categories", c));
+
+  fetch(`/api/rbac/inventory-history?${params.toString()}`)
+    .then(res => res.json())
+    .then(setRows)
+    .finally(() => setLoading(false));
+}, [productId, locationId, categories]);
+
+*/}
