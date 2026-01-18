@@ -186,7 +186,7 @@ const DispatchTransferPage = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    value={driverPhoneNumber}
+                                    value={driverPhoneNumber || "+260971234"}
                                     onChange={(e) => setDriverPhoneNumber(e.target.value)}
                                     className="mt-2 w-full rounded-md border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
@@ -212,7 +212,7 @@ const DispatchTransferPage = () => {
                         </div>
 
                         {/* Items */}
-                        <div className="rounded-md">
+                        <div className="rounded-md overflow-auto">
                             <table className="mt-2 w-full text-sm">
                                 <thead className="bg-zinc-50 font-bold border border-zinc-200">
                                     <tr >
@@ -235,7 +235,7 @@ const DispatchTransferPage = () => {
                                             <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.sku}</td>
                                             <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.category}</td>
                                             <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.packSize}</td>
-                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">Bags</td>
+                                            <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.product.weightUnit}</td>
                                             <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{(item.product.weightValue).toFixed(2)} {item.product.weightUnit}</td>
                                             <td className="border-r border-zinc-300 px-6 py-4 text-zinc-900">{item.quantity}</td>
                                             <td className="border border-zinc-300 px-6 py-4 text-zinc-900">{(item.product.weightValue * item.quantity / 1000).toFixed(2)} MT</td>

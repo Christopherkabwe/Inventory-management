@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import InventorySummary from "@/components/InventorySummary";
-import ManageInventory from "@/components/ManageInventory";
+import InventorySummary from "@/components/inventory/InventorySummary";
+import ManageInventory from "@/components/inventory/ManageInventory";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from 'next/navigation';
 

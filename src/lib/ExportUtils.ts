@@ -66,7 +66,26 @@ export function exportPDF<T>(
         body: data.map(row =>
             headers.map(h => {
                 const value = row[h.key];
+
+                // Format number
                 if (typeof value === "number") return value.toFixed(2);
+
+                // Format date
+                if (value instanceof Date) {
+                    const day = String(value.getDate()).padStart(2, "0");
+                    const month = String(value.getMonth() + 1).padStart(2, "0");
+                    const year = value.getFullYear();
+                    return `${day}/${month}/${year}`;
+                }
+
+                // If string contains a date (ISO string), parse and format
+                if (typeof value === "string" && !isNaN(Date.parse(value))) {
+                    const d = new Date(value);
+                    const day = String(d.getDate()).padStart(2, "0");
+                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                    const year = d.getFullYear();
+                    return `${day}/${month}/${year}`;
+                }
                 return value ?? "";
             })
         ),

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { requireRole, UserRole } from "@/lib/rbac";
 import { NextResponse } from "next/server";
+import { recordInventoryTransaction } from "@/lib/inventory";
 
 type Params = { params: { id: string } };
 
@@ -11,7 +12,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
     try {
         const user = await getCurrentUser();
-        requireRole(user.role, [UserRole.ADMIN, UserRole.MANAGER]);
+        requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
 
         const sale = await prisma.sale.findUnique({
             where: { id },
@@ -21,20 +22,32 @@ export async function PATCH(req: Request, { params }: Params) {
         if (sale.isLocked) return NextResponse.json({ error: "Cannot cancel locked/invoiced sale" }, { status: 400 });
 
         await prisma.$transaction(async (tx) => {
-            // Restore inventory for all items
+            // 1️⃣ Restore inventory for all items and record in inventory history
             for (const item of sale.items) {
                 const inventory = await tx.inventory.findFirst({
                     where: { productId: item.productId, locationId: sale.locationId },
                 });
                 if (inventory) {
-                    await tx.inventory.update({
-                        where: { id: inventory.id },
-                        data: { quantity: { increment: item.quantity - item.quantityInvoiced } },
-                    });
+                    const restoreQty = item.quantity - item.quantityInvoiced;
+                    if (restoreQty > 0) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { increment: restoreQty } },
+                        });
+
+                        await recordInventoryTransaction({
+                            productId: item.productId,
+                            locationId: sale.locationId,
+                            delta: restoreQty,
+                            source: "SALE",
+                            reference: sale.id,
+                            createdById: user.id,
+                        });
+                    }
                 }
             }
 
-            // Reset sale items quantities
+            // 2️⃣ Reset sale items quantities
             await tx.saleItem.updateMany({
                 where: { saleId: id },
                 data: {
@@ -44,7 +57,7 @@ export async function PATCH(req: Request, { params }: Params) {
                 },
             });
 
-            // Update sale status
+            // 3️⃣ Update sale status
             await tx.sale.update({
                 where: { id },
                 data: { status: "CANCELLED", isLocked: false },

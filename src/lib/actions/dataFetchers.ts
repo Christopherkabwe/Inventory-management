@@ -1,5 +1,5 @@
 
-// lib/actions/users.ts
+// lib/actions/datafetchers.ts
 import { prisma } from "@/lib/prisma";
 
 export async function getUsers() {

@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import PrintButton from "@/components/print/PrintButton"
+import PrintableContent from "@/components/print/PrintableContent";
+import { useReactToPrint } from "react-to-print";
 
 type Transfer = {
     id: string;
@@ -42,6 +45,8 @@ export default function TransferPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const printRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         async function load() {
             try {
@@ -73,6 +78,7 @@ export default function TransferPage() {
 
     if (!transfer) return null;
 
+
     return (
         <DashboardLayout>
             {/* Back */}
@@ -87,155 +93,158 @@ export default function TransferPage() {
             </div>
 
             {/* Header */}
-            <div className="space-y-5 rounded-lg bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-                            Inter-Branch Transfer
-                        </h1>
-                        <p className="mt-1 text-sm text-zinc-500">
-                            IBT Number:{" "}
-                            <span className="font-medium text-zinc-700">
-                                {transfer.ibtNumber}
-                            </span>
-                            {" · "}
-                            Created{" "}
-                            {new Date(transfer.createdAt).toLocaleString()}
-                        </p>
-                    </div>
-
-                    <span
-                        className={`inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide ${statusStyles[transfer.status] ??
-                            "bg-zinc-100 text-zinc-700 border-zinc-300"
-                            }`}
-                    >
-                        {transfer.status.replace("_", " ")}
-                    </span>
-                </div>
-
-                {/* Summary */}
-                <div className="grid grid-cols-1 gap-6 rounded-xl border bg-white p-6 shadow-sm md:grid-cols-3">
-                    {[
-                        {
-                            label: "From Location",
-                            value: transfer.fromLocation.name,
-                        },
-                        {
-                            label: "To Location",
-                            value: transfer.toLocation.name,
-                        },
-                        {
-                            label: "Transporter",
-                            value: transfer.transporter?.name || "—",
-                        },
-                        {
-                            label: "Vehicle Number",
-                            value: transfer.transporter?.vehicleNumber || "—",
-                        },
-                        ,
-                        {
-                            label: "Driver Name",
-                            value: transfer.transporter?.driverName || "—",
-                        },
-                    ].map((item) => (
-                        <div key={item.label}>
-                            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                                {item.label}
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-zinc-900">
-                                {item.value}
+            <PrintableContent printRef={printRef}>
+                <div className="space-y-5 rounded-lg bg-white p-6 shadow-sm">
+                    <div className="flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+                                Inter-Branch Transfer
+                            </h1>
+                            <p className="mt-1 text-sm text-zinc-500">
+                                IBT Number:{" "}
+                                <span className="font-medium text-zinc-700">
+                                    {transfer.ibtNumber}
+                                </span>
+                                {" · "}
+                                Created{" "}
+                                {new Date(transfer.createdAt).toLocaleString()}
                             </p>
                         </div>
-                    ))}
-                </div>
-                {/* Items */}
-                <div className="rounded-xl border bg-white shadow-sm">
-                    <div className="border-b bg-zinc-50 px-6 py-4">
-                        <h2 className="text-sm font-semibold text-zinc-900">
-                            Transfer Items
-                        </h2>
-                        <p className="mt-1 text-xs text-zinc-500">
-                            Products included in this transfer
-                        </p>
+
+                        <span
+                            className={`inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide ${statusStyles[transfer.status] ??
+                                "bg-zinc-100 text-zinc-700 border-zinc-300"
+                                }`}
+                        >
+                            {transfer.status.replace("_", " ")}
+                        </span>
                     </div>
 
-                    {transfer.items.length === 0 ? (
-                        <div className="p-8 text-center text-sm text-zinc-500">
-                            No items added to this transfer.
+                    {/* Summary */}
+                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 rounded-xl border bg-white p-6 shadow-sm print-grid-cols" style={{ ['--print-cols' as any]: '3' }}>
+                        {[
+                            {
+                                label: "From Location",
+                                value: transfer.fromLocation.name,
+                            },
+                            {
+                                label: "To Location",
+                                value: transfer.toLocation.name,
+                            },
+                            {
+                                label: "Transporter",
+                                value: transfer.transporter?.name || "—",
+                            },
+                            {
+                                label: "Vehicle Number",
+                                value: transfer.transporter?.vehicleNumber || "—",
+                            },
+                            ,
+                            {
+                                label: "Driver Name",
+                                value: transfer.transporter?.driverName || "—",
+                            },
+                        ].map((item) => (
+                            <div key={item.label}>
+                                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                                    {item.label}
+                                </p>
+                                <p className="mt-2 text-sm font-semibold text-zinc-900">
+                                    {item.value}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Items */}
+                    <div className="rounded-xl border bg-white shadow-sm">
+                        <div className="border-b bg-zinc-50 px-6 py-4">
+                            <h2 className="text-sm font-semibold text-zinc-900">
+                                Transfer Items
+                            </h2>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                Products included in this transfer
+                            </p>
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="bg-zinc-100">
-                                    <tr>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Product
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            SKU
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Category
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Pack Size
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            UoM
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Weight
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Quantity
-                                        </th>
-                                        <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
-                                            Tonnage
-                                        </th>
-                                    </tr>
-                                </thead>
 
-                                <tbody>
-                                    {transfer.items.map((item, index) => (
-                                        <tr
-                                            key={item.id}
-                                            className={`
+                        {transfer.items.length === 0 ? (
+                            <div className="p-8 text-center text-sm text-zinc-500">
+                                No items added to this transfer.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-zinc-100">
+                                        <tr>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Product
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                SKU
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Category
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Pack Size
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                UoM
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Weight
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Quantity
+                                            </th>
+                                            <th className="border-b border-zinc-300 px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider text-zinc-700">
+                                                Tonnage
+                                            </th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {transfer.items.map((item, index) => (
+                                            <tr
+                                                key={item.id}
+                                                className={`
                                             ${index % 2 === 0 ? "bg-white" : "bg-zinc-50"}
                                             hover:bg-blue-50 transition-colors
                                         `}
-                                        >
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-900">
-                                                {item.product.name}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
-                                                {item.product.sku || "—"}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
-                                                {item.product.category || "—"}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
-                                                {item.product.packSize || "—"}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
-                                                {item.product.weightUnit || "—"}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
-                                                {(item.product.weightValue?.toFixed(2) || "—")}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 tabular-nums text-zinc-900">
-                                                {item.quantity}
-                                            </td>
-                                            <td className="border-b border-zinc-200 px-6 py-4 tabular-nums text-zinc-900">
-                                                {(item.product.weightValue * item.quantity / 1000).toFixed(2) || "—"} MT
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                            >
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-900">
+                                                    {item.product.name}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
+                                                    {item.product.sku || "—"}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
+                                                    {item.product.category || "—"}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
+                                                    {item.product.packSize || "—"}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
+                                                    {item.product.weightUnit || "—"}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 text-zinc-600">
+                                                    {(item.product.weightValue?.toFixed(2) || "—")}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 tabular-nums text-zinc-900">
+                                                    {item.quantity}
+                                                </td>
+                                                <td className="border-b border-zinc-200 px-6 py-4 tabular-nums text-zinc-900">
+                                                    {(item.product.weightValue * item.quantity / 1000).toFixed(2) || "—"} MT
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </PrintableContent>
+            <PrintButton printRef={printRef} />
         </DashboardLayout >
     );
 }

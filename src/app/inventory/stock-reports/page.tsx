@@ -1,6 +1,6 @@
 // app/inventory/stock-reports/page.tsx
 import DashboardLayout from "@/components/DashboardLayout";
-import StockReportTable from "@/components/StockReportTable"; // client component for sorting/export
+import StockReportTable from "@/components/inventory/StockReportTable"; // client component for sorting/export
 import { getStockReport, StockReportRow } from "@/lib/stockReport";
 
 export default async function StockReportPage() {

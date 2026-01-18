@@ -1,3 +1,8 @@
+
+nextjs-portal {
+  display: none !important;
+}
+
 @import "tailwindcss";
 @tailwind base;
 @tailwind components;
@@ -169,3 +174,37 @@
     margin-bottom: 10px;
   }
 }
+
+
+@media print {
+  .hide-on-print {
+    display: none;
+  }
+  #printable-content, #printable-content * {
+    visibility: visible;
+  }
+  #printable-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
+
+
+@media print {
+  .overflow-x-auto {
+    overflow-x: visible !important;
+  }
+  table {
+    page-break-inside: avoid;
+    width: 100%;
+    font-size: 10pt;
+  }
+  th, td {
+    padding: 5px;
+  }
+}
+
+
+
+

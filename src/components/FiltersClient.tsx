@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import MultiSelect, { MultiSelectOption } from "./Dropdowns/MultiSelect";
+import MultiSelect, { MultiSelectOption } from "./Multiselect/MultiSelect";
 
 export interface ClientFilters {
     products: string[];

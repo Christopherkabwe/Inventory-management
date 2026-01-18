@@ -43,11 +43,19 @@ export const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        name: "Products",
+        icon: Package,
+        subItems: [
+            { name: "Add Product", href: "/products/add-product" },
+            { name: "Product List", href: "/products" },
+        ],
+    },
+    {
         name: "Inventory",
         icon: Package,
         subItems: [
             { name: "Stock Management", href: "/inventory/stock-management" },
-            { name: "Add Product", href: "/inventory/add-product" },
+
             { name: "Stock adjustments", href: "/inventory/stock-adjustments" },
             { name: "Stock Reports", href: "/inventory/stock-reports" },
             { name: "Inventory Data", href: "/inventory/inventory-data" },

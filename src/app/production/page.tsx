@@ -1,8 +1,8 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { LocationDropdown } from "@/components/Dropdowns/LocationDropdown";
-import { ProductDropdown } from "@/components/Dropdowns/ProductDropdown";
+import { LocationDropdown } from "@/components/filters/Dropdowns/LocationDropdown";
+import { ProductDropdown } from "@/components/filters/Dropdowns/ProductDropdown";
 import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 

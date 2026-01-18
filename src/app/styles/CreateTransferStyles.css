@@ -1,0 +1,9 @@
+.print-grid-cols {
+  grid-template-columns: repeat(var(--print-cols, 1), minmax(0, 1fr));
+}
+
+@media print {
+  .print-grid-cols {
+    grid-template-columns: repeat(var(--print-cols, 1), minmax(0, 1fr));
+  }
+}

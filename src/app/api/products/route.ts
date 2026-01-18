@@ -7,9 +7,11 @@ export async function GET() {
             id: true,
             name: true,
             sku: true,
+            category: true,
             packSize: true,
             weightValue: true,
             weightUnit: true,
+            costPerBag: true,
         },
     });
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole, requireRole } from "@/lib/rbac";
 import { nextSequence } from "@/lib/sequence";
+import { recordInventoryTransaction } from "@/lib/inventory";
 
 // -------------------- GET /api/sale-returns?saleId=... --------------------
 export async function GET(req: NextRequest) {
@@ -14,7 +15,6 @@ export async function GET(req: NextRequest) {
         const url = new URL(req.url);
         const saleId = url.searchParams.get("saleId") ?? undefined;
 
-        // Build filter
         const where: any = {};
         if (saleId) where.saleId = saleId;
         if (user.role !== UserRole.ADMIN) where.createdById = user.id;
@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
 
         const { saleId, productId, quantity, reason } = await req.json();
 
-        // Validate input
         if (!saleId || !productId || !quantity || !reason) {
             return NextResponse.json(
                 { error: "Missing required fields: saleId, productId, quantity, reason" },
@@ -68,7 +67,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Quantity must be greater than 0" }, { status: 400 });
         }
 
-        // Transaction to safely create SR with sequence
         const saleReturn = await prisma.$transaction(async (tx) => {
             // 1️⃣ Check sale
             const sale = await tx.sale.findUnique({ where: { id: saleId } });
@@ -78,10 +76,34 @@ export async function POST(req: NextRequest) {
             const product = await tx.productList.findUnique({ where: { id: productId } });
             if (!product) throw new Error("Product not found");
 
-            // 3️⃣ Generate SR number
+            // 3️⃣ Generate return number
             const returnNumber = await nextSequence(tx, "RETURN");
 
-            // 4️⃣ Create sale return
+            // 4️⃣ Update inventory
+            const inventory = await tx.inventory.upsert({
+                where: { productId_locationId: { productId, locationId: sale.locationId } },
+                update: { quantity: { increment: quantity } },
+                create: {
+                    productId,
+                    locationId: sale.locationId,
+                    quantity,
+                    lowStockAt: 10,
+                    createdById: user.id,
+                },
+            });
+
+            // 5️⃣ Record inventory transaction
+            await recordInventoryTransaction({
+                productId,
+                locationId: sale.locationId,
+                delta: quantity, // stock increases
+                source: "RETURN",
+                reference: returnNumber,
+                createdById: user.id,
+                metadata: { saleId, reason },
+            });
+
+            // 6️⃣ Create sale return record
             const sr = await tx.saleReturn.create({
                 data: {
                     saleId,

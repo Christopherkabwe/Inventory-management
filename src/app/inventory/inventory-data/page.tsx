@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Product, Location, Inventory } from "@/components/interfaces"
 import Loading from "@/components/Loading";
-import InventoryFilters from "@/components/InventoryFilters";
-import Pagination from "@/components/pagination";
+import InventoryFilters from "@/components/inventory/InventoryFilters";
+import Pagination from "@/components/pagination/pagination";
 
 type InventoryItem = Inventory & {
     product: Product & {

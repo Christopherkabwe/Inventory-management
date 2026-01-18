@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import SalesTrendChart from "@/components/SalesTrendChart";
+import SalesTrendChart from "@/components/sales/SalesTrendChart";
 import DashboardLayout from "@/components/DashboardLayout";
 import { redirect } from "next/navigation"
 import { fetchDashboardData } from "@/lib/fetchData";
@@ -30,10 +30,12 @@ import {
     MTDReturnsKPI,
     PendingTransfersKPI,
 } from "@/components/kpi"
-import RecentSales from "@/components/RecentSales";
-import SalesTable from "@/components/SalesTable";
+import RecentSales from "@/components/sales/RecentSales";
+import SalesTable from "@/components/sales/SalesTable";
 
-
+export const metadata = {
+    title: "Sales Dashboard",
+};
 
 export default async function SalesDashboardPage() {
     const user = await getCurrentUser();

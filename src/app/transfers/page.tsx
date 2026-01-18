@@ -77,7 +77,8 @@ const TransfersPage: React.FC = () => {
 
                     <button
                         onClick={() => router.push("/transfers/create-transfer")}
-                        className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
+                        className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 
+                        text-sm font-medium text-white hover:bg-zinc-800 cursor-pointer"
                     >
                         <Plus size={16} />
                         New Transfer
@@ -105,7 +106,7 @@ const TransfersPage: React.FC = () => {
                     )}
 
                     {!loading && !error && transfers.length > 0 && (
-                        <table className="w-full border-collapse">
+                        <table className="w-full border-collapse cursor-pointer">
                             <thead className="bg-gray-200 border border-black">
                                 <tr>
                                     {[
@@ -154,7 +155,7 @@ const TransfersPage: React.FC = () => {
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     onClick={() => router.push(`/transfers/${t.id}`)}
-                                                    className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
+                                                    className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-zinc-700 hover:text-zinc-900 cursor-pointer"
                                                 >
                                                     <Eye size={15} />
                                                     View
@@ -162,7 +163,7 @@ const TransfersPage: React.FC = () => {
                                                 {t.status === 'PENDING' && (
                                                     <button
                                                         onClick={() => router.push(`/transfers/${t.id}/dispatch-transfer`)}
-                                                        className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+                                                        className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 px-2 py-1 rounded-md border border-gray-500 hover:text-blue-700 cursor-pointer"
                                                     >
                                                         Dispatch
                                                     </button>
@@ -170,14 +171,14 @@ const TransfersPage: React.FC = () => {
                                                 {t.status === 'DISPATCHED' && (
                                                     <button
                                                         onClick={() => router.push(`/transfers/${t.id}/receive-transfer`)}
-                                                        className="inline-flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"
+                                                        className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-green-600 hover:text-green-700 cursor-pointer"
                                                     >
                                                         Receive
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => handleDelete(t.id)}
-                                                    className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+                                                    className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-red-600 hover:text-red-700"
                                                 >
                                                     <Trash2 size={15} />
                                                     Delete

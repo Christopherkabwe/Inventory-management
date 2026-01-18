@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { fetchSales } from "@/lib/fetchSales";
-import SalesData from "@/components/SalesData";
+import SalesData from "@/components/sales/SalesData";
 
 
 export default function Page() {

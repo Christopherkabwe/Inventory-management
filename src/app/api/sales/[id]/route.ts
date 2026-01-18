@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { requireRole, UserRole } from "@/lib/rbac";
+import { recordInventoryTransaction } from "@/lib/inventory";
 
 type Params = { params: { id: string } };
 
@@ -28,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
             });
             if (!sale) throw new Error("Sale not found");
 
-            // 2️⃣ Prevent editing confirmed/locked sales
+            // 2️⃣ Prevent editing locked/confirmed/cancelled sales
             if (sale.isLocked || sale.status === "CANCELLED") {
                 throw new Error("Cannot update a confirmed, partially invoiced, or cancelled sale");
             }
@@ -66,6 +67,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
                             where: { id: inventory.id },
                             data: { quantity: { increment: oldItem.quantity } },
                         });
+
+                        await recordInventoryTransaction({
+                            productId: oldItem.productId,
+                            locationId: sale.locationId,
+                            delta: oldItem.quantity,
+                            source: "SALE",
+                            reference: sale.id,
+                            createdById: user.id,
+                        });
                     }
                 }
 
@@ -86,6 +96,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
                     await tx.inventory.update({
                         where: { id: inventory.id },
                         data: { quantity: { decrement: quantity } },
+                    });
+
+                    await recordInventoryTransaction({
+                        productId,
+                        locationId: sale.locationId,
+                        delta: -quantity,
+                        source: "SALE",
+                        reference: sale.id,
+                        createdById: user.id,
                     });
 
                     await tx.saleItem.create({
@@ -134,16 +153,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
 
         await prisma.$transaction(async (tx) => {
-            // 1️⃣ Fetch sale and items
             const sale = await tx.sale.findUnique({ where: { id }, include: { items: true } });
             if (!sale) throw new Error("Sale not found");
 
-            // 2️⃣ Prevent deletion of confirmed, partially invoiced, or locked sales
             if (sale.isLocked || sale.status === "CONFIRMED" || sale.status === "PARTIALLY_INVOICED") {
                 throw new Error("Cannot delete confirmed, partially invoiced, or locked sale");
             }
 
-            // 3️⃣ Restore inventory
+            // Restore inventory & record
             for (const item of sale.items) {
                 const inventory = await tx.inventory.findFirst({
                     where: { productId: item.productId, locationId: sale.locationId },
@@ -153,10 +170,18 @@ export async function DELETE(req: NextRequest, { params }: Params) {
                         where: { id: inventory.id },
                         data: { quantity: { increment: item.quantity } },
                     });
+
+                    await recordInventoryTransaction({
+                        productId: item.productId,
+                        locationId: sale.locationId,
+                        delta: item.quantity,
+                        source: "SALE",
+                        reference: sale.id,
+                        createdById: user.id,
+                    });
                 }
             }
 
-            // 4️⃣ Delete sale items & sale
             await tx.saleItem.deleteMany({ where: { saleId: id } });
             await tx.sale.delete({ where: { id } });
         });

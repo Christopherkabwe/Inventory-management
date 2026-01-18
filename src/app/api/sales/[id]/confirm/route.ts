@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { requireRole, UserRole } from "@/lib/rbac";
 import { NextResponse } from "next/server";
+import { recordInventoryTransaction } from "@/lib/inventory";
 
 type Params = { params: { id: string } };
 
@@ -11,7 +12,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
     try {
         const user = await getCurrentUser();
-        requireRole(user.role, [UserRole.ADMIN, UserRole.MANAGER]);
+        requireRole(user, [UserRole.ADMIN, UserRole.MANAGER]);
 
         const sale = await prisma.sale.findUnique({
             where: { id },
@@ -20,15 +21,29 @@ export async function PATCH(req: Request, { params }: Params) {
         if (!sale) return NextResponse.json({ error: "Sale not found" }, { status: 404 });
         if (sale.isLocked) return NextResponse.json({ error: "Sale already locked/invoiced" }, { status: 400 });
 
-        // Confirm sale: mark all items as fully invoiced
         await prisma.$transaction(async (tx) => {
+            // 1️⃣ Update sale items: mark as fully invoiced
             for (const item of sale.items) {
                 await tx.saleItem.update({
                     where: { id: item.id },
                     data: { quantityInvoiced: item.quantity },
                 });
+
+                // 2️⃣ Record inventory transaction for sold stock
+                await recordInventoryTransaction({
+                    productId: item.productId,
+                    locationId: sale.locationId,
+                    delta: -item.quantity, // stock decreases
+                    source: "SALE",
+                    reference: sale.id,
+                    createdById: user.id,
+                    metadata: {
+                        quantitySold: item.quantity,
+                    },
+                });
             }
 
+            // 3️⃣ Lock and confirm the sale
             await tx.sale.update({
                 where: { id },
                 data: { status: "CONFIRMED", isLocked: true },

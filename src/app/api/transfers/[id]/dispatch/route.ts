@@ -21,7 +21,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         await dispatchTransfer(id, transporterId, driverName, driverPhoneNumber);
         return NextResponse.json({ message: 'Transfer dispatched successfully' });
     } catch (error) {
-        console.error(error);
+        console.error(`[API] Dispatch Transfer failed for transferId=${id}:`, error);
         if (error instanceof PrismaClientKnownRequestError && error.code === 'P2034') {
             return NextResponse.json({ message: 'Transaction timed out' }, { status: 500 });
         }

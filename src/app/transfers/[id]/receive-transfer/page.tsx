@@ -17,7 +17,7 @@ export default function ReceiveTransferPage() {
     const user = useUser();
     const currentUser = user;
     const receivedById = user.id;
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const [transfer, setTransfer] = useState<Transfer | null>(null);
@@ -37,6 +37,7 @@ export default function ReceiveTransferPage() {
                 const res = await fetch(`/api/transfers/${id}`);
                 if (!res.ok) throw new Error('Failed to fetch transfer');
                 const data = await res.json();
+                console.log(data)
                 setTransfer(data);
                 setItems(
                     data.items.map((item: any) => ({
@@ -61,7 +62,9 @@ export default function ReceiveTransferPage() {
             toast.error('User not loaded');
             return;
         }
+        if (isSubmitting) return;
         try {
+            setIsSubmitting(true);
             const res = await fetch(`/api/transfers/${id}/receive`, {
 
                 method: 'POST',
@@ -82,6 +85,8 @@ export default function ReceiveTransferPage() {
         } catch (error) {
             toast.error('Error receiving transfer');
             console.error(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -175,21 +180,21 @@ export default function ReceiveTransferPage() {
                                         {transfer.items[index].product.name}
                                     </td>
                                     <td className="border-b px-4 py-3 text-center">
-                                        <input type="number" min={0} value={(item as any)['quantityReceived']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityReceived']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                        {transfer.items[index].quantity}
                                     </td>
-
                                     <td className="border-b px-4 py-3 text-center">
-                                        <input type="number" min={0} value={(item as any)['quantityDamaged']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityDamaged']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                        <input type="number" min={0} value={(item as any)['quantityReceived']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityReceived']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                                     </td>
                                     <td className="border-b px-4 py-3 text-center">
                                         {((transfer.items[index].product.weightValue) * (transfer.items[index].product.packSize) * (item as any)['quantityReceived'] / 1000).toFixed(2)} MT
                                     </td>
                                     <td className="border-b px-4 py-3 text-center">
-                                        <input type="number" min={0} value={(item as any)['quantityExpired']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityExpired']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                        <input type="number" min={0} value={(item as any)['quantityDamaged']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityDamaged']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                                     </td>
                                     <td className="border-b px-4 py-3 text-center">
-                                        {transfer.items[index].quantity}
+                                        <input type="number" min={0} value={(item as any)['quantityExpired']} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, ['quantityExpired']: Number(e.target.value) } : p,),)} className="w-20 rounded-md border px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                                     </td>
+
 
                                     <td className="border-b px-4 py-3">
                                         <input type="text" value={item.comment} onChange={(e) => setItems((prev) => prev.map((p, i) => i === index ? { ...p, comment: e.target.value } : p,),)} className="w-full rounded-md border px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Optional" />
@@ -211,13 +216,15 @@ export default function ReceiveTransferPage() {
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="rounded-md border px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                    className="rounded-md border px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 curosr-pointer"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleSubmit}
-                    className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    disabled={isSubmitting}
+                    className={`rounded-md px-5 py-2 text-sm font-medium text-white cursor-pointer
+                        ${isSubmitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
                 >
                     Confirm Receipt
                 </button>

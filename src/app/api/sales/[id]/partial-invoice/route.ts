@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { requireRole, UserRole } from "@/lib/rbac";
 import { NextResponse } from "next/server";
+import { recordInventoryTransaction } from "@/lib/inventory";
 
 type Params = { params: { id: string } };
 
@@ -27,12 +28,13 @@ export async function PATCH(req: Request, { params }: Params) {
             if (!sale) throw new Error("Sale not found");
             if (sale.isLocked) throw new Error("Sale already fully invoiced/locked");
 
-            // Update quantityInvoiced per item
+            // 1️⃣ Update quantityInvoiced per item and record inventory
             for (const item of items) {
                 const saleItem = sale.items.find(si => si.id === item.id);
                 if (!saleItem) throw new Error(`Sale item not found: ${item.id}`);
 
-                const newInvoicedQty = saleItem.quantityInvoiced + (item.quantity ?? 0);
+                const qtyToInvoice = item.quantity ?? 0;
+                const newInvoicedQty = saleItem.quantityInvoiced + qtyToInvoice;
                 if (newInvoicedQty > saleItem.quantity) {
                     throw new Error(`Cannot invoice more than ordered for item ${saleItem.id}`);
                 }
@@ -41,14 +43,25 @@ export async function PATCH(req: Request, { params }: Params) {
                     where: { id: saleItem.id },
                     data: { quantityInvoiced: newInvoicedQty },
                 });
+
+                // 2️⃣ Record inventory transaction for partially invoiced quantity
+                await recordInventoryTransaction({
+                    productId: saleItem.productId,
+                    locationId: sale.locationId,
+                    delta: -qtyToInvoice, // stock decreases
+                    source: "SALE",
+                    reference: sale.id,
+                    createdById: user.id,
+                    metadata: { quantityInvoiced: qtyToInvoice },
+                });
             }
 
-            // Check if all items fully invoiced
+            // 3️⃣ Check if all items fully invoiced
             const fullyInvoiced = sale.items.every(si =>
                 (items.find(i => i.id === si.id)?.quantity ?? 0) + si.quantityInvoiced >= si.quantity
             );
 
-            // Update sale status
+            // 4️⃣ Update sale status
             const newStatus = fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED";
             const isLocked = fullyInvoiced;
 

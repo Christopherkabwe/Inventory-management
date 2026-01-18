@@ -82,8 +82,14 @@ export async function POST(req: NextRequest) {
         return response;
     } catch (error) {
         console.error("Login error:", error);
+        if (error instanceof Error && error.name === 'NetworkError') {
+            return NextResponse.json(
+                { error: "Network error. Please check your connection." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json(
-            { error: "Server error" },
+            { error: "Server error. Please try again later." },
             { status: 500 }
         );
     }

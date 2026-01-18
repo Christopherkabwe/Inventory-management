@@ -82,14 +82,14 @@ async function main() {
     const allLocations = await prisma.location.findMany();
 
     // -------------------- PRODUCTS --------------------
-    console.log("Creating Database")
-    const categories = ["Electronics", "Fashion", "Home Goods", "Toys", "Food"];
+    console.log("Creating Products")
+    const categories = ["Category 1", "Category 2", "Category 3", "Category 4", "Category 5"];
     const productsData = Array.from({ length: 20 }).map((_, i) => ({
         sku: `SKU${String(i + 1).padStart(3, "0")}`,
         name: `Product ${i + 1}`,
         price: faker.number.float({ min: 10, max: 500 }),
         packSize: faker.number.int({ min: 1, max: 10 }),
-        weightValue: faker.number.float({ min: 0.5, max: 5 }),
+        weightValue: faker.number.float({ min: 5, max: 50 }),
         weightUnit: "kg",
         category: pickRandom(categories),
         createdById: pickRandom(admins).id,
@@ -130,23 +130,39 @@ async function main() {
     const transporters = await prisma.transporter.findMany();
 
     // -------------------- INVENTORY --------------------
-    console.log("Creating Inventory")
+    console.log("Creating Inventory");
+
+    // You can tweak these limits
+    const maxProductsPerLocation = 5; // max products per location
+    const maxLocationsPerProduct = 3; // max locations per product
+
     const inventoryMap: Record<string, any> = {};
-    for (const product of products) {
-        for (const location of allLocations) {
+
+    for (const location of allLocations) {
+        // pick a random subset of products for this location
+        const productsForLocation = faker.helpers.arrayElements(products, maxProductsPerLocation);
+
+        for (const product of productsForLocation) {
+            // randomly pick a manager and admin for assignment
+            const assignedUser = pickRandom(managers);
+            const createdBy = pickRandom(admins);
+
             const inv = await prisma.inventory.create({
                 data: {
                     productId: product.id,
                     locationId: location.id,
                     quantity: faker.number.int({ min: 50, max: 150 }),
                     lowStockAt: 10,
-                    assignedUserId: pickRandom(managers).id,
-                    createdById: pickRandom(admins).id,
+                    assignedUserId: assignedUser.id,
+                    createdById: createdBy.id,
                 },
             });
+
             inventoryMap[`${product.id}-${location.id}`] = inv;
         }
     }
+
+    console.log(`✅ Inventory created: ${Object.keys(inventoryMap).length} records`);
 
     // -------------------- SALES ORDERS & SALES --------------------
     console.log("Creating Sales & Invoices")
@@ -218,7 +234,6 @@ async function main() {
         }
 
         // Delivery Notes
-        console.log("Creating Delivery Notes");
         const deliveryNoteNo = await getNextSequence("DN");
         await prisma.deliveryNote.create({
             data: {

@@ -9,8 +9,8 @@ import {
     Clock,
     WeightIcon,
 } from "lucide-react";
-import StockHealthPie from "@/components/StockHealthPie";
-import InventorySummary from "@/components/InventorySummary";
+import StockHealthPie from "@/components/inventory/StockHealthPie";
+import InventorySummary from "@/components/inventory/InventorySummary";
 import DashboardLayout from "@/components/DashboardLayout";
 import { redirect } from "next/navigation";
 

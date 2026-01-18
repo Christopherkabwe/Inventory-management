@@ -1,6 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "./auth";
-import { NextResponse } from "next/server";
 import { getInventoryAccessControl } from "./Access-Control/InventoryAccessControl";
 
 export type StockReportRow = {

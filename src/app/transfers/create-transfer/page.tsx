@@ -6,6 +6,12 @@ import DashboardLayout from "@/components/DashboardLayout";
 import toast, { Toaster } from 'react-hot-toast';
 import withRole from "@/components/withRole";
 import { useUser } from "@/app/context/UserContext";
+import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboBox";
+import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
+import { TransporterCombobox } from "@/components/SingleSelectComboBox/TransporterComboBox";
+import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
+import { Input } from "@/components/ui/input";
+
 
 interface Location {
     id: string;
@@ -44,7 +50,7 @@ const CreateTransferPage: React.FC = () => {
     const router = useRouter();
 
     const [isCreating, setIsCreating] = useState(false);
-
+    const [availableQuantities, setAvailableQuantities] = useState<Record<string, number>>({});
     const user = useUser();
 
     // Fetch Locations, Transporters, and Products
@@ -113,6 +119,18 @@ const CreateTransferPage: React.FC = () => {
         }
     };
 
+    const handleProductChange = async (productId: string, index: number) => {
+        if (fromLocationId) {
+            try {
+                const res = await fetch(`/api/products/${productId}/stock?locationId=${fromLocationId}`);
+                const quantity = await res.json();
+                setAvailableQuantities((prev) => ({ ...prev, [productId]: quantity }));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    };
+
     const addItem = () => setItems([...items, { productId: "", quantity: 1 }]);
     const removeItem = (index: number) =>
         setItems(items.filter((_, i) => i !== index));
@@ -134,62 +152,39 @@ const CreateTransferPage: React.FC = () => {
                 <h1 className="text-2xl font-semibold mb-6">Create Stock Transfer</h1>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Locations */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                         <div>
                             <label className="block text-sm font-medium mb-1">
                                 From Location
                             </label>
-                            <select
+                            <LocationCombobox
+                                locations={locations}
                                 value={fromLocationId}
-                                onChange={(e) => setFromLocationId(e.target.value)}
-                                className="w-full border rounded-md px-3 py-2"
-                                required
-                            >
-                                <option value="">Select location</option>
-                                {locations.map((l) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.name}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={setFromLocationId}
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">
                                 To Location
                             </label>
-                            <select
+                            <LocationCombobox
+                                locations={locations}
                                 value={toLocationId}
-                                onChange={(e) => setToLocationId(e.target.value)}
-                                className="w-full border rounded-md px-3 py-2"
-                                required
-                            >
-                                <option value="">Select location</option>
-                                {locations.map((l) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.name}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={setToLocationId}
+                            />
                         </div>
-                    </div>
-                    {/* Transporter */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Transporter
-                        </label>
-                        <select
-                            value={transporterId}
-                            onChange={(e) => setTransporterId(e.target.value)}
-                            className="w-full border rounded-md px-3 py-2"
-                            required
-                        >
-                            <option value="">Select transporter</option>
-                            {transporters.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                    {t.name}
-                                </option>
-                            ))}
-                        </select>
+
+                        {/* Transporter */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Transporter
+                            </label>
+                            <TransporterCombobox
+                                transporters={transporters}
+                                value={transporterId}
+                                onChange={setTransporterId}
+                            />
+                        </div>
                     </div>
                     {/* Items */}
                     <div>
@@ -199,34 +194,41 @@ const CreateTransferPage: React.FC = () => {
                                 key={index}
                                 className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3"
                             >
-                                <select
-                                    value={item.productId}
-                                    onChange={(e) => {
-                                        const copy = [...items];
-                                        copy[index].productId = e.target.value;
-                                        setItems(copy);
-                                    }}
-                                    className="border rounded-md px-3 py-2"
-                                    required
-                                >
-                                    <option value="">Select product</option>
-                                    {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="number"
-                                    min={1}
+                                <div className="flex flex-col">
+                                    <ProductCombobox
+                                        products={products}
+                                        value={item.productId}
+                                        disabled={!fromLocationId}
+                                        onChange={(productId) => {
+                                            setItems((prev) =>
+                                                prev.map((it, i) => (i === index ? { ...it, productId } : it))
+                                            );
+                                            handleProductChange(productId, index);
+                                        }}
+                                    />
+                                    {!fromLocationId && (
+                                        <span className="text-sm text-red-500 mt-1 ml-2">
+                                            Please select a from location first
+                                        </span>
+                                    )}
+                                    {item.productId && availableQuantities[item.productId] !== undefined && (
+                                        <span className="text-sm text-gray-500 mt-1 ml-2">
+                                            Available: {availableQuantities[item.productId]}
+                                            {availableQuantities[item.productId] === 0 && (
+                                                <span className="text-sm text-red-500 ml-2">(Out of stock)</span>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                                <NumberInput
                                     value={item.quantity}
-                                    onChange={(e) => {
+                                    min={1}
+                                    required
+                                    onChange={(value) => {
                                         const copy = [...items];
-                                        copy[index].quantity = Number(e.target.value);
+                                        copy[index].quantity = value;
                                         setItems(copy);
                                     }}
-                                    className="border rounded-md px-3 py-2"
-                                    required
                                 />
                                 <button
                                     type="button"
@@ -255,7 +257,7 @@ const CreateTransferPage: React.FC = () => {
                         </a>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                            className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer"
                             disabled={isCreating}
                         >
                             {isCreating ? 'Creating Transfer...' : 'Create Transfer'}

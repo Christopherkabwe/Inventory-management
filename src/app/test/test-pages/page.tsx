@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import LeastProducts from "@/components/LeastProducts";
-import SalesByCategory from "@/components/SalesByCategory";
-import SalesByCategoryPie from "@/components/SalesByCategoryPie";
-import SalesByLocation from "@/components/SalesByLocation";
-import SalesContributionByLocation from "@/components/SalesContributionByLocation";
-import SalesGrowthByLocation from "@/components/SalesGrowthByLocation";
-import SalesTrend from "@/components/SalesTrend";
-import SalesValueByLocation from "@/components/SalesValueByLocation";
-import TopProducts from "@/components/TopProducts";
-import TopProductsByLocation from "@/components/TopProductsByLocation";
-import TopCustomers from "@/components/TopCustomers";
-import LeastCustomers from "@/components/LeastCustomers";
-import SalesTable from "@/components/SalesTable";
+import LeastProducts from "@/components/sales/LeastProducts";
+import SalesByCategory from "@/components/sales/SalesByCategory";
+import SalesByCategoryPie from "@/components/sales/SalesByCategoryPie";
+import SalesByLocation from "@/components/sales/SalesByLocation";
+import SalesContributionByLocation from "@/components/sales/SalesContributionByLocation";
+import SalesGrowthByLocation from "@/components/sales/SalesGrowthByLocation";
+import SalesTrend from "@/components/sales/SalesTrend";
+import SalesValueByLocation from "@/components/sales/SalesValueByLocation";
+import TopProducts from "@/components/sales/TopProducts";
+import TopProductsByLocation from "@/components/sales/TopProductsByLocation";
+import TopCustomers from "@/components/sales/TopCustomers";
+import LeastCustomers from "@/components/sales/LeastCustomers";
+import SalesTable from "@/components/sales/SalesTable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { fetchSales } from "@/lib/fetchSales";
-import SalesData from "@/components/SalesData";
+import SalesData from "@/components/sales/SalesData";
 import InventorySummary from "@/components/InventorySummary";
 import InventoryTable from "@/components/InventoryTableTest";
 

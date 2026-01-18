@@ -1,6 +1,5 @@
 // services/transfer.service.ts
 import { prisma } from '@/lib/prisma';
-import { updateInventoryHistory } from '@/lib/updateInventoryHistory';
 import withRetries from '@/lib/retry';
 
 type TransferReceiptItem = {
@@ -11,6 +10,63 @@ type TransferReceiptItem = {
     comment?: string;
 };
 
+interface RecordInventoryParams {
+    productId: string;
+    locationId: string;
+    delta: number;
+    source: string;
+    reference: string;
+    createdById: string;
+    metadata?: Record<string, any>;
+}
+
+/**
+ * Option A unified inventory recording
+ */
+async function recordInventoryTransaction(params: RecordInventoryParams) {
+    const { productId, locationId, delta, source, reference, createdById, metadata } = params;
+
+    // Build the data object
+    const data: any = {
+        productId,
+        locationId,
+        date: new Date(),
+        reference,
+        createdById,
+    };
+
+    if (source === 'TRANSFER_IN_TRANSIT') {
+        data.inTransitDelta = delta;
+        data.delta = 0;
+    } else {
+        data.delta = delta;
+    }
+
+    if (source === 'TRANSFER_IN') {
+        data.sourceType = 'TRANSFER_IN';
+        data.transferReceiptItemId = null; // Replace null with actual relation if needed
+    } else if (source === 'TRANSFER_OUT') {
+        data.sourceType = 'TRANSFER_OUT';
+    } else if (source === 'TRANSFER_IN_TRANSIT') {
+        data.sourceType = 'TRANSFER_IN_TRANSIT';
+    } else if (source === 'TRANSFER_DAMAGED') {
+        data.sourceType = 'TRANSFER_DAMAGED';
+    } else if (source === 'TRANSFER_EXPIRED') {
+        data.sourceType = 'TRANSFER_EXPIRED';
+    }
+
+    // Include metadata if provided
+    if (metadata) {
+        data.metadata = metadata; // Ensure your Prisma schema has `metadata Json?`
+    }
+
+    await prisma.inventoryHistory.create({ data });
+}
+
+
+/**
+ * Dispatch a transfer: subtract stock from source, mark in transit
+ */
 export async function dispatchTransfer(
     transferId: string,
     transporterId: string,
@@ -21,15 +77,15 @@ export async function dispatchTransfer(
 
     return withRetries(async () => {
         await prisma.$transaction(async (tx) => {
-            // 1️⃣ Fetch the transfer first
             const transfer = await tx.transfer.findUnique({
                 where: { id: transferId },
                 include: { items: true, fromLocation: true, toLocation: true },
+
             });
 
             if (!transfer) throw new Error(`Transfer ${transferId} not found`);
 
-            // 2️⃣ Update transfer status and transporter
+            // Update transfer status and transporter info
             await tx.transfer.update({
                 where: { id: transferId },
                 data: {
@@ -40,38 +96,34 @@ export async function dispatchTransfer(
                     },
                 },
             });
-
             console.log(`[Service] Transfer ${transferId} marked as DISPATCHED`);
 
-            // 3️⃣ Subtract from source location inventory (sequentially to avoid locks)
+            // Subtract stock from source location and record TRANSFER_OUT
             for (const item of transfer.items) {
-                await tx.inventory.update({
-                    where: {
-                        productId_locationId: {
-                            productId: item.productId,
-                            locationId: transfer.fromLocationId,
-                        },
-                    },
-                    data: {
-                        quantity: { decrement: item.quantity },
-                    },
+                await tx.inventory.upsert({
+                    where: { productId_locationId: { productId: item.productId, locationId: transfer.fromLocationId } },
+                    update: { quantity: { decrement: item.quantity } },
+                    create: { productId: item.productId, locationId: transfer.fromLocationId, quantity: 0, lowStockAt: 0, createdById: transfer.createdById, inTransit: 0 }
                 });
 
-                // Update Inventory History
-                await updateInventoryHistory(item.productId, transfer.fromLocationId, -item.quantity, new Date());
-
-                console.log(`[Service] Subtracted ${item.quantity} of ${item.productId} from source location`);
+                await recordInventoryTransaction({
+                    productId: item.productId,
+                    locationId: transfer.fromLocationId,
+                    delta: -item.quantity,
+                    source: 'TRANSFER_OUT',
+                    reference: `TRANSFER-${transfer.ibtNumber}`,
+                    createdById: transfer.createdById,
+                });
             }
-
-            // 4️⃣ Mark as in transit in destination location
+            // Mark stock as in transit at destination and record TRANSFER_IN_TRANSIT
             for (const item of transfer.items) {
                 await tx.inventory.upsert({
                     where: { productId_locationId: { productId: item.productId, locationId: transfer.toLocationId } },
                     create: {
                         productId: item.productId,
                         locationId: transfer.toLocationId,
-                        quantity: 0,       // no actual stock yet
-                        inTransit: item.quantity, // mark as in transit
+                        quantity: 0,
+                        inTransit: item.quantity,
                         lowStockAt: 0,
                         createdById: transfer.createdById,
                     },
@@ -80,97 +132,126 @@ export async function dispatchTransfer(
                     },
                 });
 
-                await updateInventoryHistory(item.productId, transfer.toLocationId, 0, new Date());
-                console.log(`[Service] Marked ${item.quantity} of ${item.productId} as in transit`);
+                await recordInventoryTransaction({
+                    productId: item.productId,
+                    locationId: transfer.toLocationId,
+                    delta: 0, // in-transit does not change actual stock
+                    source: 'TRANSFER_IN_TRANSIT',
+                    reference: `TRANSFER-${transfer.ibtNumber}`,
+                    createdById: transfer.createdById,
+                });
             }
         }, { timeout: 120000 });
     }, 3, 100);
 }
 
+/** 
+ * Receive a transfer: update inventory, record received, damaged, expired
+ */
 export async function receiveTransfer(
     transferId: string,
     receivedById: string,
     items: TransferReceiptItem[]
 ) {
     if (!items || items.length === 0) throw new Error('No items provided for receipt');
-    console.log(`[Service] Receiving transfer ${transferId} by user ${receivedById}`);
-
     return withRetries(async () => {
         await prisma.$transaction(async (tx) => {
-            // 1️⃣ Fetch transfer
             const transfer = await tx.transfer.findUnique({
                 where: { id: transferId },
                 include: { items: true, toLocation: true },
             });
             if (!transfer) throw new Error(`Transfer ${transferId} not found`);
-            if (!transfer.toLocationId) throw new Error(`Transfer ${transferId} has no destination location`);
-
+            if (!transfer.toLocationId) throw new Error(`Transfer ${transferId} has no destination`);
             const toLocationId = transfer.toLocationId;
 
-            // 2️⃣ Update transfer status
-            await tx.transfer.update({ where: { id: transferId }, data: { status: 'RECEIVED' } });
-            console.log(`[Service] Transfer ${transferId} marked as RECEIVED`);
+            // Update transfer status
+            await tx.transfer.update({
+                where: { id: transferId },
+                data: { status: 'RECEIVED' }
+            });
 
-            // 3️⃣ Check if receipt already exists
+            // Ensure no existing receipt
             const existingReceipt = await tx.transferReceipt.findUnique({ where: { transferId } });
             if (existingReceipt) throw new Error(`Transfer ${transferId} already received`);
 
-            // 4️⃣ Create transfer receipt
-            await tx.transferReceipt.create({
+            // Create transfer receipt
+            const receipt = await tx.transferReceipt.create({
                 data: {
                     transferId,
                     receivedById,
                     items: {
-                        create: items.map((i) => ({
+                        create: items.map(i => ({
                             productId: i.productId,
                             quantityReceived: i.quantityReceived,
                             quantityDamaged: i.quantityDamaged,
                             quantityExpired: i.quantityExpired,
                             comment: i.comment || null,
-                        })),
+                        }))
                     },
                 },
+                include: { items: true },
             });
-            console.log(`[Service] Transfer receipt created for ${transferId}`);
 
-            // 5️⃣ Update or create inventory sequentially
+            // Update inventory and record history
             for (const item of items) {
-                const inv = await tx.inventory.findUnique({
+                const receiptItem = receipt.items.find(i => i.productId === item.productId);
+                if (!receiptItem) throw new Error(`Receipt item not found for product ${item.productId}`);
+
+                await tx.inventory.upsert({
                     where: { productId_locationId: { productId: item.productId, locationId: toLocationId } },
+                    create: {
+                        productId: item.productId,
+                        locationId: toLocationId,
+                        quantity: item.quantityReceived,
+                        inTransit: 0,
+                        lowStockAt: 0,
+                        createdById: receivedById,
+                    },
+                    update: {
+                        quantity: { increment: item.quantityReceived },
+                        inTransit: { decrement: item.quantityReceived },
+                    },
                 });
 
-                if (inv) {
-                    await tx.inventory.update({
-                        where: { productId_locationId: { productId: item.productId, locationId: toLocationId } },
-                        data: {
-                            quantity: { increment: item.quantityReceived },
-                            inTransit: { decrement: item.quantityReceived }, // subtract from transit
-                        },
+                // Record received
+                await recordInventoryTransaction({
+                    productId: item.productId,
+                    locationId: toLocationId,
+                    delta: item.quantityReceived,
+                    source: 'TRANSFER_IN',
+                    reference: `TRANSFER-${transfer.ibtNumber}`,
+                    createdById: receivedById,
+                    transferReceiptItemId: receiptItem.id,
+                });
+
+                // Record damaged
+                if (item.quantityDamaged > 0) {
+                    await recordInventoryTransaction({
+                        productId: item.productId,
+                        locationId: toLocationId,
+                        delta: 0,
+                        source: 'TRANSFER_DAMAGED',
+                        reference: `TRANSFER-${transfer.ibtNumber}`,
+                        createdById: receivedById,
+                        metadata: { quantityDamaged: item.quantityDamaged },
+                        transferReceiptItemId: receiptItem.id,
                     });
+                }
 
-                    // Update Inventory History
-                    await updateInventoryHistory(item.productId, toLocationId, item.quantityReceived, new Date());
-
-                    console.log(`[Service] Updated inventory for ${item.productId}`);
-
-                } else {
-                    await tx.inventory.create({
-                        data: {
-                            productId: item.productId,
-                            locationId: toLocationId,
-                            quantity: item.quantityReceived,
-                            inTransit: 0,
-                            lowStockAt: 0,
-                            createdById: receivedById,
-                        },
+                // Record expired
+                if (item.quantityExpired > 0) {
+                    await recordInventoryTransaction({
+                        productId: item.productId,
+                        locationId: toLocationId,
+                        delta: 0,
+                        source: 'TRANSFER_EXPIRED',
+                        reference: `TRANSFER-${transfer.ibtNumber}`,
+                        createdById: receivedById,
+                        metadata: { quantityExpired: item.quantityExpired },
+                        transferReceiptItemId: receiptItem.id,
                     });
-
-                    // New productId added to  Inventory History
-                    await updateInventoryHistory(item.productId, toLocationId, item.quantityReceived, new Date());
-
-                    console.log(`[Service] Created inventory for ${item.productId}`);
                 }
             }
-        }, { timeout: 120000 }); // longer timeout for safety
-    }, 3, 100); // retries + delay
+        }, { timeout: 120000 });
+    }, 3, 100);
 }

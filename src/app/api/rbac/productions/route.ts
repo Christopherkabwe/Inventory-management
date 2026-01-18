@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { nextSequence } from "@/lib/sequence";
-import { updateInventoryHistory } from "@/lib/updateInventoryHistory";
+import { recordInventoryTransaction } from "@/lib/inventory"; // ✅ updated
 
 // ---------------- GET all productions ----------------
 export async function GET() {
@@ -88,10 +88,19 @@ export async function POST(req: NextRequest) {
                     },
                 });
 
-                await updateInventoryHistory(item.productId, locationId, item.quantity, new Date());
+                // ✅ record inventory using Option A
+                await recordInventoryTransaction({
+                    productId: item.productId,
+                    locationId,
+                    delta: item.quantity,
+                    source: "PRODUCTION",
+                    reference: production.productionNo,
+                    createdById: userId,
+                    metadata: { notes },
+                });
             }
         } catch (error) {
-            console.error('Error updating inventory history:', error);
+            console.error('Error recording inventory transaction:', error);
         }
 
         return NextResponse.json({ data: production });

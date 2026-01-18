@@ -273,7 +273,7 @@ export default function ProductionCharts({
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
                 {/* Tonnage by Location */}
                 <div className="bg-white p-4 border rounded">
@@ -297,7 +297,7 @@ export default function ProductionCharts({
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                 <div className="bg-white p-4 border rounded">
                     <h3 className="font-semibold mb-3">
                         <BarChart3 className="inline-block h-5 w-5 mr-2 text-blue-600" />
@@ -368,7 +368,7 @@ export default function ProductionCharts({
                 </div>
             </div>
             {/* Tonnage by Location */}
-            <div className="bg-white p-4 border rounded grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="p-4 rounded grid grid-cols-1 xl:grid-cols-2 gap-5">
                 <PieCard
                     title="Production by Location (Tonnage)"
                     icon={<Factory className="h-5 w-5 text-blue-600" />}

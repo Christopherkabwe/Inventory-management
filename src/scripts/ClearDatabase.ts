@@ -40,6 +40,7 @@ export async function ClearDatabase() {
 
         // CUSTOMERS
         await prisma.customer.deleteMany();
+        await prisma.inventoryHistory.deleteMany();
 
         // PRODUCTS
         await prisma.productList.deleteMany();

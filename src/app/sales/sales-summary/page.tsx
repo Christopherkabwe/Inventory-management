@@ -1,7 +1,7 @@
 "use client"
 
 import DashboardLayout from "@/components/DashboardLayout";
-import SalesTable from "@/components/SalesTable";
+import SalesTable from "@/components/sales/SalesTable";
 
 export default function () {
 

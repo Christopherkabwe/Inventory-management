@@ -1,4 +1,4 @@
-import MultiSelect, { MultiSelectOption } from "./Dropdowns/MultiSelect";
+import MultiSelect, { MultiSelectOption } from "./Multiselect/MultiSelect";
 
 interface FiltersServerProps {
     products: MultiSelectOption[];

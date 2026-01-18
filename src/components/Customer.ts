@@ -1,4 +1,4 @@
-import { Sale } from "./Sale";
+import { Sale } from "./sales/Sale";
 export interface Customer {
     id: string;
     name: string;
