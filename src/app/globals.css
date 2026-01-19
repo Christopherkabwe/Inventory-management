@@ -1,7 +1,10 @@
 
-nextjs-portal {
-  display: none !important;
+@media print {
+  [data-nextjs-portal] {
+    display: none !important;
+  }
 }
+
 
 @import "tailwindcss";
 @tailwind base;
@@ -164,47 +167,74 @@ nextjs-portal {
 }
 
 
-
-@media (max-width: 768px) {
-  .flex-wrap {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .flex-wrap > div {
-    margin-bottom: 10px;
-  }
-}
-
-
+/* ---------------- PRINT ---------------- */
 @media print {
-  .hide-on-print {
-    display: none;
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
   }
-  #printable-content, #printable-content * {
-    visibility: visible;
+
+  /* Hide everything */
+  body * {
+    visibility: hidden !important;
   }
-  #printable-content {
+
+  /* Show only print area */
+  #print-area,
+  #print-area * {
+    visibility: visible !important;
+  }
+
+  #print-area {
     position: absolute;
     left: 0;
     top: 0;
-  }
-}
-
-
-@media print {
-  .overflow-x-auto {
-    overflow-x: visible !important;
-  }
-  table {
-    page-break-inside: avoid;
     width: 100%;
-    font-size: 10pt;
   }
+
+  /* Cleanup UI */
+  .shadow-sm {
+    box-shadow: none !important;
+  }
+
+  .rounded-xl,
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
   th, td {
-    padding: 5px;
+    font-size: 11px;
+    padding: 4px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  tfoot {
+    display: table-row-group;
+  }
+
+  tfoot tr {
+    page-break-inside: avoid;
+  }
+
+  /* Grid (acceptable, but optional) */
+  .print-grid-cols {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }
-
-
-
-

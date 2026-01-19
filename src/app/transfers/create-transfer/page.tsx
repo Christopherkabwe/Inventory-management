@@ -10,7 +10,6 @@ import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboB
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
 import { TransporterCombobox } from "@/components/SingleSelectComboBox/TransporterComboBox";
 import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
-import { Input } from "@/components/ui/input";
 
 
 interface Location {
@@ -51,6 +50,7 @@ const CreateTransferPage: React.FC = () => {
 
     const [isCreating, setIsCreating] = useState(false);
     const [availableQuantities, setAvailableQuantities] = useState<Record<string, number>>({});
+    const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const user = useUser();
 
     // Fetch Locations, Transporters, and Products
@@ -138,7 +138,7 @@ const CreateTransferPage: React.FC = () => {
     if (loading)
         return (
             <DashboardLayout>
-                <div className="min-h-screen rounded-lg border border-gray-500 bg-white flex items-center justify-center">
+                <div className="max-h-[350px] rounded-lg border border-gray-500 bg-white flex items-center justify-center">
                     <Loading
                         message="Loading..."
                     />

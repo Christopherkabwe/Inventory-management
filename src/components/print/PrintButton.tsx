@@ -1,39 +1,28 @@
 import React from 'react';
 import { Printer } from 'lucide-react';
+import printJS from 'print-js';
+type PrintMode = 'portrait' | 'landscape';
 
-interface PrintButtonProps {
-    printRef: React.RefObject<HTMLDivElement | null>;
-}
-
-const PrintButton: React.FC<PrintButtonProps> = ({ printRef }) => {
+const PrintButton = ({ mode = 'portrait' }: { mode?: PrintMode }) => {
     const handlePrint = () => {
-        if (printRef.current) {
-            const printContents = printRef.current.innerHTML;
-            const originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
+        document.body.classList.remove('print-portrait', 'print-landscape');
+        document.body.classList.add(`print-${mode}`);
 
-            const handleAfterPrint = () => {
-                document.body.innerHTML = originalContents;
-                document.body.style.pointerEvents = 'none';
-                document.body.style.opacity = '0.5';
-                setTimeout(() => {
-                    window.location.replace(window.location.href);
-                }, 100);
-                window.removeEventListener('afterprint', handleAfterPrint);
-            };
+        window.print();
 
-            window.addEventListener('afterprint', handleAfterPrint);
-            window.print();
-        }
+        // cleanup after print
+        setTimeout(() => {
+            document.body.classList.remove('print-portrait', 'print-landscape');
+        }, 1000);
     };
 
     return (
-        <div className="flex flex-cols-1 gap-5 justify-end mb-5 mt-5">
+        <div className="flex justify-end mb-5 mt-5 no-print">
             <button
-                className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-white flex items-center gap-2"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white flex items-center gap-2 cursor-pointer"
                 onClick={handlePrint}
             >
-                <Printer /> Print Page
+                <Printer /> Print
             </button>
         </div>
     );
