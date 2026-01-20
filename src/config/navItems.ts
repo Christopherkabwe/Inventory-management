@@ -47,7 +47,7 @@ export const NAV_ITEMS: NavItem[] = [
         icon: Package,
         subItems: [
             { name: "Add Product", href: "/products/add-product" },
-            { name: "Product List", href: "/products" },
+            { name: "Products Management", href: "/products/product-management" },
         ],
     },
     {

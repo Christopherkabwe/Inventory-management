@@ -3,11 +3,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useUser } from "../context/UserContext";
+import { useUser } from "@/app/context/UserContext";
 import Loading from "@/components/Loading";
 import Pagination from "@/components/pagination/pagination";
-import ProductSelect from "@/components/Multiselect/ProductDropdown";
-import { MultiSelectOption } from "@/components/Multiselect/MultiSelect";
 
 interface User {
     id: string;

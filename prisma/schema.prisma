@@ -104,6 +104,8 @@ model ProductList {
   category    String?
   weightValue Float
   weightUnit  String
+  categoryId  String?      
+  category    Category?    @relation(fields: [categoryId], references: [id])
   createdById String
   createdBy   User     @relation("ProductsCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -122,6 +124,16 @@ model ProductList {
   transferReceiptItems TransferReceiptItem[]
   inventoryHistories   InventoryHistory[]
 }
+
+// ==================== PRODUCT CATEGORIES ====================
+model Category {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  products  ProductList[] // one category → many products
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
 
 // ==================== LOCATIONS ====================
 model Location {

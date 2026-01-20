@@ -11,6 +11,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useUser } from "@/app/context/UserContext";
 import AdminOnly from "@/components/rbac/AdminOnly";
+import { useToaster } from "@/app/context/Toaster";
 
 type Customer = {
     id: string;
@@ -56,12 +57,11 @@ export default function CustomerManagementPage() {
         assignedUserId: "",
     });
     const [loading, setLoading] = useState(false);
-
-    // Client-side pagination
+    const { addToast } = useToaster();
     const [currentPage, setCurrentPage] = useState(1);
     const limit = 10;
 
-    // ------------------- FETCH DATA ONCE -------------------
+    // ------------------- FETCH DATA -------------------
     useEffect(() => {
         const fetchAllData = async () => {
             setLoading(true);
@@ -89,33 +89,17 @@ export default function CustomerManagementPage() {
         fetchAllData();
     }, []);
 
-    // ------------------- HANDLERS -------------------
+    // ------------------- EDIT -------------------
     const handleEdit = (customer: Customer) => {
         if (!isAdmin) return;
         setEditingCustomer(customer);
         setForm(customer);
     };
 
-    const handleDelete = async (customerId: string) => {
-        if (!isAdmin) return;
-        if (!confirm("Are you sure you want to delete this customer?")) return;
-        try {
-            const res = await fetch(`/api/customers/${customerId}`, { method: "DELETE" });
-            const data = await res.json();
-            if (res.ok) {
-                alert("Customer deleted successfully");
-                setCustomers(prev => prev.filter(c => c.id !== customerId));
-            } else {
-                alert(data.error || "Failed to delete customer");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Failed to delete customer");
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!editingCustomer) return;
+
         setLoading(true);
         try {
             const res = await fetch(`/api/customers/${form.id}`, {
@@ -123,9 +107,14 @@ export default function CustomerManagementPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
             });
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to update customer");
 
+            // Update local state
+            setCustomers(prev => prev.map(c => (c.id === data.customer.id ? data.customer : c)));
+
+            addToast('Customer updated successfully!', 'success');
             alert("Customer updated successfully!");
             setEditingCustomer(null);
             setForm({
@@ -140,12 +129,35 @@ export default function CustomerManagementPage() {
                 locationId: "",
                 assignedUserId: "",
             });
-
-            // Update locally without refetch
-            setCustomers(prev => prev.map(c => (c.id === data.customer.id ? data.customer : c)));
         } catch (err) {
             console.error(err);
-            alert("Failed to update customer");
+            addToast('Failed to update customer', 'error');
+            //alert("Failed to update customer");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ------------------- DELETE -------------------
+    const handleDelete = async (customerId: string) => {
+        if (!isAdmin) return;
+        if (!confirm("Are you sure you want to delete this customer?")) return;
+
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/customers/${customerId}`, { method: "DELETE" });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || "Failed to delete customer");
+
+            // Remove from local state
+            setCustomers(prev => prev.filter(c => c.id !== customerId));
+            addToast('Customer deleted successfully!', 'success');
+            //alert("Customer deleted successfully!");
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to delete customer', 'error');
+            //alert("Failed to delete customer");
         } finally {
             setLoading(false);
         }
@@ -169,7 +181,7 @@ export default function CustomerManagementPage() {
     const totalPages = Math.ceil(filteredCustomers.length / limit);
     const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * limit, currentPage * limit);
 
-    // ------------------- EXPORT HEADERS -------------------
+    // ------------------- EXPORT -------------------
     const exportHeaders: ExportHeader<Customer>[] = [
         { key: "name", label: "Name" },
         { key: "tpinNumber", label: "TPIN" },
@@ -186,34 +198,52 @@ export default function CustomerManagementPage() {
         { key: "quotationsCount", label: "Quotations" },
     ];
 
-    const columnCount = isAdmin ? 14 : 13;
+    const columnCount = isAdmin ? 15 : 14;
+
     return (
         <DashboardLayout>
-            <div className="p-6">
+            <div className="p-1">
                 <h1 className="text-2xl font-semibold mb-4">Customer Management</h1>
 
                 {/* Controls */}
-                <div className="w-full flex flex-row gap-2 mb-4">
-                    <div className="w-full mr-5">
+                <div className="w-full flex flex-col gap-2 mb-4 xl:flex-row xl:items-center">
+                    {/* Search */}
+                    <div className="w-full xl:mr-5">
                         <SearchInput value={search} onChange={setSearch} placeholder="Search customers..." />
                     </div>
-                    <div className="w-full flex flex-row gap-5">
-                        <ExportButton type="csv" headers={exportHeaders} data={filteredCustomers} filename="customers.csv" label="Export CSV" />
-                        <ExportButton type="pdf" headers={exportHeaders} data={filteredCustomers} filename="customers.pdf" title="Customer Report" mode="landscape" label="Export PDF" />
+
+                    {/* Export Buttons */}
+                    <div className="w-full flex flex-col gap-2 sm:flex-row sm:gap-5">
+                        <ExportButton
+                            type="csv"
+                            headers={exportHeaders}
+                            data={filteredCustomers}
+                            filename="customers.csv"
+                            label="Export CSV"
+                        />
+                        <ExportButton
+                            type="pdf"
+                            headers={exportHeaders}
+                            data={filteredCustomers}
+                            filename="customers.pdf"
+                            title="Customer Report"
+                            mode="landscape"
+                            label="Export PDF"
+                        />
                     </div>
-                    <div className="min-w-[150px] font-bold text-center text-white p-2 h-9 text-xs  bg-blue-600 border border-zinc-300 rounded-lg hover:bg-blue-700 cursor-pointer">
-                        <Link href="/customers/create-customer">
-                            Create New Customer
-                        </Link>
+
+                    {/* Create Customer Button */}
+                    <div className="min-w-[150px] font-bold text-center text-white p-2 h-9 text-xs bg-blue-600 border border-zinc-300 rounded-lg hover:bg-blue-700 cursor-pointer mt-2 xl:mt-0">
+                        <Link href="/customers/create-customer">Create New Customer</Link>
                     </div>
                 </div>
 
-
-                {/* Customer Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border">
-                        <thead className="bg-gray-100">
+                {/* Table */}
+                <div className="overflow-x-auto max-h-[600px]">
+                    <table className=" min-w-full bg-white border cursor-pointer">
+                        <thead className="bg-blue-100 sticky top-0">
                             <tr>
+                                <th className="p-2 border text-center">#</th>
                                 <th className="p-2 border">Name</th>
                                 <th className="p-2 border">TPIN</th>
                                 <th className="p-2 border">Email</th>
@@ -227,7 +257,6 @@ export default function CustomerManagementPage() {
                                 <th className="p-2 border">Sales</th>
                                 <th className="p-2 border">Orders</th>
                                 <th className="p-2 border">Quotations</th>
-
                                 <AdminOnly>
                                     <th className="p-2 border">Actions</th>
                                 </AdminOnly>
@@ -236,9 +265,9 @@ export default function CustomerManagementPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <Loading
-                                        message="Loading Customers..."
-                                        colSpan={columnCount} />
+                                    <td colSpan={columnCount}>
+                                        <Loading message="Loading Customers..." />
+                                    </td>
                                 </tr>
                             ) : paginatedCustomers.length === 0 ? (
                                 <tr>
@@ -247,11 +276,15 @@ export default function CustomerManagementPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                paginatedCustomers.map((c) => (
-                                    <tr key={c.id}>
+                                paginatedCustomers.map((c, index) => (
+                                    <tr
+                                        key={c.id}
+                                        className="whitespace-nowrap odd:bg-white even:bg-gray-50 hover:bg-gray-100"
+                                    >
+                                        <td className="p-2 border text-center">{index + 1}</td>
                                         <td className="p-2 border">{c.name}</td>
                                         <td className="p-2 border">{c.tpinNumber || "-"}</td>
-                                        <td className="p-2 border">{c.email}</td>
+                                        <td className="p-2 border truncate">{c.email}</td>
                                         <td className="p-2 border">{c.phone}</td>
                                         <td className="p-2 border">{c.country}</td>
                                         <td className="p-2 border">{c.city}</td>
@@ -259,10 +292,9 @@ export default function CustomerManagementPage() {
                                         <td className="p-2 border">{c.locationName}</td>
                                         <td className="p-2 border">{c.createdByName}</td>
                                         <td className="p-2 border">{c.assignedUserName || "-"}</td>
-                                        <td className="p-2 border">{c.salesCount}</td>
-                                        <td className="p-2 border">{c.ordersCount}</td>
-                                        <td className="p-2 border">{c.quotationsCount}</td>
-
+                                        <td className="p-2 border text-center">{c.salesCount}</td>
+                                        <td className="p-2 border text-center">{c.ordersCount}</td>
+                                        <td className="p-2 border text-center">{c.quotationsCount}</td>
                                         <AdminOnly>
                                             <td className="p-2 border flex gap-2">
                                                 <button
@@ -300,7 +332,7 @@ export default function CustomerManagementPage() {
                                 <button onClick={() => setEditingCustomer(null)} className="text-red-500 font-bold">✕</button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+                            <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-4">
                                 <input required placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="border p-2 rounded" />
                                 <input placeholder="TPIN" value={form.tpinNumber || ""} onChange={e => setForm({ ...form, tpinNumber: e.target.value })} className="border p-2 rounded" />
                                 <input required placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="border p-2 rounded" />

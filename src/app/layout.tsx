@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { ToasterProvider } from '@/components/Toaster';
+import { ToasterProvider } from "./context/Toaster";
 import ThemeProviderWrapper from "@/components/ThemeProviderWrapper";
 import { getCurrentUser } from "@/lib/auth";
 import { UserProvider } from "./context/UserContext";

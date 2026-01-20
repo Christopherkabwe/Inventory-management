@@ -1,40 +1,49 @@
 "use client";
 
-import { ComponentType } from "react";
+import { ComponentType, ReactNode } from "react";
 import { useUser } from "@/app/context/UserContext";
 import UnauthorizedAccess from "./UnauthorizedAccess";
 import DashboardLayout from "./DashboardLayout";
 import Loading from "./Loading";
 
 interface WithRoleProps {
-    [key: string]: unknown;
+    children?: ReactNode;
+    [key: string]: any;
 }
 
-const withRole = (WrappedComponent: ComponentType<WithRoleProps>, allowedRoles: string[]) => {
-    return (props: WithRoleProps) => {
-        const user = useUser(); // ✅ get user from context
+/**
+ * Higher-order component for role-based access control.
+ * @param WrappedComponent The component/page to wrap.
+ * @param allowedRoles Array of allowed roles.
+ */
+const withRole = <P extends object>(
+    WrappedComponent: ComponentType<P>,
+    allowedRoles: string[]
+) => {
+    const ComponentWithRole = (props: P) => {
+        const user = useUser();
 
-        // Optional: you can check for loading if your UserProvider adds a loading state
+        // Loading user context
         if (!user) {
             return (
                 <DashboardLayout>
                     <div className="min-h-screen flex items-center justify-center">
-                        <Loading message="Loading ..." />
+                        <Loading message="Loading user..." />
                     </div>
                 </DashboardLayout>
             );
         }
 
-        // Check if user role is allowed
-        const authorized = allowedRoles.includes(user.role);
-
-        if (!authorized) {
+        // Unauthorized
+        if (!allowedRoles.includes(user.role)) {
             return <UnauthorizedAccess />;
         }
 
-        // User is authorized → render wrapped component
+        // Authorized
         return <WrappedComponent {...props} />;
     };
+
+    return ComponentWithRole;
 };
 
 export default withRole;

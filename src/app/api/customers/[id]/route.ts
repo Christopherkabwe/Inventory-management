@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-type Params = { params: { id: string } };
+type Params = {
+    params: Promise<{ id: string }>;
+};
+
 
 // -------------------- HELPER --------------------
 function ensureAdminOrManager(user: { role: string }) {
@@ -22,6 +25,7 @@ export async function PUT(req: Request, { params }: Params) {
             return NextResponse.json({ error: err.message }, { status: 403 });
         }
 
+        const { id } = await params; // unwrap id here
         const {
             name,
             tpinNumber,
@@ -31,7 +35,7 @@ export async function PUT(req: Request, { params }: Params) {
             city,
             address,
             locationId,
-            assignedUserId, // <-- new field for assigned user
+            assignedUserId,
         } = await req.json();
 
         if (!name || !country || !city || !locationId) {
@@ -44,13 +48,14 @@ export async function PUT(req: Request, { params }: Params) {
         // Check unique email
         if (email) {
             const existingCustomer = await prisma.customer.findUnique({ where: { email } });
-            if (existingCustomer && existingCustomer.id !== params.id) {
+            // compare with unwrapped id
+            if (existingCustomer && existingCustomer.id !== id) {
                 return NextResponse.json({ error: "Email already exists." }, { status: 409 });
             }
         }
 
         const updatedCustomer = await prisma.customer.update({
-            where: { id: params.id },
+            where: { id },
             data: {
                 name,
                 tpinNumber,
@@ -60,12 +65,12 @@ export async function PUT(req: Request, { params }: Params) {
                 city,
                 address,
                 location: { connect: { id: locationId } },
-                userId: assignedUserId || null, // <-- update assigned user
+                assignedUser: assignedUserId || null,
             },
             include: {
                 location: { select: { id: true, name: true } },
                 createdBy: { select: { fullName: true } },
-                user: { select: { id: true, fullName: true } }, // <-- include assigned user
+                user: { select: { id: true, fullName: true } },
                 sales: { select: { id: true } },
                 orders: { select: { id: true } },
                 quotations: { select: { id: true } },
@@ -115,8 +120,10 @@ export async function DELETE(_req: Request, { params }: Params) {
             return NextResponse.json({ error: err.message }, { status: 403 });
         }
 
+        const { id } = await params;
+
         const customer = await prisma.customer.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 sales: { select: { id: true } },
                 orders: { select: { id: true } },
@@ -131,7 +138,7 @@ export async function DELETE(_req: Request, { params }: Params) {
             }, { status: 400 });
         }
 
-        await prisma.customer.delete({ where: { id: params.id } });
+        await prisma.customer.delete({ where: { id } });
 
         return NextResponse.json({ success: true, message: "Customer deleted" });
     } catch (error) {

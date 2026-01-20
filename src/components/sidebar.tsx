@@ -43,7 +43,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
     return (
         <>
             {/* Hamburger button */}
-            <div className="md:hidden fixed top-4 left-4 z-20">
+            <div className="fixed top-4 right-4 z-10 xl:hidden ">
                 <button
                     aria-label="Toggle sidebar"
                     onClick={toggleSidebar}
@@ -54,12 +54,10 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
             </div>
 
             {/* Sidebar */}
-            <div
-                className={`fixed top-0 left-0 h-full w-55 p-2 z-10 transform transition-transform duration-300 ease-in-out
-                bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100
-                ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} xl:translate-x-0 border-r border-gray-700`}
-            >
-                <div className="mb-5 mt-5 flex flex-col gap-4">
+            <div className={`fixed top-0 left-0 h-full w-55 p-2 z-10 transform transition-transform duration-300
+                ease-in-out bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 
+                ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} xl:translate-x-0 border-r border-gray-700`} >
+                <div className="mb-5 mt-10 flex flex-col gap-4 xl:mt-2">
                     <div className="flex items-center gap-2">
                         <RotateCw className="w-10 h-10" />
                         <div>
@@ -137,7 +135,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
             {/* Overlay for small screens */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-5 md:hidden"
+                    className="fixed inset-0 bg-zinc-200 bg-opacity-50 z-5 xl:hidden"
                     onClick={toggleSidebar}
                 />
             )}
