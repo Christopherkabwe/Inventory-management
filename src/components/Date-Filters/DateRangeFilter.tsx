@@ -24,7 +24,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                 <Button
                     variant="outline"
                     className={cn(
-                        "w-full justify-start text-left",
+                        "w-full justify-start text-left font-bold",
                         !value.start && "text-muted-foreground"
                     )}
                 >

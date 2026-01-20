@@ -55,10 +55,10 @@ export const NAV_ITEMS: NavItem[] = [
         icon: Package,
         subItems: [
             { name: "Stock Management", href: "/inventory/stock-management" },
-
             { name: "Stock adjustments", href: "/inventory/stock-adjustments" },
             { name: "Stock Reports", href: "/inventory/stock-reports" },
             { name: "Inventory Data", href: "/inventory/inventory-data" },
+            { name: "Inventory History", href: "/inventory/inventory-history" },
         ],
     },
     {
@@ -66,8 +66,16 @@ export const NAV_ITEMS: NavItem[] = [
         icon: Truck,
         subItems: [
             { name: "Create Transfer", href: "/transfers/create-transfer" },
-            { name: "Manage Transfers", href: "/transfers" },
+            { name: "Manage Transfers", href: "/transfers/manage-transfers" },
             { name: "Transfers Data", href: "/transfers/transfer-data" },
+        ],
+    },
+    {
+        name: "Customers",
+        icon: User,
+        subItems: [
+            { name: "Create Customer", href: "/customers/create-customer" },
+            { name: "Customer Management", href: "/customers/customer-management" },
         ],
     },
     {

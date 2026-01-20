@@ -1,11 +1,11 @@
 // app/api/inventory/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stackServerApp } from "@/stack/server";
+import { useUser } from "@/app/context/UserContext";
 
 // -------------------- USER CHECK --------------------
 async function requireUser() {
-    const user = await stackServerApp.getUser();
+    const user = useUser();
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

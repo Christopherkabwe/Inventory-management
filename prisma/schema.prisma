@@ -219,12 +219,15 @@ model InventoryHistory {
 model Customer {
   id          String   @id @default(cuid())
   name        String
-  email       String   @unique
-  phone       String
+  tpinNumber  String?
+  email       String?   @unique
+  phone       String?
   country     String
   city        String
+  address     String?
   createdById String
   userId      String?
+  assignedUser String?
   user        User?    @relation(fields: [userId], references: [id])
   createdBy   User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
   locationId  String

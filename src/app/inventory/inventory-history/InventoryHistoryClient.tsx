@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { MultiProductCombobox } from "@/components/MultiSelectComboBox/MultiProductCombobox";
 import { MultiCategoryCombobox } from "@/components/MultiSelectComboBox/MultiCategoryComboBox";
 import { MultiLocationCombobox } from "@/components/MultiSelectComboBox/MultiLocationComboBox";
-import { DateRangeFilter } from "@/components/MultiSelectComboBox/DateRangeFilter";
+import { DateRangeFilter } from "@/components/Date-Filters/DateRangeFilter";
 import { ExportButton } from "@/components/Exports/ExportButton";
 import { ExportHeader } from "@/lib/ExportUtils";
 import Pagination from "@/components/pagination/pagination";
+import SearchInput from "@/components/search/SearchInput";
 
 
 interface InventoryRow {
@@ -108,7 +109,9 @@ export default function InventoryStockClient({ rows }: Props) {
             const searchLower = referenceSearch.toLowerCase();
             filtered = filtered.filter(r =>
                 r.reference.toLowerCase().includes(searchLower) ||
+                r.sku.toLowerCase().includes(searchLower) ||
                 r.product.toLowerCase().includes(searchLower) ||
+                r.category?.toLowerCase().includes(searchLower) ||
                 r.locationName.toLowerCase().includes(searchLower) ||
                 new Date(r.date).toLocaleDateString().toLowerCase().includes(searchLower)
             );
@@ -178,12 +181,12 @@ export default function InventoryStockClient({ rows }: Props) {
                     <p className="text-gray-500 mt-1 mb-2">Record of all inventory transactions</p>
                 </div>
                 {/* Filters */}
-                <div className="w-full flex justify-between gap-5 mb-4">
-                    <div className="w-full border-b bg-white rounded-sm">
-                        <Input
-                            placeholder="Search..."
+                <div className="w-full flex justify-between gap-5 p-2 rounded-lg border border-zinc-300">
+                    <div className="w-full">
+                        <SearchInput
                             value={referenceSearch}
-                            onChange={(e) => setReferenceSearch(e.target.value)}
+                            onChange={setReferenceSearch}
+                            placeholder="Search..."
                         />
                     </div>
                     <DateRangeFilter
@@ -212,27 +215,27 @@ export default function InventoryStockClient({ rows }: Props) {
                             onChange={setSelectedLocations}
                         />
                     </div>
+                    <div className="w-full">
+                        <ExportButton
+                            type="csv"
+                            headers={exportHeaders}
+                            data={exportData}
+                            filename="inventory-stock-history.csv"
+                            label="Export CSV"
+                        />
+                    </div>
+                    <div className="w-full">
+                        <ExportButton
+                            type="pdf"
+                            headers={exportHeaders}
+                            data={exportData}
+                            filename="inventory-stock-history.pdf"
+                            title="Inventory Stock History"
+                            mode="landscape"
+                            label="Export PDF"
+                        />
+                    </div>
                 </div>
-                <div className="flex justify-end gap-3 px-5 py-1">
-                    <ExportButton
-                        type="csv"
-                        headers={exportHeaders}
-                        data={exportData}
-                        filename="inventory-stock-history.csv"
-                        label="Export CSV"
-                    />
-
-                    <ExportButton
-                        type="pdf"
-                        headers={exportHeaders}
-                        data={exportData}
-                        filename="inventory-stock-history.pdf"
-                        title="Inventory Stock History"
-                        mode="landscape"
-                        label="Export PDF"
-                    />
-                </div>
-
                 <div className="rounded-sm overflow-y-auto max-h-[650px] bg-white">
                     <table className="w-full border-collapse text-sm overflow-x-auto">
                         <thead className="">

@@ -83,3 +83,28 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         </nav>
     );
 }
+
+
+{/*
+import Pagination from "@/components/pagination";
+const ITEMS_PER_PAGE = 10;
+
+const [currentPage, setCurrentPage] = useState(1);
+
+const totalPages = Math.ceil(transfers.length / ITEMS_PER_PAGE);
+
+const paginatedTransfers = transfers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+);
+
+<div className="mt-4">
+    <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+    />
+</div>
+
+
+*/}

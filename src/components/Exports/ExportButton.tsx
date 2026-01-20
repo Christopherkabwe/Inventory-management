@@ -21,6 +21,8 @@ export function ExportButton<T>({
     mode = "portrait",
 }: ExportButtonProps<T>) {
     const handleClick = () => {
+        if (!data.length) return;
+
         if (type === "csv") {
             exportCSV(headers, data, filename || "report.csv");
         } else {
@@ -30,7 +32,7 @@ export function ExportButton<T>({
     return (
         <button
             onClick={handleClick}
-            className="px-4 py-2 h-10 font-semibold bg-gray-100 border rounded-lg hover:bg-gray-200 cursor-pointer"
+            className="px-3 py-1 h-9 text-xs font-bold bg-white border border-zinc-300 rounded-lg hover:bg-zinc-100 cursor-pointer"
         >
             {label || `Export ${type.toUpperCase()}`}
         </button>

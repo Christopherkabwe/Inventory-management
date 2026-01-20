@@ -1,67 +1,72 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stackServerApp } from "@/stack/server";
+import { getCurrentUser } from "@/lib/auth";
+import { buildCustomerRBACWhere } from "@/lib/rbac/customerRbac";
+import { buildCustomerSearchWhere } from "@/lib/rbac/searchCustomer";
 
 // -------------------- GET /api/customers --------------------//
 export async function GET(request: Request) {
     try {
-        const user = await stackServerApp.getUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
         const { searchParams } = new URL(request.url);
 
         // Pagination
         const page = Number(searchParams.get("page") || 1);
-        const limit = Number(searchParams.get("limit") || 20);
+        const limit = Number(searchParams.get("limit") || 50);
         const skip = (page - 1) * limit;
 
-        // Search
+        // Search (✅ define first)
         const search = searchParams.get("search") || "";
 
-        // -------------------- ROLE-BASED ACCESS --------------------
-        const where: any = {};
+        // RBAC + Search
+        const rbacWhere = await buildCustomerRBACWhere(user);
+        const searchWhere = buildCustomerSearchWhere(search);
 
-        if (user.role === "USER") {
-            // USER can only see their own created customers
-            where.createdById = user.id;
-        }
+        // Final WHERE
+        const where = {
+            AND: [rbacWhere, searchWhere],
+        };
 
-        // Apply search filter
-        if (search) {
-            where.OR = [
-                { name: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
-                { phone: { contains: search, mode: "insensitive" } },
-            ];
-        }
-
-        // Fetch total count for pagination
         const total = await prisma.customer.count({ where });
 
-        // Fetch paginated customers
         const customers = await prisma.customer.findMany({
             where,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                country: true,
-                city: true,
-                createdAt: true,
-                updatedAt: true,
-                sales: { select: { id: true } }, // just fetch sales IDs for count
+            include: {
+                location: { select: { id: true, name: true } },
+                createdBy: { select: { id: true, fullName: true } },
+                user: { select: { id: true, fullName: true } },
+                sales: { select: { id: true } },
+                orders: { select: { id: true } },
+                quotations: { select: { id: true } },
             },
             orderBy: { createdAt: "desc" },
             skip,
             take: limit,
         });
 
-        // Add sales count
-        const customersWithCount = customers.map(c => ({
-            ...c,
+        const customersWithCounts = customers.map((c) => ({
+            id: c.id,
+            name: c.name,
+            tpinNumber: c.tpinNumber,
+            email: c.email,
+            phone: c.phone,
+            country: c.country,
+            city: c.city,
+            address: c.address,
+            locationId: c.location?.id || "",
+            locationName: c.location?.name || "",
+            createdByName: c.createdBy?.fullName || "",
+            assignedUserId: c.user?.id || "",
+            assignedUserName: c.user?.fullName || "",
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
             salesCount: c.sales.length,
-            sales: undefined, // remove full array to reduce payload
+            ordersCount: c.orders.length,
+            quotationsCount: c.quotations.length,
         }));
 
         return NextResponse.json({
@@ -70,54 +75,104 @@ export async function GET(request: Request) {
             limit,
             total,
             totalPages: Math.ceil(total / limit),
-            customers: customersWithCount,
+            customers: customersWithCounts,
         });
     } catch (error) {
         console.error("Fetch customers failed:", error);
-        return NextResponse.json({ error: "Failed to fetch customers", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to fetch customers", details: (error as Error).message },
+            { status: 500 }
+        );
     }
 }
 
-// -------------------- POST /api/customers --------------------
+// -------------------- POST /api/customers --------------------//
 export async function POST(request: Request) {
     try {
-        const user = await stackServerApp.getUser();
+        const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        // Only ADMIN or MANAGER can create customers
+        // Only ADMIN or MANAGER can create
         if (!["ADMIN", "MANAGER"].includes(user.role)) {
-            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
+            return NextResponse.json(
+                { error: "Unauthorized: Admin or Manager required" },
+                { status: 403 }
+            );
         }
 
-        const { name, email, phone, country, city } = await request.json();
+        const {
+            name,
+            tpinNumber,
+            email,
+            phone,
+            country,
+            city,
+            address,
+            locationId,
+            assignedUserId, // <-- new field
+        } = await request.json();
 
-        if (!name || !email || !phone || !country || !city) {
+        if (!name || !country || !city || !locationId) {
             return NextResponse.json(
-                { error: "Missing required fields: name, email, phone, country, or city." },
+                { error: "Missing required fields: name, country, city, or locationId." },
                 { status: 400 }
             );
         }
 
-        // Check for unique email
-        const existingCustomer = await prisma.customer.findUnique({ where: { email } });
-        if (existingCustomer) {
-            return NextResponse.json({ error: "Email already exists." }, { status: 409 });
+        // Check unique email if provided
+        if (email) {
+            const existing = await prisma.customer.findUnique({ where: { email } });
+            if (existing) return NextResponse.json({ error: "Email already exists." }, { status: 409 });
         }
 
         const customer = await prisma.customer.create({
             data: {
                 name,
+                tpinNumber,
                 email,
                 phone,
                 country,
                 city,
-                createdById: user.id, // track who created the customer
+                address,
+                location: { connect: { id: locationId } },
+                createdBy: { connect: { id: user.id } },        // fix here
+                user: assignedUserId ? { connect: { id: assignedUserId } } : undefined,
+            },
+            include: {
+                location: { select: { id: true, name: true } },
+                createdBy: { select: { id: true, fullName: true } },
+                user: { select: { id: true, fullName: true } },
             },
         });
 
-        return NextResponse.json({ success: true, customer }, { status: 201 });
+        return NextResponse.json(
+            {
+                success: true,
+                customer: {
+                    id: customer.id,
+                    name: customer.name,
+                    tpinNumber: customer.tpinNumber,
+                    email: customer.email,
+                    phone: customer.phone,
+                    country: customer.country,
+                    city: customer.city,
+                    address: customer.address,
+                    locationId: customer.location?.id || "",
+                    locationName: customer.location?.name || "",
+                    createdByName: customer.createdBy?.fullName || "",
+                    assignedUserId: customer.user?.id || "",
+                    assignedUserName: customer.user?.fullName || "",
+                    createdAt: customer.createdAt,
+                    updatedAt: customer.updatedAt,
+                },
+            },
+            { status: 201 }
+        );
     } catch (error) {
         console.error("Create customer failed:", error);
-        return NextResponse.json({ error: "Failed to create customer", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to create customer", details: (error as Error).message },
+            { status: 500 }
+        );
     }
 }
