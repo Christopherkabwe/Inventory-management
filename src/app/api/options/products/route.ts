@@ -7,6 +7,12 @@ export async function GET() {
             select: {
                 id: true,
                 name: true,
+                sku: true,
+                price: true,
+                category: true,
+                packSize: true,
+                weightUnit: true,
+                weightValue: true,
             },
             orderBy: { name: "asc" },
         });

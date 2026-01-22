@@ -204,7 +204,7 @@ export default function ProductionPage() {
     // ---------------- Render ----------------
     return (
         <DashboardLayout>
-            <div className="p-6">
+            <div className="p-5">
                 <h1 className="text-2xl font-bold">Production Management</h1>
                 <p className="mb-2 text-gray-500">Record and manage Production transactions</p>
 

@@ -102,11 +102,12 @@ model ProductList {
   costPerBag  Float?
   packSize    Int
   category    String?
+  subCategory String?
   weightValue Float
   weightUnit  String
-  categoryId  String?      
-  category    Category?    @relation(fields: [categoryId], references: [id])
   createdById String
+  isTaxable   String?
+  taxRate     Float?
   createdBy   User     @relation("ProductsCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -123,17 +124,8 @@ model ProductList {
   deliveryNoteItems    DeliveryNoteItem[]
   transferReceiptItems TransferReceiptItem[]
   inventoryHistories   InventoryHistory[]
+  proformaInvoiceItems ProformaInvoiceItem[]
 }
-
-// ==================== PRODUCT CATEGORIES ====================
-model Category {
-  id        String       @id @default(cuid())
-  name      String       @unique
-  products  ProductList[] // one category → many products
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-}
-
 
 // ==================== LOCATIONS ====================
 model Location {
@@ -156,6 +148,7 @@ model Location {
   quotations         Quotation[]
   saleReturns        SaleReturn[]
   inventoryHistories InventoryHistory[]
+  proformaInvoices   ProformaInvoice[]
 }
 
 // ==================== INVENTORY ====================
@@ -196,16 +189,16 @@ enum InventorySource {
 }
 
 model InventoryHistory {
-  id         String          @id @default(cuid())
-  productId  String
-  product    ProductList     @relation(fields: [productId], references: [id])
-  locationId String
-  location   Location        @relation(fields: [locationId], references: [id])
-  date       DateTime // time of the transaction
-  delta      Int // positive for stock in, negative for stock out
+  id             String          @id @default(cuid())
+  productId      String
+  product        ProductList     @relation(fields: [productId], references: [id])
+  locationId     String
+  location       Location        @relation(fields: [locationId], references: [id])
+  date           DateTime // time of the transaction
+  delta          Int // positive for stock in, negative for stock out
   inTransitDelta Int?
-  sourceType InventorySource
-  reference  String // e.g., SALE-INV123, TRANSFER-IBT001
+  sourceType     InventorySource
+  reference      String // e.g., SALE-INV123, TRANSFER-IBT001
 
   // Optional links for auditing
   createdById String? // optional
@@ -229,27 +222,28 @@ model InventoryHistory {
 
 // ==================== CUSTOMERS ====================
 model Customer {
-  id          String   @id @default(cuid())
-  name        String
-  tpinNumber  String?
-  email       String?   @unique
-  phone       String?
-  country     String
-  city        String
-  address     String?
-  createdById String
-  userId      String?
+  id           String   @id @default(cuid())
+  name         String
+  tpinNumber   String?
+  email        String?  @unique
+  phone        String?
+  country      String
+  city         String
+  address      String?
+  createdById  String
+  userId       String?
   assignedUser String?
-  user        User?    @relation(fields: [userId], references: [id])
-  createdBy   User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
-  locationId  String
-  location    Location @relation(fields: [locationId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user         User?    @relation(fields: [userId], references: [id])
+  createdBy    User     @relation("CustomersCreatedBy", fields: [createdById], references: [id])
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  sales      Sale[]
-  orders     SalesOrder[]
-  quotations Quotation[]
+  sales            Sale[]
+  orders           SalesOrder[]
+  quotations       Quotation[]
+  proformaInvoices ProformaInvoice[]
 }
 
 // ==================== TRANSPORTERS ====================
@@ -281,9 +275,10 @@ model SalesOrder {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @default(now())
 
-  items         SalesOrderItem[]
-  invoices      Sale[]
-  deliveryNotes DeliveryNote[]
+  items            SalesOrderItem[]
+  invoices         Sale[]
+  deliveryNotes    DeliveryNote[]
+  proformaInvoices ProformaInvoice[]
 }
 
 model SalesOrderItem {
@@ -312,11 +307,13 @@ model Sale {
   transporter    Transporter? @relation(fields: [transporterId], references: [id])
   driverName     String?
   saleDate       DateTime     @default(now())
+  dueDate        DateTime? 
   createdById    String
   createdBy      User         @relation("SalesCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now())
   status         SaleStatus   @default(PENDING)
+  payments       SalePayment[]
 
   items         SaleItem[]
   creditNotes   CreditNote[]
@@ -341,6 +338,16 @@ model SaleItem {
 
   @@index([saleId])
   @@index([productId])
+}
+
+model SalePayment {
+  id        String   @id @default(cuid())
+  saleId    String
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String
+  reference String?
+  createdAt DateTime @default(now())
 }
 
 // ==================== DELIVERY NOTES ====================
@@ -442,6 +449,41 @@ model SaleReturn {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @default(now())
   inventoryHistory InventoryHistory?
+}
+
+model ProformaInvoice {
+  id             String         @id @default(uuid())
+  proformaNumber String         @unique
+  salesOrderId   String
+  customerId     String
+  locationId     String
+  status         ProformaStatus @default(DRAFT)
+  createdById    String
+  createdAt      DateTime       @default(now())
+
+  salesOrder SalesOrder            @relation(fields: [salesOrderId], references: [id])
+  customer   Customer              @relation(fields: [customerId], references: [id])
+  location   Location              @relation(fields: [locationId], references: [id])
+  items      ProformaInvoiceItem[]
+}
+
+model ProformaInvoiceItem {
+  id         String @id @default(uuid())
+  proformaId String
+  productId  String
+  quantity   Int
+  price      Float
+  total      Float
+
+  proforma ProformaInvoice @relation(fields: [proformaId], references: [id])
+  product  ProductList     @relation(fields: [productId], references: [id])
+}
+
+enum ProformaStatus {
+  DRAFT
+  SENT
+  APPROVED
+  CANCELLED
 }
 
 // ==================== TRANSFERS (IBT) ====================
@@ -580,6 +622,8 @@ enum SaleStatus {
   PENDING
   CONFIRMED
   PARTIALLY_INVOICED
+  PARTIALLY_PAID
+  PAID 
   CANCELLED
 }
 

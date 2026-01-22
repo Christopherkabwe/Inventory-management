@@ -61,7 +61,7 @@ export default function UserInfoDropdown() {
         return <UserInfoSpinner />;
     }
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative w-full" ref={dropdownRef}>
             {/* Profile button */}
             <button
                 onClick={() => setOpen(!open)}
@@ -71,7 +71,7 @@ export default function UserInfoDropdown() {
                     {user.fullName[0]}
                 </div>
                 <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName}</p>
+                    <p className="text-sm font-medium text-white dark:text-gray-100">{user.fullName}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user.role}</p>
                 </div>
             </button>
@@ -81,15 +81,15 @@ export default function UserInfoDropdown() {
                 <div className="absolute bottom-15 left-0 w-max min-w-[12rem] mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     {/* User info at top */}
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 hover:cursor-pointer">
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{user.fullName}</p>
+                        <p className="font-medium text-black">{user.fullName}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{user.role}</p>
                     </div>
                     {/* Actions */}
-                    <ul className="py-2">
+                    <ul className="py-2 text-black">
                         <li>
                             <button
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                                 onClick={() => router.push("/settings")}
                             >
                                 <Settings className="w-4 h-4" /> Settings
@@ -97,7 +97,7 @@ export default function UserInfoDropdown() {
                         </li>
                         <li>
                             <button
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                                 onClick={() => router.push("/update-password/request")}
                             >
                                 <Key className="w-4 h-4" /> Update Password
@@ -105,7 +105,7 @@ export default function UserInfoDropdown() {
                         </li>
                         <li>
                             <button
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"
+                                className="w-full flex cursor-pointer items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"
                                 onClick={handleSignOut}
                             >
                                 <LogOut className="w-4 h-4" /> Sign Out

@@ -1,43 +1,48 @@
 "use client";
+
 import { useState } from "react";
 import Sidebar from "@/components/sidebar";
 import { Menu } from "lucide-react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     return (
-        <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-            {/* Sidebar (desktop) */}
-            <aside className="hidden md:block w-55 bg-gray-900 text-white">
-                <Sidebar sidebarOpen toggleSidebar={() => { }} />
-            </aside>
+            {/* Sidebar */}
+            <Sidebar
+                sidebarOpen={sidebarOpen}
+                toggleSidebar={() => setSidebarOpen(prev => !prev)}
+            />
 
-            {/* Sidebar (mobile overlay) */}
+            {/* Overlay (mobile only) */}
             {sidebarOpen && (
-                <>
-                    <div className="fixed inset-0 bg-black/40 z-40 md:hidden"
-                        onClick={() => setSidebarOpen(false)}
-                    />
-                    <aside className="fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50 md:hidden">
-                        <Sidebar sidebarOpen toggleSidebar={() => setSidebarOpen(false)} />
-                    </aside>
-                </>
+                <div
+                    className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
             )}
 
             {/* Main content */}
-            <main className="flex-1 px-5 py-5 overflow-x-hidden">
+            <main
+                className={` transition-all duration-300  px-6 py-2 ${sidebarOpen ? "md:ml-64" : "md:ml-0"}`}
+            >
+                {/* Top bar */}
+                <div className="flex items-center">
+                    <button
+                        onClick={() => setSidebarOpen(prev => !prev)}
+                        className="py-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                        <Menu />
+                    </button>
+                </div>
 
-                {/* Mobile menu */}
-                <button
-                    className="md:hidden mb-4 p-2 rounded bg-gray-200"
-                    onClick={() => setSidebarOpen(true)}
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-
-                {/* CONTENT CONTAINER */}
+                {/* Page content */}
                 <div className="max-w-7xl mx-auto">
                     {children}
                 </div>

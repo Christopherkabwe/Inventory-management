@@ -16,7 +16,8 @@
     "seed-helpers": "tsx --tsconfig ./tsconfig.json src/scripts/seed-helpers.ts",
     "ClearDatabase": "tsx --tsconfig ./tsconfig.json src/scripts/ClearDatabase.ts",
     "reset-DB": "tsx --tsconfig ./tsconfig.json src/scripts/reset-DB.ts",
-    "populateInventoryHistory": "tsx --tsconfig ./tsconfig.json src/scripts/populateInventoryHistory"
+    "populateInventoryHistory": "tsx --tsconfig ./tsconfig.json src/scripts/populateInventoryHistory",
+    "migrateCategories": "tsx --tsconfig ./tsconfig.json src/scripts/migrateCategories.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

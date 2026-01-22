@@ -10,7 +10,7 @@ export default async function TransfersDataPage() {
             <div className="p-6 space-y-6">
                 <div>
                     <h1 className="text-3xl font-bold">Inter Branch Transfer Data</h1>
-                    <p className="text-gray-500 mt-1 mb-2">Records of all internal STOCK transfer</p>
+                    <p className="text-gray-500 mt-1 mb-2">Record of all internal STOCK transfer</p>
                 </div>
 
                 <TransfersTable transfers={transfers} />

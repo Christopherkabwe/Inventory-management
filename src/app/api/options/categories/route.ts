@@ -7,14 +7,13 @@ export async function GET() {
         const categories = await prisma.productList.findMany({
             select: {
                 category: true,
+                subCategory: true,
             },
             distinct: ["category"],
             where: { category: { not: null } },
         });
 
-        const options = categories.map(c => ({ id: c.category!, name: c.category! }));
-
-        return NextResponse.json(options);
+        return NextResponse.json(categories);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });

@@ -8,8 +8,8 @@ import buildTransferSummaryExport, {
     formatDateTime,
     getItemTonnage,
     getSubtotal
-} from "@/components/helper-functions/buildTransferSummaryExport";
-import { buildTransferItemExport } from "@/components/helper-functions/buildTransferItemExport";
+} from "@/components/helper-functions/transfers/buildTransferSummaryExport";
+import { buildTransferItemExport } from "@/components/helper-functions/transfers/buildTransferItemExport";
 import Pagination from "@/components/pagination/pagination";
 import { DateRangeFilter } from "@/components/Date-Filters/DateRangeFilter";
 import SearchInput from "@/components/search/SearchInput";

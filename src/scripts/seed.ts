@@ -84,6 +84,7 @@ async function main() {
     // -------------------- PRODUCTS --------------------
     console.log("Creating Products")
     const categories = ["Category 1", "Category 2", "Category 3", "Category 4", "Category 5"];
+    const subCategory = ["Clothing", "Shoes", "Baby wear"];
     const productsData = Array.from({ length: 20 }).map((_, i) => ({
         sku: `SKU${String(i + 1).padStart(3, "0")}`,
         name: `Product ${i + 1}`,
@@ -92,6 +93,7 @@ async function main() {
         weightValue: faker.number.float({ min: 5, max: 50 }),
         weightUnit: "kg",
         category: pickRandom(categories),
+        subCategory: pickRandom(subCategory),
         createdById: pickRandom(admins).id,
     }));
     await prisma.productList.createMany({ data: productsData });
@@ -134,7 +136,6 @@ async function main() {
 
     // You can tweak these limits
     const maxProductsPerLocation = 5; // max products per location
-    const maxLocationsPerProduct = 3; // max locations per product
 
     const inventoryMap: Record<string, any> = {};
 

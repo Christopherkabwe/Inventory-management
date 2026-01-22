@@ -32,7 +32,7 @@ export function ExportButton<T>({
     return (
         <button
             onClick={handleClick}
-            className="px-3 py-1 h-9 text-xs font-bold bg-white border border-zinc-300 rounded-lg hover:bg-zinc-100 cursor-pointer"
+            className="px-1 py-1 xl:px-3 xl:py-1 h-15 xl:h-9 text-xs font-bold bg-white border border-zinc-300 rounded-lg hover:bg-zinc-100 cursor-pointer"
         >
             {label || `Export ${type.toUpperCase()}`}
         </button>
