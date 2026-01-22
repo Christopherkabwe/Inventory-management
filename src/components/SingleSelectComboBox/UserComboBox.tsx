@@ -9,19 +9,26 @@ interface UserComboboxProps {
     users: User[];
     value: string;
     onChange: (id: string) => void;
+    disabled?: boolean;
+    label?: string;
 }
 
-export function UserCombobox({ users, value, onChange }: UserComboboxProps) {
+export function UserCombobox({
+    users,
+    value,
+    onChange,
+    disabled = false,
+    label,
+}: UserComboboxProps) {
     return (
         <EntityCombobox
-            items={users.map(u => ({
-                id: u.id,
-                label: u.name, // <-- use `name` instead of `fullName`
-            }))}
+            items={users.map((u) => ({ id: u.id, label: u.name }))}
             value={value}
+            onChange={onChange}
             placeholder="Select user"
             searchPlaceholder="Search user..."
-            onChange={onChange}
+            disabled={disabled}
+            label={label}
         />
     );
 }

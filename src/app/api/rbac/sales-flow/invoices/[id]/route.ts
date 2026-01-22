@@ -14,7 +14,6 @@ export async function GET(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Next.js 15 param fix
     const { id } = await context.params;
 
     const sale = await prisma.sale.findFirst({
@@ -27,15 +26,20 @@ export async function GET(
                     product: true,
                 },
             },
+            payments: true, // for amountPaid
+            salesOrder: true, // for salesOrderNumber
+            deliveryNotes: true, // for deliveryNoteNumber(s)
         },
     });
 
     if (!sale) {
-        return NextResponse.json(
-            { error: "Invoice not found" },
-            { status: 404 }
-        );
+        return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
+
+    /* =======================
+       CALCULATE AMOUNT PAID
+    ======================= */
+    const amountPaid = sale.payments.reduce((sum, p) => sum + p.amount, 0);
 
     /* =======================
        MAP TO INVOICE VIEW
@@ -45,6 +49,7 @@ export async function GET(
         invoiceNumber: sale.invoiceNumber,
         status: sale.status,
         createdAt: sale.saleDate.toISOString(),
+        dueDate: sale.dueDate?.toISOString() ?? null,
 
         customer: {
             name: sale.customer.name,
@@ -55,8 +60,8 @@ export async function GET(
         },
 
         location: {
-            name: sale.location.name,
-            address: sale.location.address,
+            name: sale.location?.name ?? "",
+            address: sale.location?.address ?? "",
         },
 
         items: sale.items.map((i) => ({
@@ -74,6 +79,12 @@ export async function GET(
                 weightUnit: i.product.weightUnit,
             },
         })),
+
+        amountPaid, // total payments
+
+        // ✅ Add Sales Order Number and Delivery Note Numbers
+        salesOrderNumber: sale.salesOrder?.orderNumber ?? null,
+        deliveryNoteNumbers: sale.deliveryNotes.map((d) => d.deliveryNoteNo), // array
     };
 
     return NextResponse.json(invoice);

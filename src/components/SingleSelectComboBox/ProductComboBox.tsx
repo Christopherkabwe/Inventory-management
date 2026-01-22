@@ -1,16 +1,34 @@
 import { EntityCombobox } from "./EntityComboBox";
 
-export function ProductCombobox({ products, value, onChange }) {
+interface Product {
+    id: string;
+    name: string;
+}
+
+interface ProductComboboxProps {
+    products: Product[];
+    value: string;
+    onChange: (id: string) => void;
+    disabled?: boolean;
+    label?: string;
+}
+
+export function ProductCombobox({
+    products,
+    value,
+    onChange,
+    disabled = false,
+    label,
+}: ProductComboboxProps) {
     return (
         <EntityCombobox
-            items={products.map((p) => ({
-                id: p.id,
-                label: p.name,
-            }))}
+            items={products.map((p) => ({ id: p.id, label: p.name }))}
             value={value}
+            onChange={onChange}
             placeholder="Select product"
             searchPlaceholder="Search product..."
-            onChange={onChange}
+            disabled={disabled}
+            label={label}
         />
     );
 }

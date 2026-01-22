@@ -24,8 +24,9 @@ export function formatDate(value: string | Date) {
 export const getItemTonnage = (item: any) =>
     (item.quantity * item.product.weightValue * item.product.packSize) / 1000;
 
-export const getSubtotal = (items: any[]) =>
-    items.reduce(
+const getSubtotal = (items: SaleItemType[]) => {
+    if (!items) return { qty: 0, delivered: 0, tonnage: 0, salesValue: 0, invoiceValue: 0 };
+    return items.reduce(
         (acc, i) => {
             acc.qty += i.quantity;
             acc.delivered += i.quantityDelivered;
@@ -36,6 +37,7 @@ export const getSubtotal = (items: any[]) =>
         },
         { qty: 0, delivered: 0, tonnage: 0, salesValue: 0, invoiceValue: 0 }
     );
+};
 
 export default function buildSalesSummaryExport(sales: any[]): SalesSummaryExportRow[] {
     return sales.map((s) => {

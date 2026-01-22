@@ -45,6 +45,9 @@ export default function OrdersListPage() {
     const viewOrder = (id: string) => {
         router.push(`/sales/sales-orders/${id}`);
     };
+    const createInvoice = (id: string) => {
+        router.push(`/sales/invoices/create-invoice/${id}`);
+    };
 
     return (
         <DashboardLayout>
@@ -92,12 +95,18 @@ export default function OrdersListPage() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-2">{new Date(o.createdAt).toLocaleDateString()}</td>
-                                        <td className="px-4 py-2">
+                                        <td className="flex px-4 py-2 gap-5">
                                             <button
                                                 onClick={() => viewOrder(o.id)}
                                                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                                             >
                                                 View
+                                            </button>
+                                            <button
+                                                onClick={() => createInvoice(o.id)}
+                                                className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-puple-600 text-sm"
+                                            >
+                                                Create Invoice
                                             </button>
                                         </td>
                                     </tr>

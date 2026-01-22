@@ -1,29 +1,34 @@
 import { EntityCombobox } from "./EntityComboBox";
 
-// Define the Location interface
-interface Location {
+export interface Location {
     id: string;
     name: string;
 }
 
-// Define the props for the combobox
 interface LocationComboboxProps {
     locations: Location[];
     value: string;
     onChange: (id: string) => void;
+    disabled?: boolean;
+    label?: string;
 }
 
-export function LocationCombobox({ locations, value, onChange }: LocationComboboxProps) {
+export function LocationCombobox({
+    locations,
+    value,
+    onChange,
+    disabled = false,
+    label,
+}: LocationComboboxProps) {
     return (
         <EntityCombobox
-            items={locations.map((l) => ({
-                id: l.id,
-                label: l.name,
-            }))}
+            items={locations.map((l) => ({ id: l.id, label: l.name }))}
             value={value}
+            onChange={onChange}
             placeholder="Select location"
             searchPlaceholder="Search location..."
-            onChange={onChange}
+            disabled={disabled}
+            label={label}
         />
     );
 }

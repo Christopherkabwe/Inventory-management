@@ -4,6 +4,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 
 interface NumberInputProps {
+    label?: string;
     value: number;
     onChange: (value: number) => void;
     min?: number;
@@ -12,9 +13,11 @@ interface NumberInputProps {
     placeholder?: string;
     className?: string;
     required?: boolean;
+    disabled?: boolean;
 }
 
 export const NumberInput: React.FC<NumberInputProps> = ({
+    label,
     value,
     onChange,
     min = 0,
@@ -23,21 +26,35 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     placeholder,
     className,
     required = false,
+    disabled = false,
 }) => {
     return (
-        <Input
-            type="number"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            placeholder={placeholder}
-            required={required}
-            onChange={(e) => {
-                const newValue = Number(e.target.value);
-                onChange(newValue);
-            }}
-            className={className}
-        />
+        <div className="space-y-1">
+            {label && (
+                <label className="text-sm font-medium text-gray-700 px-2 py-1">
+                    {label}
+                    {required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+            )}
+
+            <Input
+                type="number"
+                value={Number.isFinite(value) ? value : 0}
+                min={min}
+                max={max}
+                step={step}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled}
+                onChange={(e) => {
+                    const v = e.target.value;
+                    const num = v === "" ? 0 : Number(v);
+                    if (!Number.isNaN(num)) {
+                        onChange(num);
+                    }
+                }}
+                className={className}
+            />
+        </div>
     );
 };

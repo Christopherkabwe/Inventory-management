@@ -57,6 +57,7 @@ const getItemTonnage = (item: SaleItemType) =>
     (item.quantity * item.product.weightValue * item.product.packSize) / 1000; // Example: kg → tons
 
 const getSubtotal = (items: SaleItemType[]) => {
+    if (!items) return { qty: 0, delivered: 0, tonnage: 0, salesValue: 0, invoiceValue: 0 };
     return items.reduce(
         (acc, i) => {
             acc.qty += i.quantity;
@@ -69,6 +70,7 @@ const getSubtotal = (items: SaleItemType[]) => {
         { qty: 0, delivered: 0, tonnage: 0, salesValue: 0, invoiceValue: 0 }
     );
 };
+
 const formatMoney = (v: number) => {
     const parts = new Intl.NumberFormat("en-GB", {
         style: "currency",
@@ -100,9 +102,10 @@ export default function SalesPage() {
         try {
             const res = await fetch("/api/rbac/sales-flow/invoices");
             const data = await res.json();
-            console.log(data)
-            if (data && Array.isArray(data.sales)) {
-                setSales(data.sales);
+            if (data && Array.isArray(data.data)) {
+                setSales(data.data);
+            } else if (Array.isArray(data)) {
+                setSales(data);
             } else {
                 setSales([]);
                 console.warn("API returned unexpected data:", data);
@@ -150,11 +153,10 @@ export default function SalesPage() {
 
     const totalPages = Math.ceil(sales.length / ITEMS_PER_PAGE);
 
-    const paginatedSales = sales.slice(
+    const paginatedSales = sales?.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
-
     useEffect(() => {
         setCurrentPage(1);
     }, [sales.length]);
@@ -289,7 +291,7 @@ export default function SalesPage() {
                                                     {s.status !== "CANCELLED" && (
                                                         <>
                                                             <button
-                                                                onClick={() => router.push(`/sales/invoices${s.id}`)}
+                                                                onClick={() => router.push(`/sales/invoices/${s.id}`)}
                                                                 className="px-1 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                                                             >
                                                                 View
