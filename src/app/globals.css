@@ -231,11 +231,20 @@
   tfoot tr {
     page-break-inside: avoid;
   }
+  /* Hide on Print */
+  .print-hide {
+    display: none !important;
+    visibility: hidden !important;
+  }
 
   /* Grid (acceptable, but optional) */
   .print-grid-cols {
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .print-grid-cols-1 {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
   .print-grid-cols-2 {
     display: grid !important;
@@ -245,8 +254,13 @@
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
+  .print-grid-cols-1 {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
   .print-grid-cols-5 {
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
+
 }

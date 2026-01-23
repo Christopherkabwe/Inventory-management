@@ -5,8 +5,6 @@ import withRetries from "@/lib/retry";
 import { runTransaction } from "../utils";
 import { nextSequence } from "@/lib/sequence";
 
-
-
 /* ======================================================
    GET: List Invoices
 ====================================================== */
@@ -31,6 +29,7 @@ export async function GET() {
         const mapped = sales.map((sale) => {
             const total = sale.items.reduce((a, i) => a + i.total, 0);
             const paid = sale.payments.reduce((a, p) => a + p.amount, 0);
+            const balance = total - paid;
             return {
                 id: sale.id,
                 invoiceNumber: sale.invoiceNumber,
@@ -52,7 +51,8 @@ export async function GET() {
                 saleDate: sale.saleDate,
                 total,
                 paid,
-                balance: total - paid,
+                balance,
+                credit: Math.max(0, paid - total), // overpayment / advance
             };
         });
 
@@ -66,24 +66,17 @@ export async function GET() {
     }
 }
 
-
 /* ======================================================
-   POST: Create Invoice with Sequence Number & Retries
+   POST: Create Invoice with Sequence Number, Payments, Lock
 ====================================================== */
-
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const {
-        customerId,
-        locationId,
-        salesOrderId,
-        items,
-        payments = [],
-    } = await req.json();
+    const { customerId, locationId, salesOrderId, items, payments = [] } =
+        await req.json();
 
     if (!customerId || !locationId || !salesOrderId || !items?.length) {
         return NextResponse.json(
@@ -92,7 +85,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // 🚫 Ignore zero quantities
+    // Ignore zero quantity items
     const invoiceItems = items.filter((i: any) => i.quantity > 0);
     if (!invoiceItems.length) {
         return NextResponse.json(
@@ -111,6 +104,7 @@ export async function POST(req: NextRequest) {
         0
     );
 
+    // Determine initial status; overpayment allowed
     const saleStatus =
         amountPaid === 0
             ? "CONFIRMED"
@@ -121,32 +115,30 @@ export async function POST(req: NextRequest) {
     try {
         const sale = await withRetries(async () =>
             runTransaction(async (tx) => {
-                // 1️⃣ Load sales order items
+                // Load sales order items
                 const soItems = await tx.salesOrderItem.findMany({
                     where: { salesOrderId },
                 });
 
-                const soItemMap = new Map(soItems.map(i => [i.productId, i]));
+                const soItemMap = new Map(soItems.map((i) => [i.productId, i]));
 
-                // 2️⃣ Validate quantities
+                // Validate invoice quantities
                 for (const item of invoiceItems) {
                     const soItem = soItemMap.get(item.productId);
-                    if (!soItem) {
-                        throw new Error("Product not found in sales order");
-                    }
+                    if (!soItem) throw new Error("Product not found in sales order");
 
                     const remaining = soItem.quantity - soItem.quantityInvoiced;
                     if (item.quantity > remaining) {
                         throw new Error(
-                            `Cannot invoice more than remaining quantity for ${item.productId}`
+                            `Cannot invoice more than remaining quantity for product ${item.productId}`
                         );
                     }
                 }
 
-                // 3️⃣ Generate invoice number
+                // Generate invoice number
                 const invoiceNumber = await nextSequence("INV", true);
 
-                // 4️⃣ Create sale
+                // Create sale
                 const createdSale = await tx.sale.create({
                     data: {
                         invoiceNumber,
@@ -166,7 +158,7 @@ export async function POST(req: NextRequest) {
                     },
                 });
 
-                // 5️⃣ Update sales order item quantities
+                // Update sales order items
                 for (const item of invoiceItems) {
                     const soItem = soItemMap.get(item.productId)!;
                     await tx.salesOrderItem.update({
@@ -179,25 +171,21 @@ export async function POST(req: NextRequest) {
                     });
                 }
 
-                // 6️⃣ Recalculate order status
+                // Recalculate sales order status
                 const updatedItems = await tx.salesOrderItem.findMany({
                     where: { salesOrderId },
                 });
-
                 const fullyInvoiced = updatedItems.every(
-                    i => i.quantityInvoiced >= i.quantity
+                    (i) => i.quantityInvoiced >= i.quantity
                 );
-
                 await tx.salesOrder.update({
                     where: { id: salesOrderId },
                     data: {
-                        status: fullyInvoiced
-                            ? "CONFIRMED"
-                            : "PARTIALLY_INVOICED",
+                        status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED",
                     },
                 });
 
-                // 7️⃣ Payment
+                // Record payments (multi-payment methods)
                 if (payments.length > 0) {
                     await tx.salePayment.createMany({
                         data: payments.map((p: any) => ({
@@ -209,6 +197,14 @@ export async function POST(req: NextRequest) {
                     });
                 }
 
+                // Lock invoice if fully paid
+                if (amountPaid >= invoiceTotal) {
+                    await tx.sale.update({
+                        where: { id: createdSale.id },
+                        data: { status: "PAID" },
+                    });
+                }
+
                 return createdSale;
             })
         );
@@ -216,6 +212,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             id: sale.id,
             invoiceNumber: sale.invoiceNumber,
+            status: sale.status,
         });
     } catch (err: any) {
         console.error(err);

@@ -26,9 +26,11 @@ export async function GET(
                     product: true,
                 },
             },
-            payments: true, // for amountPaid
+            payments: true, // all payments
             salesOrder: true, // for salesOrderNumber
-            deliveryNotes: true, // for deliveryNoteNumber(s)
+            deliveryNotes: {
+                select: { deliveryNoteNo: true },
+            },
         },
     });
 
@@ -37,9 +39,12 @@ export async function GET(
     }
 
     /* =======================
-       CALCULATE AMOUNT PAID
+       CALCULATE AMOUNTS
     ======================= */
+    const total = sale.items.reduce((sum, i) => sum + i.total, 0);
     const amountPaid = sale.payments.reduce((sum, p) => sum + p.amount, 0);
+    const balance = Math.max(0, total - amountPaid);
+    const credit = Math.max(0, amountPaid - total); // overpayment
 
     /* =======================
        MAP TO INVOICE VIEW
@@ -50,6 +55,10 @@ export async function GET(
         status: sale.status,
         createdAt: sale.saleDate.toISOString(),
         dueDate: sale.dueDate?.toISOString() ?? null,
+        total,
+        balance,
+        credit,
+        locked: sale.status === "PAID", // lock if fully paid
 
         customer: {
             name: sale.customer.name,
@@ -58,12 +67,10 @@ export async function GET(
             tpinNumber: sale.customer.tpinNumber,
             address: sale.customer.address,
         },
-
         location: {
             name: sale.location?.name ?? "",
             address: sale.location?.address ?? "",
         },
-
         items: sale.items.map((i) => ({
             id: i.id,
             quantity: i.quantity,
@@ -80,12 +87,18 @@ export async function GET(
             },
         })),
 
-        amountPaid, // total payments
+        payments: sale.payments.map((p) => ({
+            id: p.id,
+            amount: p.amount,
+            method: p.method,
+            reference: p.reference ?? null,
+            createdAt: p.createdAt.toISOString(),
+        })),
 
-        // ✅ Add Sales Order Number and Delivery Note Numbers
         salesOrderNumber: sale.salesOrder?.orderNumber ?? null,
-        deliveryNoteNumbers: sale.deliveryNotes.map((d) => d.deliveryNoteNo), // array
-    };
+        deliveryNoteNumbers: sale.deliveryNotes.map((d) => d.deliveryNoteNo),
 
+    };
+    console.log(invoice)
     return NextResponse.json(invoice);
 }

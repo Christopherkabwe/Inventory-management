@@ -11,6 +11,7 @@ interface TransporterComboboxProps {
     onChange: (id: string) => void;
     disabled?: boolean;
     label?: string;
+    placeholder?: string;
 }
 
 export function TransporterCombobox({
@@ -19,6 +20,7 @@ export function TransporterCombobox({
     onChange,
     disabled = false,
     label,
+    placeholder,
 }: TransporterComboboxProps) {
     return (
         <EntityCombobox

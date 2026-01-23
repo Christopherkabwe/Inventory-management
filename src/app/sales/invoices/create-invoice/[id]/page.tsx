@@ -13,6 +13,8 @@ import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboB
 import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
 import Link from "next/link";
+import { TransporterCombobox } from "@/components/SingleSelectComboBox/TransporterComboBox";
+import { getBusinessInfo } from "@/lib/businessInfo";
 
 /* ==============================
    TYPES
@@ -36,7 +38,11 @@ const PAYMENT_METHODS = [
     "MOBILE_MONEY",
     "CARD",
 ];
-const BUSINESS_INFO = { name: "Biz360° Business Management", address: "Lusaka, Zambia", contact: "support@biz360.com | +260 978 370 871" };
+const BUSINESS_INFO = {
+    name: "Biz360° Business Management",
+    address: "Lusaka, Zambia",
+    contact: "support@biz360.com | +260 978 370 871"
+};
 
 const CreateInvoicePage = () => {
     const router = useRouter();
@@ -59,6 +65,14 @@ const CreateInvoicePage = () => {
     const [payments, setPayments] = useState<PaymentInput[]>([
         { method: "CASH", amount: 0 },
     ]);
+    const business = getBusinessInfo();
+
+    const [transporters, setTransporters] = useState<{ id: string; name: string; contact?: string; phone?: string }[]>([]);
+    const [selectedTransporter, setSelectedTransporter] = useState<string>("");
+    const [transporterDetails, setTransporterDetails] = useState<any>(null);
+    const [deliveryNoteNo, setDeliveryNoteNo] = useState<string | null>(null);
+
+    const [loadingStock, setLoadingStock] = useState(false);
 
     /* ==============================
        LOAD FORM OPTIONS
@@ -85,20 +99,26 @@ const CreateInvoicePage = () => {
     /* ==============================
        LOAD SALES ORDER
     ============================== */
+    /* ==============================
+   LOAD SALES ORDER
+============================== */
     useEffect(() => {
         if (!salesOrderId) {
             setLoading(false);
             return;
         }
+
         async function fetchSalesOrder() {
             setLoading(true);
             try {
                 const res = await fetch(`/api/options/sales-orders/${salesOrderId}`);
                 if (!res.ok) throw new Error("Failed to load sales order");
                 const order: SalesOrder = await res.json();
+
                 setSalesOrder(order);
                 setSelectedCustomer(order.customerId);
                 setSelectedLocation(order.locationId);
+
                 const populatedItems: InvoiceItem[] = order.items
                     .map(i => {
                         const remaining = i.quantity - i.quantityInvoiced;
@@ -111,35 +131,75 @@ const CreateInvoicePage = () => {
                         };
                     })
                     .filter(Boolean) as InvoiceItem[];
+
                 setItems(populatedItems);
-                console.log(populatedItems)
-                /* ============================== FETCH STOCK (FIXED) ============================== */
-                if (order.locationId && populatedItems.length > 0) {
-                    const stockResults = await Promise.all(
-                        populatedItems.map(async item => {
-                            const stockRes = await fetch(
-                                `/api/products/${item.productId}/stock?locationId=${order.locationId}`
-                            );
-                            if (!stockRes.ok) throw new Error("Stock fetch failed");
-                            const qty = await stockRes.json();
-                            return { productId: item.productId, quantity: qty };
-                        })
-                    );
-                    const stockMap: Record<string, number> = {};
-                    stockResults.forEach(s => {
-                        stockMap[s.productId] = s.quantity;
-                    });
-                    setAvailableQuantities(stockMap);
-                }
+
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load sales order");
             } finally {
-                // Removed setLoading(false) from here
+                setLoading(false);
             }
         }
-        fetchSalesOrder().finally(() => setLoading(false));
+
+        fetchSalesOrder();
     }, [salesOrderId]);
+
+    /* ==============================
+       FETCH AVAILABLE QUANTITIES WHEN LOCATION OR ITEMS CHANGE
+    ============================== */
+    useEffect(() => {
+        if (!selectedLocation || items.length === 0) return;
+
+        async function fetchQuantities() {
+            setLoadingStock(true); // start loading
+            try {
+                const stockResults = await Promise.all(
+                    items.map(async item => {
+                        const res = await fetch(
+                            `/api/products/${item.productId}/stock?locationId=${selectedLocation}`
+                        );
+                        if (!res.ok) throw new Error("Stock fetch failed");
+                        const qty = await res.json();
+                        return { productId: item.productId, quantity: qty };
+                    })
+                );
+
+                const stockMap: Record<string, number> = {};
+                stockResults.forEach(s => (stockMap[s.productId] = s.quantity));
+                setAvailableQuantities(stockMap);
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to fetch available quantities");
+            } finally {
+                setLoadingStock(false); // done loading
+            }
+        }
+
+        fetchQuantities();
+    }, [selectedLocation, items.map(i => i.productId).sort().join(",")]);
+
+    useEffect(() => {
+        async function fetchTransporters() {
+            try {
+                const res = await fetch("/api/options/transporters");
+                if (!res.ok) throw new Error("Failed to fetch transporters");
+                const data = await res.json();
+                console.log(data)
+                setTransporters(data);
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to load transporters");
+            }
+        }
+        fetchTransporters();
+    }, []);
+
+    useEffect(() => {
+        if (!selectedTransporter) return;
+        const transporter = transporters.find(t => t.id === selectedTransporter) ?? null;
+        setTransporterDetails(transporter);
+    }, [selectedTransporter, transporters]);
 
     /* ==============================
        DERIVED VALUES
@@ -189,8 +249,8 @@ const CreateInvoicePage = () => {
             }
         }
 
-        if (amountPaid < 0) {
-            if (!confirm(`Are you sure the amount paid is K${amountPaid}?`)) {
+        if (totalPaid < 0) {
+            if (!confirm(`Are you sure the amount paid is K${totalPaid}?`)) {
                 return;
             }
             toast.error("Amount paid must be greater than zero");
@@ -219,12 +279,18 @@ const CreateInvoicePage = () => {
                     salesOrderId: salesOrder?.id,
                     items,
                     payments: payments.filter(p => p.amount > 0),
+                    transporterId: selectedTransporter || null, // ✅ include transporter
                 }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error ?? "Failed to create invoice");
 
             toast.success("Invoice created successfully");
+
+            // ✅ show Delivery Note Number
+            setDeliveryNoteNo(data.deliveryNoteNo ?? null);
+
+            // Navigate if you want
             router.push(`/sales/invoices/${data.id}`);
         } catch (err: any) {
             toast.error(err.message);
@@ -258,7 +324,10 @@ const CreateInvoicePage = () => {
             <div className="min-h-screen p-5 space-y-6">
                 {/* FORM */}
                 <form onSubmit={handleSubmit} className="max-w-4xl mx-auto bg-white p-5 rounded-xl shadow space-y-2">
-                    <h1 className="text-2xl font-semibold">Create Invoice</h1>
+                    <div className="items-center text-center ">
+                        <h1 className="text-2xl font-semibold py-1">Create Invoice</h1>
+                        <p className="text-sm text-zinc-500">Sales Order No. : {salesOrder?.orderNumber}</p>
+                    </div>
                     <div className="flex ml-auto justify-end">
                         {salesOrder && (
                             <button
@@ -270,22 +339,30 @@ const CreateInvoicePage = () => {
                             </button>
                         )}
                     </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         <LocationCombobox
                             locations={locations}
                             value={selectedLocation}
                             onChange={setSelectedLocation}
-                            disabled={!!salesOrderId}
+                            disabled={!!salesOrderId && isCreating}
                             label="Select Location" />
                         <CustomerCombobox
                             customers={customers}
                             value={selectedCustomer}
                             onChange={setSelectedCustomer}
-                            disabled={!!salesOrderId}
+                            disabled
                             label="Select Customer"
                         />
-                    </div>
 
+                        <TransporterCombobox
+                            transporters={transporters}            // pass your fetched transporter list
+                            value={selectedTransporter}             // current selected transporter
+                            onChange={setSelectedTransporter}       // update state on selection
+                            label="Select Transporter (Optional)"  // label for the combobox
+                            placeholder="-- None --"
+                            disabled={!!salesOrderId && isCreating}             // optional placeholder
+                        />
+                    </div>
 
                     {items.map((item, idx) => (
                         <div key={idx} className="w-full grid grid-cols-1 xl:grid-cols-4 gap-4 items-center">
@@ -299,11 +376,15 @@ const CreateInvoicePage = () => {
                             />
                             {/* Quantity Input */}
                             <div className="flex justify-center text-center">
-                                {availableQuantities[item.productId] !== undefined && (
-                                    <span className="text-xs text-gray-500 mt-3">
-                                        Available Stock : {availableQuantities[item.productId]}
+                                {loadingStock ? (
+                                    <span className="text-xs text-gray-500 mt-3 animate-pulse">
+                                        Loading stock...
                                     </span>
-                                )}
+                                ) : availableQuantities[item.productId] !== undefined ? (
+                                    <span className="text-xs text-gray-500 mt-3">
+                                        Available Stock: {availableQuantities[item.productId]}
+                                    </span>
+                                ) : null}
                             </div>
                             <div className="">
                                 <NumberInput
@@ -396,7 +477,7 @@ const CreateInvoicePage = () => {
                         </button>
                     </div>
                     <div className="flex justify-end gap-3">
-                        <Link href="/sales/sales-orders" className="px-6 py-2 bg-red-400 text-white rounded hover:bg-red-500">
+                        <Link href="/sales/sales-orders" className="px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                             Cancel
                         </Link>
                         <button type="submit" disabled={isCreating} className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
@@ -411,9 +492,11 @@ const CreateInvoicePage = () => {
                     <h2 className="text-xl font-semibold mb-4">Invoice Preview</h2>
                     <div className="flex justify-between mb-4">
                         <div>
-                            <p className="font-bold">{BUSINESS_INFO.name}</p>
-                            <p className="text-sm">{BUSINESS_INFO.address}</p>
-                            <p className="text-sm">{BUSINESS_INFO.contact}</p>
+                            <p className="font-bold">{business.name}</p>
+                            <p className="text-sm">TPIN: {business.TPIN}</p>
+                            <p className="text-sm">{business.address}</p>
+                            <p className="text-sm">{business.email}</p>
+                            <p className="text-sm">{business.contact}</p>
                         </div>
                         <div className="text-right">
                             <p><strong>{selectedCustomerData?.name ?? "-"}</strong></p>
@@ -421,6 +504,14 @@ const CreateInvoicePage = () => {
                             <p>{selectedCustomerData?.address ?? ""}</p>
                         </div>
                     </div>
+                    {deliveryNoteNo && (
+                        <div className="mt-4 p-3 bg-green-100 rounded text-green-800 font-semibold">
+                            Delivery Note Number: {deliveryNoteNo}
+                            {transporterDetails && (
+                                <p>Transporter: {transporterDetails.name} {transporterDetails.phone ?? ""}</p>
+                            )}
+                        </div>
+                    )}
                     <table className="w-full border text-sm border-black">
                         <thead className="bg-zinc-100 border-b border-black">
                             <tr>
@@ -468,7 +559,7 @@ const CreateInvoicePage = () => {
                         </tfoot>
                     </table>
                     <div className="mt-4 text-right space-y-1">
-                        <p><strong>Paid:</strong> K{amountPaid.toFixed(2)}</p>
+                        <p><strong>Paid:</strong> K{totalPaid.toFixed(2)}</p>
                         <p><strong>Balance:</strong> K{balance.toFixed(2)}</p>
                     </div>
                 </div>

@@ -363,6 +363,7 @@ model DeliveryNote {
   transporterId  String?
   transporter    Transporter? @relation(fields: [transporterId], references: [id])
   dispatchedAt   DateTime     @default(now())
+  createdAt      DateTime @default(now())
   createdById    String
   createdBy      User         @relation("DeliveryNotesCreatedBy", fields: [createdById], references: [id])
 

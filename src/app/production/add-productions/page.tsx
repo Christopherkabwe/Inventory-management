@@ -123,7 +123,7 @@ export default function ProductionPage() {
     // ---------------- Create or update ----------------
     const handleSubmit = async () => {
         if (!locationId || !batchNumber || items.length === 0 || items.some(i => !i.productId || i.quantity <= 0)) {
-            alert("Please select at least one item and fill all quantities > 0");
+            alert("Please enter all required fields");
             return;
         }
 
@@ -214,12 +214,12 @@ export default function ProductionPage() {
 
                     {/* ProductionNo, Batch, Location */}
                     <div className="flex gap-4 mb-2">
-                        <div className="flex flex-col flex-1">
+                        <div className="w-full flex flex-col flex-1">
                             <label className="font-medium mb-2">Production No</label>
                             <input className="border border-gray-200 text-sm rounded-lg p-2"
                                 value={productionNo} readOnly />
                         </div>
-                        <div className="flex flex-col flex-1">
+                        <div className="w-full flex flex-col flex-1">
                             <label className="font-medium mb-2">Batch Number</label>
                             <input
                                 className="border border-gray-200 text-sm rounded-lg p-2"
@@ -228,7 +228,7 @@ export default function ProductionPage() {
                                 onChange={e => setBatchNumber(e.target.value)}
                             />
                         </div>
-                        <div className="">
+                        <div className="w-full flex flex-col flex-1">
                             <LocationDropdown
                                 locations={locations}
                                 value={locationId}
