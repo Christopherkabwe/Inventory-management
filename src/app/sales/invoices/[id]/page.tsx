@@ -38,6 +38,7 @@ type Transporter = {
 type InvoiceItem = {
     id: string;
     quantity: number;
+    pendingQty?: number;
     price: number;
     product: ProductType;
 };
@@ -132,6 +133,10 @@ export default function InvoicePage() {
     );
 
     const balance = totals.subtotal - totalPaid;
+
+    {/* Check if any item has pending quantity */ }
+    const hasPending = invoice.items.some(item => (item.pendingQty ?? 0) > 0);
+
 
     /* =======================
        RENDER
@@ -242,25 +247,30 @@ export default function InvoicePage() {
                                         <th className="px-4 py-2 border-r border-black text-center">Pack</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Price</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Qty</th>
+                                        {hasPending && <th className="px-4 py-2 border-r border-black text-center">Pending</th>}
                                         <th className="px-4 py-2 border-r border-black text-center">Tonnage</th>
                                         <th className="px-4 py-2 text-center">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody className="border border-black">
-                                    {invoice.items.filter(item => item.quantity > 0).map((item) => (
-                                        <tr key={item.id}>
-                                            <td className="px-4 py-2 border-r border-black">{item.product.name}</td>
-                                            <td className="px-4 py-2 border-r border-black text-center">{item.product.sku ?? "-"}</td>
-                                            <td className="px-4 py-2 border-r border-black text-center">{item.product.packSize ?? "-"}</td>
-                                            <td className="px-4 py-2 border-r border-black text-center">K{(item.product.price ?? 0).toFixed(2)}</td>
-                                            <td className="px-4 py-2 border-r border-black text-center">{item.quantity}</td>
-                                            <td className="px-4 py-2 border-r border-black text-center">
-                                                {(((item.product.weightValue ?? 0) * item.quantity) / 1000).toFixed(2)}
-                                            </td>
-                                            <td className="px-4 py-2 text-center">K{((item.product.price ?? 0) * item.quantity).toFixed(2)}</td>
-                                        </tr>
-                                    ))}
-                                    <EmptyRows columns={7} count={Math.max(0, 10 - invoice.items.length)} />
+                                    {invoice.items.filter(item => item.quantity > 0).map((item) => {
+                                        const isPartial = (item.pendingQty ?? 0) > 0;
+                                        return (
+                                            <tr key={item.id} >
+                                                <td className="px-4 py-2 border-r border-black">{item.product.name}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">{item.product.sku ?? "-"}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">{item.product.packSize ?? "-"}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">K{(item.product.price ?? 0).toFixed(2)}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">{item.quantity}</td>
+                                                {hasPending && <td className={`px-4 py-2 border-r border-black text-center ${isPartial ? " text-orange-500" : ""}`}>{item.pendingQty ?? 0}</td>}
+                                                <td className="px-4 py-2 border-r border-black text-center">
+                                                    {(((item.product.weightValue ?? 0) * item.quantity) / 1000).toFixed(2)}
+                                                </td>
+                                                <td className="px-4 py-2 text-center">K{((item.product.price ?? 0) * item.quantity).toFixed(2)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                    <EmptyRows columns={hasPending ? 8 : 7} count={Math.max(0, 10 - invoice.items.length)} />
                                 </tbody>
                                 <tfoot className="border border-black">
                                     <tr className="bg-zinc-100 font-semibold">
@@ -268,6 +278,7 @@ export default function InvoicePage() {
                                             TOTAL
                                         </td>
                                         <td className="px-4 py-2 text-center border-r border-black">{totals.quantity}</td>
+                                        {hasPending && <td className="px-4 py-2 text-center border-r border-black">{invoice.items.reduce((sum, i) => sum + (i.pendingQty ?? 0), 0)}</td>}
                                         <td className="px-4 py-2 text-center border-r border-black">{totals.tonnage.toFixed(2)}</td>
                                         <td className="px-4 py-2 text-center">K{totals.subtotal.toFixed(2)}</td>
                                     </tr>

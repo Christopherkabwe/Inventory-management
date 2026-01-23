@@ -96,8 +96,9 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Sales orders",
         icon: ShoppingCart,
         subItems: [
-            { name: "Sales Orders", href: "/order-flow" },
+            { name: "Sales Orders", href: "/sales/sales-orders" },
             { name: "Create Sales Order", href: "/order-flow/sales-order/create-sales-order" },
+            { name: "Edit Sales Order", href: "/order-flow/sales-order/edit-sales-order" },
         ],
     },
     {

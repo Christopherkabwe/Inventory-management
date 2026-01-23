@@ -12,17 +12,22 @@ export async function nextSequence(
     });
 
     if (seq) {
-        if (increment) {
-            await prisma.sequence.update({
-                where: { id_year: { id: type, year } },
-                data: { value: { increment: 1 } },
-            });
-        }
-        return `${type}${String(increment ? seq.value + 1 : seq.value).padStart(6, "0")}`;
+        return `${type}${String(seq.value).padStart(6, "0")}`;
     } else {
         await prisma.sequence.create({
             data: { id: type, year, value: 1 },
         });
         return `${type}000001`;
     }
+}
+
+// Function to increment the sequence number
+export async function incrementSequence(
+    type: "INV" | "DN" | "IBT" | "SO" | "QUOTE" | "PROD" | "BATCH" | "ADJ" | "CN" | "RETURN"
+) {
+    const year = new Date().getFullYear();
+    await prisma.sequence.update({
+        where: { id_year: { id: type, year } },
+        data: { value: { increment: 1 } },
+    });
 }

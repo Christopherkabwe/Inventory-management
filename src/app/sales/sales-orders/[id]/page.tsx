@@ -116,7 +116,7 @@ export default function SalesOrderPage() {
                 {/* Back */}
                 <div className="mb-4">
                     <button
-                        className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+                        className="inline-flex items-center gap-2 text-sm cursor-pointer font-medium text-zinc-600 hover:text-zinc-900"
                         onClick={() => router.back()}
                     >
                         <ArrowLeft className="h-4 w-4" />

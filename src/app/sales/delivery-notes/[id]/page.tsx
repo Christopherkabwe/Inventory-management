@@ -57,6 +57,7 @@ export default function DeliveryNotePage() {
                 const res = await fetch(`/api/rbac/sales-flow/delivery-notes/${id}`);
                 if (!res.ok) throw new Error("Failed to fetch delivery note");
                 const data: DeliveryNote = await res.json();
+                console.log(data)
                 setNote(data);
             } catch (err) {
                 console.error(err);
@@ -129,7 +130,7 @@ export default function DeliveryNotePage() {
                             <div>
                                 <h1 className="font-semibold">Order Details</h1>
                                 <p className="text-sm font-normal">
-                                    Delivery Note No: <span className="font-semibold">{note.deliveryNoteNo}</span>
+                                    Delivery Note No: <span className="text-sm">{note.deliveryNoteNo}</span>
                                 </p>
                                 <p className="text-sm">
                                     Invoice No: <span className="font-normal">{note.sale?.invoiceNumber}</span>
@@ -140,7 +141,7 @@ export default function DeliveryNotePage() {
 
                             <div>
                                 <h1 className="font-semibold">Customer Details</h1>
-                                <p className="font-semibold">{note.sale?.customer.name}</p>
+                                <p className="text-sm">{note.sale?.customer.name}</p>
                                 <p className="text-sm">{note.sale?.customer.address}</p>
                                 <p className="text-sm">TPIN: {note.sale?.customer.tpinNumber}</p>
                                 <p className="text-sm">{note.sale?.customer.email}</p>
@@ -150,22 +151,22 @@ export default function DeliveryNotePage() {
                             <div>
                                 <h1 className="font-semibold">Transporter Details</h1>
                                 <p className="text-sm">
-                                    {note.transporter?.name ?? "-"}
+                                    {note.transporter?.name}
                                 </p>
                                 <p className="text-sm">
-                                    {note.transporter?.vehicleNumber ?? "-"}
+                                    {note.transporter?.vehicleNumber}
                                 </p>
                                 <p className="text-sm">
-                                    Driver: {note.transporter?.driverName ?? "-"}
+                                    Driver: {note.transporter?.driverName}
                                 </p>
                                 <p className="text-sm">
-                                    {note.transporter?.driverPhoneNumber ?? "-"}
+                                    Contact: {note.transporter?.driverPhoneNumber}
                                 </p>
                             </div>
                             <div>
                                 <h1 className="font-semibold">Point of Sale</h1>
                                 <p className="text-sm">
-                                    {note.location?.name ?? "-"}
+                                    {note.location?.name}
                                 </p>
                                 <p className="text-sm">{note.location?.address}</p>
                             </div>

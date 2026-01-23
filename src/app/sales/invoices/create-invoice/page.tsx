@@ -384,21 +384,23 @@ const CreateInvoicePage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map((item, i) => {
-                                const product = products.find(p => p.id === item.productId);
-                                const price = product?.price ?? 0;
-                                const quantity = item.quantity ?? 0;
-                                const tonnage = product?.weightValue ? (product.weightValue * quantity) / 1000 : 0;
-                                return (
-                                    <tr key={i} className="border-b border-black">
-                                        <td className="px-4 py-2">{product?.name ?? "-"}</td>
-                                        <td className="px-4 py-2 text-center">K{price.toFixed(2)}</td>
-                                        <td className="px-4 py-2 text-center">{quantity}</td>
-                                        <td className="px-4 py-2 text-center">{tonnage.toFixed(2)} MT</td>
-                                        <td className="px-4 py-2 text-center">K{(price * quantity).toFixed(2)}</td>
-                                    </tr>
-                                );
-                            })}
+                            {items
+                                .filter(item => item.quantity > 0)
+                                .map((item, i) => {
+                                    const product = products.find(p => p.id === item.productId);
+                                    const price = product?.price ?? 0;
+                                    const quantity = item.quantity ?? 0;
+                                    const tonnage = product?.weightValue ? (product.weightValue * quantity) / 1000 : 0;
+                                    return (
+                                        <tr key={i} className="border-b border-black">
+                                            <td className="px-4 py-2">{product?.name ?? "-"}</td>
+                                            <td className="px-4 py-2 text-center">K{price.toFixed(2)}</td>
+                                            <td className="px-4 py-2 text-center">{quantity}</td>
+                                            <td className="px-4 py-2 text-center">{tonnage.toFixed(2)} MT</td>
+                                            <td className="px-4 py-2 text-center">K{(price * quantity).toFixed(2)}</td>
+                                        </tr>
+                                    );
+                                })}
                         </tbody>
                         <tfoot>
                             <tr className="bg-zinc-100 font-semibold border-t border-black">

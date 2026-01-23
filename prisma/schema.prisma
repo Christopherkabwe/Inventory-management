@@ -354,7 +354,7 @@ model SalePayment {
 model DeliveryNote {
   id             String       @id @default(cuid())
   deliveryNoteNo String       @unique
-  saleId         String
+  saleId         String @unique
   sale           Sale         @relation(fields: [saleId], references: [id])
   salesOrderId   String
   salesOrder     SalesOrder   @relation(fields: [salesOrderId], references: [id])
@@ -368,6 +368,9 @@ model DeliveryNote {
   createdBy      User         @relation("DeliveryNotesCreatedBy", fields: [createdById], references: [id])
 
   items DeliveryNoteItem[]
+
+  @@index([saleId])
+  @@index([salesOrderId])
 }
 
 model DeliveryNoteItem {

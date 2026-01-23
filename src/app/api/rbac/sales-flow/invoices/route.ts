@@ -69,14 +69,24 @@ export async function GET() {
 /* ======================================================
    POST: Create Invoice with Sequence Number, Payments, Lock
 ====================================================== */
+
+
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { customerId, locationId, salesOrderId, items, payments = [] } =
-        await req.json();
+    const {
+        customerId,
+        locationId,
+        salesOrderId,
+        items,
+        payments = [],
+        transporterId,
+        driverName,
+    } = await req.json();
+
 
     if (!customerId || !locationId || !salesOrderId || !items?.length) {
         return NextResponse.json(
@@ -104,7 +114,7 @@ export async function POST(req: NextRequest) {
         0
     );
 
-    // Determine initial status; overpayment allowed
+    // Determine invoice status
     const saleStatus =
         amountPaid === 0
             ? "CONFIRMED"
@@ -115,19 +125,31 @@ export async function POST(req: NextRequest) {
     try {
         const sale = await withRetries(async () =>
             runTransaction(async (tx) => {
+                // =========================
                 // Load sales order items
+                // =========================
                 const soItems = await tx.salesOrderItem.findMany({
                     where: { salesOrderId },
                 });
 
-                const soItemMap = new Map(soItems.map((i) => [i.productId, i]));
+                const soItemMap = new Map(
+                    soItems.map((i) => [i.productId, i])
+                );
 
-                // Validate invoice quantities
+                // =========================
+                // Validate quantities
+                // =========================
                 for (const item of invoiceItems) {
                     const soItem = soItemMap.get(item.productId);
-                    if (!soItem) throw new Error("Product not found in sales order");
+                    if (!soItem) {
+                        throw new Error(
+                            `Product ${item.productId} not found in sales order`
+                        );
+                    }
 
-                    const remaining = soItem.quantity - soItem.quantityInvoiced;
+                    const remaining =
+                        soItem.quantity - soItem.quantityInvoiced;
+
                     if (item.quantity > remaining) {
                         throw new Error(
                             `Cannot invoice more than remaining quantity for product ${item.productId}`
@@ -135,10 +157,23 @@ export async function POST(req: NextRequest) {
                     }
                 }
 
-                // Generate invoice number
+                // =========================
+                // Generate Invoice Number
+                // =========================
                 const invoiceNumber = await nextSequence("INV", true);
 
-                // Create sale
+                // =========================
+                // Create Invoice (Sale)
+                // =========================
+                if (transporterId) {
+                    const transporterExists = await tx.transporter.findUnique({
+                        where: { id: transporterId },
+                    });
+                    if (!transporterExists) {
+                        throw new Error("Invalid transporter selected");
+                    }
+                }
+
                 const createdSale = await tx.sale.create({
                     data: {
                         invoiceNumber,
@@ -147,6 +182,8 @@ export async function POST(req: NextRequest) {
                         locationId,
                         createdById: user.id,
                         status: saleStatus,
+                        transporterId: transporterId ?? null,
+                        driverName: driverName ?? null,
                         items: {
                             create: invoiceItems.map((i: any) => ({
                                 productId: i.productId,
@@ -158,7 +195,9 @@ export async function POST(req: NextRequest) {
                     },
                 });
 
-                // Update sales order items
+                // =========================
+                // Update Sales Order Items
+                // =========================
                 for (const item of invoiceItems) {
                     const soItem = soItemMap.get(item.productId)!;
                     await tx.salesOrderItem.update({
@@ -171,21 +210,29 @@ export async function POST(req: NextRequest) {
                     });
                 }
 
-                // Recalculate sales order status
+                // =========================
+                // Update Sales Order Status
+                // =========================
                 const updatedItems = await tx.salesOrderItem.findMany({
                     where: { salesOrderId },
                 });
+
                 const fullyInvoiced = updatedItems.every(
                     (i) => i.quantityInvoiced >= i.quantity
                 );
+
                 await tx.salesOrder.update({
                     where: { id: salesOrderId },
                     data: {
-                        status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED",
+                        status: fullyInvoiced
+                            ? "CONFIRMED"
+                            : "PARTIALLY_INVOICED",
                     },
                 });
 
-                // Record payments (multi-payment methods)
+                // =========================
+                // Record Payments
+                // =========================
                 if (payments.length > 0) {
                     await tx.salePayment.createMany({
                         data: payments.map((p: any) => ({
@@ -197,13 +244,42 @@ export async function POST(req: NextRequest) {
                     });
                 }
 
-                // Lock invoice if fully paid
+                // =========================
+                // Lock Invoice if Paid
+                // =========================
                 if (amountPaid >= invoiceTotal) {
                     await tx.sale.update({
                         where: { id: createdSale.id },
                         data: { status: "PAID" },
                     });
                 }
+
+                // =========================
+                // CREATE DELIVERY NOTE
+                // =========================
+                const deliveryNoteNo = await nextSequence("DN", true);
+
+                // 1️⃣ Create delivery note FIRST
+                const deliveryNote = await tx.deliveryNote.create({
+                    data: {
+                        deliveryNoteNo,
+                        saleId: createdSale.id,
+                        salesOrderId,
+                        locationId,
+                        createdById: user.id,
+                        dispatchedAt: new Date(),
+                        transporterId: transporterId ?? null,
+                    },
+                });
+
+                // 2️⃣ Create delivery note items explicitly
+                await tx.deliveryNoteItem.createMany({
+                    data: invoiceItems.map((i: any) => ({
+                        deliveryNoteId: deliveryNote.id,
+                        productId: i.productId,
+                        quantityDelivered: i.quantity,
+                    })),
+                });
 
                 return createdSale;
             })

@@ -125,7 +125,7 @@ const CreateSalesOrderPage: React.FC = () => {
             }
 
             toast.success("Sales order created");
-            router.push(`/sales/sales-order/${data.id}`);
+            router.push(`/sales/sales-orders/${data.id}`);
         } catch (err: any) {
             toast.error(err.message);
         } finally {

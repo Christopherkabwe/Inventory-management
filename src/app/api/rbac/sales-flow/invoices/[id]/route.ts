@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
 /* ======================================================
-   GET: Single Invoice by ID
+   GET: Single Invoice by ID (with pending qty)
 ====================================================== */
 export async function GET(
     req: NextRequest,
@@ -21,16 +21,21 @@ export async function GET(
         include: {
             customer: true,
             location: true,
+            transporter: true,
             items: {
                 include: {
                     product: true,
+                    // link to original SalesOrderItem
+                    sale: {
+                        include: { salesOrder: { include: { items: true } } }
+                    }
                 },
             },
-            payments: true, // all payments
-            salesOrder: true, // for salesOrderNumber
-            deliveryNotes: {
-                select: { deliveryNoteNo: true },
+            payments: true,
+            salesOrder: {
+                include: { items: true }, // get SalesOrderItems
             },
+            deliveryNotes: { select: { deliveryNoteNo: true } },
         },
     });
 
@@ -47,6 +52,31 @@ export async function GET(
     const credit = Math.max(0, amountPaid - total); // overpayment
 
     /* =======================
+       MAP ITEMS WITH PENDING QUANTITY
+    ======================= */
+    const items = sale.items.map((item) => {
+        const soItem = sale.salesOrder.items.find(so => so.productId === item.productId);
+        const pendingQty = soItem ? soItem.quantity - soItem.quantityInvoiced : 0;
+
+        return {
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.total,
+            pendingQty,
+            product: {
+                id: item.product.id,
+                name: item.product.name,
+                sku: item.product.sku,
+                price: item.product.price,
+                packSize: item.product.packSize,
+                weightValue: item.product.weightValue,
+                weightUnit: item.product.weightUnit,
+            },
+        };
+    });
+
+    /* =======================
        MAP TO INVOICE VIEW
     ======================= */
     const invoice = {
@@ -58,7 +88,7 @@ export async function GET(
         total,
         balance,
         credit,
-        locked: sale.status === "PAID", // lock if fully paid
+        locked: sale.status === "PAID",
 
         customer: {
             name: sale.customer.name,
@@ -67,25 +97,21 @@ export async function GET(
             tpinNumber: sale.customer.tpinNumber,
             address: sale.customer.address,
         },
+
         location: {
             name: sale.location?.name ?? "",
             address: sale.location?.address ?? "",
         },
-        items: sale.items.map((i) => ({
-            id: i.id,
-            quantity: i.quantity,
-            price: i.price,
-            total: i.total,
-            product: {
-                id: i.product.id,
-                name: i.product.name,
-                sku: i.product.sku,
-                price: i.product.price,
-                packSize: i.product.packSize,
-                weightValue: i.product.weightValue,
-                weightUnit: i.product.weightUnit,
-            },
-        })),
+
+        transporter: sale.transporter
+            ? {
+                name: sale.transporter.name,
+                driverName: sale.transporter.driverName,
+                vehicleNumber: sale.transporter.vehicleNumber,
+            }
+            : null,
+
+        items,
 
         payments: sale.payments.map((p) => ({
             id: p.id,
@@ -97,8 +123,7 @@ export async function GET(
 
         salesOrderNumber: sale.salesOrder?.orderNumber ?? null,
         deliveryNoteNumbers: sale.deliveryNotes.map((d) => d.deliveryNoteNo),
-
     };
-    console.log(invoice)
+
     return NextResponse.json(invoice);
 }
