@@ -135,182 +135,123 @@ export async function POST(req: NextRequest) {
                 : "PAID";
 
     try {
-        const sale = await withRetries(async () =>
-            runTransaction(async (tx) => {
-                // =========================
-                // Load sales order items
-                // =========================
-                const soItems = await tx.salesOrderItem.findMany({
-                    where: { salesOrderId },
-                });
+        const sale = await withRetries(async () => {
+            // Load sales order items
+            const soItems = await prisma.salesOrderItem.findMany({
+                where: { salesOrderId },
+            });
+            const soItemMap = new Map(soItems.map((i) => [i.productId, i]));
 
-                const soItemMap = new Map(
-                    soItems.map((i) => [i.productId, i])
-                );
-
-                // =========================
-                // Validate quantities
-                // =========================
-                for (const item of invoiceItems) {
-                    const soItem = soItemMap.get(item.productId);
-                    if (!soItem) {
-                        throw new Error(
-                            `Product ${item.productId} not found in sales order`
-                        );
-                    }
-
-                    const remaining =
-                        soItem.quantity - soItem.quantityInvoiced;
-
-                    if (item.quantity > remaining) {
-                        throw new Error(
-                            `Cannot invoice more than remaining quantity for product ${item.productId}`
-                        );
-                    }
+            // Validate quantities
+            for (const item of invoiceItems) {
+                const soItem = soItemMap.get(item.productId);
+                if (!soItem) {
+                    throw new Error(`Product ${item.productId} not found in sales order`);
                 }
-
-                // =========================
-                // Create Invoice (Sale)
-                // =========================
-                if (transporterId) {
-                    const transporterExists = await tx.transporter.findUnique({
-                        where: { id: transporterId },
-                    });
-                    if (!transporterExists) {
-                        throw new Error("Invalid transporter selected");
-                    }
+                const remaining = soItem.quantity - soItem.quantityInvoiced;
+                if (item.quantity > remaining) {
+                    throw new Error(`Cannot invoice more than remaining quantity for product ${item.productId}`);
                 }
+            }
 
-
-                // Generate delivery note number (just read current value)
-
-                const invoiceNumber = await nextSequence("INV");
-                const deliveryNoteNo = await nextSequence("DN");
-
-                const createdSale = await tx.sale.create({
-                    data: {
-                        invoiceNumber,
-                        salesOrderId,
-                        customerId,
-                        locationId,
-                        createdById: user.id,
-                        status: saleStatus,
-                        transporterId: transporterId ?? null,
-                        driverName: driverName ?? null,
-                        items: {
-                            create: invoiceItems.map((i: any) => ({
-                                productId: i.productId,
-                                quantity: i.quantity,
-                                price: i.price,
-                                total: i.quantity * i.price,
-                                quantityDelivered: i.quantity,
-                            })),
-                        },
-                    },
-                });
-
-
-                // =========================
-                // Update Sales Order Items
-                // =========================
-                await Promise.all(
-                    invoiceItems.map((item) => {
-                        const soItem = soItemMap.get(item.productId)!;
-                        return tx.salesOrderItem.update({
-                            where: { id: soItem.id },
-                            data: { quantityInvoiced: { increment: item.quantity } },
-                        });
-                    })
-                );
-
-                // =========================
-                // Update Sales Order Status
-                // =========================
-                const updatedItems = await tx.salesOrderItem.findMany({
-                    where: { salesOrderId },
-                });
-
-                const fullyInvoiced = updatedItems.every(
-                    (i) => i.quantityInvoiced >= i.quantity
-                );
-
-                await tx.salesOrder.update({
-                    where: { id: salesOrderId },
-                    data: {
-                        status: fullyInvoiced
-                            ? "CONFIRMED"
-                            : "PARTIALLY_INVOICED",
-                    },
-                });
-
-                // =========================
-                // Record Payments
-                // =========================
-                if (payments.length > 0) {
-                    await tx.salePayment.createMany({
-                        data: payments.map((p: any) => ({
-                            saleId: createdSale.id,
-                            amount: p.amount,
-                            method: p.method,
-                            reference: p.reference ?? null,
+            // Create Invoice (Sale)
+            const invoiceNumber = await nextSequence("INV");
+            const createdSale = await prisma.sale.create({
+                data: {
+                    invoiceNumber,
+                    salesOrderId,
+                    customerId,
+                    locationId,
+                    createdById: user.id,
+                    status: saleStatus,
+                    items: {
+                        create: invoiceItems.map((i: any) => ({
+                            productId: i.productId,
+                            quantity: i.quantity,
+                            price: i.price,
+                            total: i.quantity * i.price,
+                            quantityDelivered: i.quantity,
                         })),
-                    });
-                }
-
-                // =========================
-                // Lock Invoice if Paid
-                // =========================
-                if (amountPaid >= invoiceTotal) {
-                    await tx.sale.update({
-                        where: { id: createdSale.id },
-                        data: { status: "PAID" },
-                    });
-                }
-
-                // =========================
-                // CREATE DELIVERY NOTE
-                // =========================
-
-                // 1️⃣ Create delivery note FIRST
-                const deliveryNote = await tx.deliveryNote.create({
-                    data: {
-                        deliveryNoteNo,
-                        saleId: createdSale.id,
-                        salesOrderId,
-                        locationId,
-                        createdById: user.id,
-                        dispatchedAt: new Date(),
-                        transporterId: transporterId ?? null,
                     },
-                });
+                },
+            });
 
-                // 2️⃣ Create delivery note items explicitly
-                await tx.deliveryNoteItem.createMany({
-                    data: invoiceItems.map((i: any) => ({
-                        deliveryNoteId: deliveryNote.id,
-                        productId: i.productId,
-                        quantityDelivered: i.quantity,
+            // Update Sales Order Items
+            await Promise.all(
+                invoiceItems.map((item) => {
+                    const soItem = soItemMap.get(item.productId)!;
+                    return prisma.salesOrderItem.update({
+                        where: { id: soItem.id },
+                        data: { quantityInvoiced: { increment: item.quantity } },
+                    });
+                })
+            );
+
+            // Update Sales Order Status
+            const updatedItems = await prisma.salesOrderItem.findMany({
+                where: { salesOrderId },
+            });
+            const fullyInvoiced = updatedItems.every((i) => i.quantityInvoiced >= i.quantity);
+            await prisma.salesOrder.update({
+                where: { id: salesOrderId },
+                data: { status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED" },
+            });
+
+            // Record Payments
+            if (payments.length > 0) {
+                await prisma.salePayment.createMany({
+                    data: payments.map((p: any) => ({
+                        saleId: createdSale.id,
+                        amount: p.amount,
+                        method: p.method,
+                        reference: p.reference ?? null,
                     })),
                 });
+            }
 
-                return createdSale;
-            })
-        );
+            // Lock Invoice if Paid
+            if (amountPaid >= invoiceTotal) {
+                await prisma.sale.update({
+                    where: { id: createdSale.id },
+                    data: { status: "PAID" },
+                });
+            }
+
+            // CREATE DELIVERY NOTE
+            const deliveryNoteNo = await nextSequence("DN");
+            const deliveryNote = await prisma.deliveryNote.create({
+                data: {
+                    deliveryNoteNo,
+                    saleId: createdSale.id,
+                    salesOrderId,
+                    locationId,
+                    createdById: user.id,
+                    dispatchedAt: new Date(),
+                    transporterId: transporterId ?? null,
+                },
+            });
+
+            await prisma.deliveryNoteItem.createMany({
+                data: invoiceItems.map((i: any) => ({
+                    deliveryNoteId: deliveryNote.id,
+                    productId: i.productId,
+                    quantityDelivered: i.quantity,
+                })),
+            });
+
+            return createdSale;
+        }, {
+            maxWait: 5000,
+            timeout: 10000,
+        });
 
         // Generate invoice number (just read current value)
         await incrementSequence("INV");
         await incrementSequence("DN");
 
-        return NextResponse.json({
-            id: sale.id,
-            invoiceNumber: sale.invoiceNumber,
-            status: sale.status,
-        });
+        return NextResponse.json({ id: sale.id, invoiceNumber: sale.invoiceNumber, status: sale.status });
     } catch (err: any) {
         console.error(err);
-        return NextResponse.json(
-            { error: err.message || "Failed to create invoice" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: err.message || "Failed to create invoice" }, { status: 500 });
     }
 }

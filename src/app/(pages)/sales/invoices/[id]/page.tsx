@@ -8,6 +8,7 @@ import PrintButton from "@/components/print/PrintButton";
 import EmptyRows from "@/components/EmptyRows";
 import { getBusinessInfo } from "@/lib/businessInfo";
 import { useUser } from "@/app/context/UserContext";
+import Link from "next/link";
 
 /* =======================
    TYPES
@@ -146,12 +147,12 @@ export default function InvoicePage() {
             <div className="px-2">
                 {/* Back */}
                 <div className="mb-4">
-                    <button
+                    <Link
                         className="inline-flex items-center gap-2 text-sm cursor-pointer font-medium text-zinc-600 hover:text-zinc-900"
-                        onClick={() => router.back()}
+                        href="/sales/invoices"
                     >
                         <ArrowLeft className="h-4 w-4" /> Back
-                    </button>
+                    </Link>
                 </div>
 
                 {/* PRINT AREA */}

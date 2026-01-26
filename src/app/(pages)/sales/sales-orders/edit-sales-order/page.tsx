@@ -132,7 +132,7 @@ const EditSalesOrderPage: React.FC = () => {
 
     return (
         <div>
-            <div className="min-h-screen bg-gray-100 p-6">
+            <div className="min-h-screen p-6">
                 <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
                     <h1 className="text-2xl font-semibold mb-6">Edit Sales Order</h1>
 

@@ -65,6 +65,7 @@ model User {
   // 🔹 INVENTORY
   assignedInventory  Inventory[]        @relation("InventoryAssignedUser")
   inventoryHistories InventoryHistory[]
+  customerPayments   CustomerPayment[]
 
   @@index([managerId])
 }
@@ -125,6 +126,7 @@ model ProductList {
   transferReceiptItems TransferReceiptItem[]
   inventoryHistories   InventoryHistory[]
   proformaInvoiceItems ProformaInvoiceItem[]
+  saleReturnItems      SaleReturnItem[]
 }
 
 // ==================== LOCATIONS ====================
@@ -242,6 +244,7 @@ model Customer {
 
   sales            Sale[]
   orders           SalesOrder[]
+  payments         CustomerPayment[]
   quotations       Quotation[]
   proformaInvoices ProformaInvoice[]
 }
@@ -294,26 +297,28 @@ model SalesOrderItem {
 
 // ==================== SALES (INVOICES) ====================
 model Sale {
-  id             String       @id @default(cuid())
-  invoiceNumber  String       @unique
+  id             String              @id @default(cuid())
+  invoiceNumber  String              @unique
   deliveryNoteNo String?
   salesOrderId   String
-  salesOrder     SalesOrder   @relation(fields: [salesOrderId], references: [id])
+  salesOrder     SalesOrder          @relation(fields: [salesOrderId], references: [id])
   locationId     String
-  location       Location     @relation(fields: [locationId], references: [id])
+  location       Location            @relation(fields: [locationId], references: [id])
   customerId     String
-  customer       Customer     @relation(fields: [customerId], references: [id])
+  customer       Customer            @relation(fields: [customerId], references: [id])
   transporterId  String?
-  transporter    Transporter? @relation(fields: [transporterId], references: [id])
+  transporter    Transporter?        @relation(fields: [transporterId], references: [id])
   driverName     String?
-  saleDate       DateTime     @default(now())
-  dueDate        DateTime? 
+  saleDate       DateTime            @default(now())
+  dueDate        DateTime?
   createdById    String
-  createdBy      User         @relation("SalesCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
-  status         SaleStatus   @default(PENDING)
+  createdBy      User                @relation("SalesCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now())
+  status         SaleStatus          @default(PENDING)
   payments       SalePayment[]
+  allocations    PaymentAllocation[]
+  paymentStatus  PaymentStatus       @default(PENDING)
 
   items         SaleItem[]
   creditNotes   CreditNote[]
@@ -350,11 +355,57 @@ model SalePayment {
   createdAt DateTime @default(now())
 }
 
+model CustomerPayment {
+  id String @id @default(cuid())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  amount      Float
+  method      String
+  reference   String?
+  paymentDate DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  allocations PaymentAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([paymentDate])
+}
+
+model PaymentAllocation {
+  id String @id @default(cuid())
+
+  customerPaymentId String
+  customerPayment   CustomerPayment @relation(fields: [customerPaymentId], references: [id], onDelete: Cascade)
+
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  amount Float
+
+  createdAt DateTime @default(now())
+
+  @@unique([customerPaymentId, saleId])
+  @@index([saleId])
+  @@index([customerPaymentId])
+}
+enum PaymentStatus {
+  PENDING       // nothing paid yet
+  PARTIAL       // partially paid
+  PAID          // fully paid
+}
+
 // ==================== DELIVERY NOTES ====================
 model DeliveryNote {
   id             String       @id @default(cuid())
   deliveryNoteNo String       @unique
-  saleId         String @unique
+  saleId         String       @unique
   sale           Sale         @relation(fields: [saleId], references: [id])
   salesOrderId   String
   salesOrder     SalesOrder   @relation(fields: [salesOrderId], references: [id])
@@ -363,7 +414,7 @@ model DeliveryNote {
   transporterId  String?
   transporter    Transporter? @relation(fields: [transporterId], references: [id])
   dispatchedAt   DateTime     @default(now())
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
   createdById    String
   createdBy      User         @relation("DeliveryNotesCreatedBy", fields: [createdById], references: [id])
 
@@ -424,16 +475,20 @@ enum QuotationStatus {
 
 // ==================== CREDIT NOTES ====================
 model CreditNote {
-  id               String   @id @default(cuid())
-  creditNoteNumber String   @unique
+  id               String @id @default(cuid())
+  creditNoteNumber String @unique
   saleId           String
-  sale             Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  reason           String
-  amount           Float
-  createdById      String
-  createdBy        User     @relation("CreditNotesCreatedBy", fields: [createdById], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @default(now())
+  sale             Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  saleReturnId String     @unique
+  saleReturn   SaleReturn @relation(fields: [saleReturnId], references: [id])
+
+  reason      String
+  amount      Float
+  createdById String
+  createdBy   User     @relation("CreditNotesCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
 }
 
 // ==================== SALE RETURNS ====================
@@ -447,12 +502,27 @@ model SaleReturn {
   quantity         Int
   reason           String
   createdById      String
+  creditNote       CreditNote?
   createdBy        User              @relation("SaleReturnsCreatedBy", fields: [createdById], references: [id])
   locationId       String
   location         Location          @relation(fields: [locationId], references: [id])
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @default(now())
   inventoryHistory InventoryHistory?
+  items            SaleReturnItem[]
+}
+
+model SaleReturnItem {
+  id           String      @id @default(cuid())
+  saleReturnId String
+  saleReturn   SaleReturn  @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  productId    String
+  product      ProductList @relation(fields: [productId], references: [id])
+  quantity     Int
+  reason       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 }
 
 model ProformaInvoice {
@@ -627,7 +697,7 @@ enum SaleStatus {
   CONFIRMED
   PARTIALLY_INVOICED
   PARTIALLY_PAID
-  PAID 
+  PAID
   CANCELLED
 }
 

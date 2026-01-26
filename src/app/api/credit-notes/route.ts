@@ -1,54 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { nextSequence, incrementSequence } from "@/lib/sequence";
 
-export async function POST(req: NextRequest) {
-    const user = await getCurrentUser();
-    if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
 
-    const { saleId, reason, amount } = await req.json();
+    const customer = searchParams.get("customer") || undefined;
+    const invoiceNumber = searchParams.get("invoiceNumber") || undefined;
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
 
-    if (!saleId || !amount || amount <= 0) {
-        return NextResponse.json({ error: "Invalid data" }, { status: 400 });
-    }
-
-    const creditNoteNumber = await nextSequence("CN");
-
-    const creditNote = await prisma.creditNote.create({
-        data: {
-            creditNoteNumber,
-            saleId,
-            reason,
-            amount,
-            createdById: user.id,
-        },
-    });
-
-    await incrementSequence("CN");
-
-    // Optional: recalculate sale status
-    const sale = await prisma.sale.findUnique({
-        where: { id: saleId },
-        include: { items: true, payments: true, creditNotes: true },
-    });
-
-    if (sale) {
-        const total = sale.items.reduce((a, i) => a + i.total, 0);
-        const paid = sale.payments.reduce((a, p) => a + p.amount, 0);
-        const creditTotal = sale.creditNotes.reduce((a, c) => a + c.amount, 0);
-        let status = "CONFIRMED";
-
-        if (paid + creditTotal >= total) status = "PAID";
-        else if (paid + creditTotal > 0) status = "PARTIALLY_PAID";
-
-        await prisma.sale.update({
-            where: { id: saleId },
-            data: { status },
+    try {
+        const creditNotes = await prisma.creditNote.findMany({
+            include: {
+                sale: {
+                    include: {
+                        customer: true,
+                    },
+                },
+                saleReturn: true, // ✅ correct relation
+            },
+            where: {
+                sale: {
+                    customer: customer
+                        ? { name: { contains: customer, mode: "insensitive" } }
+                        : undefined,
+                    invoiceNumber: invoiceNumber
+                        ? { contains: invoiceNumber, mode: "insensitive" }
+                        : undefined,
+                },
+                createdAt:
+                    startDate || endDate
+                        ? {
+                            gte: startDate ? new Date(startDate) : undefined,
+                            lte: endDate ? new Date(endDate) : undefined,
+                        }
+                        : undefined,
+            },
+            orderBy: { createdAt: "desc" },
         });
-    }
 
-    return NextResponse.json(creditNote);
+        const mapped = creditNotes.map((cn) => ({
+            id: cn.id,
+            creditNoteNumber: cn.creditNoteNumber,
+            saleId: cn.saleId,
+            saleInvoiceNumber: cn.sale.invoiceNumber,
+            customerName: cn.sale.customer.name,
+            amount: cn.amount,
+            reason: cn.reason,
+            createdAt: cn.createdAt,
+
+            // ✅ guaranteed 1:1
+            saleReturnId: cn.saleReturn?.id ?? null,
+            saleReturnNumber: cn.saleReturn?.returnNumber ?? null,
+        }));
+
+        return NextResponse.json(mapped);
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json(
+            { error: "Failed to fetch credit notes" },
+            { status: 500 }
+        );
+    }
 }

@@ -62,137 +62,135 @@ const TransfersPage: React.FC = () => {
     };
 
     return (
-        <DashboardLayout >
-            <div className="mx-auto max-w-7xl space-y-5 p-5">
-                {/* Header */}
-                <header className="flex items-end justify-between">
-                    <div>
-                        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-                            Stock Transfers
-                        </h1>
-                        <p className="mt-1 text-sm text-zinc-500">
-                            Inter-location inventory movements
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={() => router.push("/transfers/create-transfer")}
-                        className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 
-                        text-sm font-medium text-white hover:bg-zinc-800 cursor-pointer"
-                    >
-                        <Plus size={16} />
-                        New Transfer
-                    </button>
-                </header>
-
-                {/* Table Card */}
-                <div className="rounded-sm border border-zinc-200 bg-white shadow-sm">
-                    {loading && (
-                        <div className="py-24 text-center text-sm text-zinc-500">
-                            Loading transfers…
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="py-24 text-center text-sm text-red-600">
-                            {error}
-                        </div>
-                    )}
-
-                    {!loading && !error && transfers.length === 0 && (
-                        <div className="py-24 text-center text-sm text-zinc-500">
-                            No transfer records available.
-                        </div>
-                    )}
-
-                    {!loading && !error && transfers.length > 0 && (
-                        <table className="w-full border-collapse cursor-pointer">
-                            <thead className="bg-gray-200 border border-black">
-                                <tr>
-                                    {[
-                                        "#",
-                                        "IBT NUMBER",
-                                        "FROM LOCATION",
-                                        "TO LOCATION",
-                                        "TRANSPORTER",
-                                        "STATUS",
-                                        "ACTIONS",
-                                    ].map(h => (
-                                        <th
-                                            key={h}
-                                            className="border-r border-black px-4 py-2 text-left text-md font-semibold uppercase tracking-wider text-zinc-600"
-                                        >
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {transfers.map((t, index) => (
-                                    <tr key={t.id} className="border border-b border-black hover:bg-zinc-100 cursor-pointer">
-                                        <td className="px-4 py-2 text-zinc-700 border-r border-black text-center">
-                                            {index + 1}
-                                        </td>
-                                        <td className="px-4 py-2 text-zinc-700 border-r border-black">
-                                            {t.ibtNumber}
-                                        </td>
-                                        <td className="px-4 py-2 text-zinc-700 border-r border-black">
-                                            {t.fromLocation.name}
-                                        </td>
-                                        <td className="px-4 py-2 text-zinc-700 border-r border-black">
-                                            {t.toLocation.name}
-                                        </td>
-                                        <td className="px-4 py-2 text-zinc-700 border-r border-black">
-                                            {t.transporter?.name ?? "—"}
-                                        </td>
-                                        <td className="px-4 py-2 border border-black">
-                                            <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${statusStyles(t.status)}`}>
-                                                {t.status.replaceAll("_", " ")}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={() => router.push(`/transfers/${t.id}`)}
-                                                    className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-zinc-700 hover:text-zinc-900 cursor-pointer"
-                                                >
-                                                    <Eye size={15} />
-                                                    View
-                                                </button>
-                                                {t.status === 'PENDING' && (
-                                                    <button
-                                                        onClick={() => router.push(`/transfers/${t.id}/dispatch-transfer`)}
-                                                        className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 px-2 py-1 rounded-md border border-gray-500 hover:text-blue-700 cursor-pointer"
-                                                    >
-                                                        Dispatch
-                                                    </button>
-                                                )}
-                                                {t.status === 'DISPATCHED' && (
-                                                    <button
-                                                        onClick={() => router.push(`/transfers/${t.id}/receive-transfer`)}
-                                                        className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-green-600 hover:text-green-700 cursor-pointer"
-                                                    >
-                                                        Receive
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleDelete(t.id)}
-                                                    className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-red-600 hover:text-red-700"
-                                                >
-                                                    <Trash2 size={15} />
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+        <div className="mx-auto max-w-7xl space-y-5 p-5">
+            {/* Header */}
+            <header className="flex items-end justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+                        Stock Transfers
+                    </h1>
+                    <p className="mt-1 text-sm text-zinc-500">
+                        Inter-location inventory movements
+                    </p>
                 </div>
+
+                <button
+                    onClick={() => router.push("/transfers/create-transfer")}
+                    className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 
+                        text-sm font-medium text-white hover:bg-zinc-800 cursor-pointer"
+                >
+                    <Plus size={16} />
+                    New Transfer
+                </button>
+            </header>
+
+            {/* Table Card */}
+            <div className="rounded-sm border border-zinc-200 bg-white shadow-sm">
+                {loading && (
+                    <div className="py-24 text-center text-sm text-zinc-500">
+                        Loading transfers…
+                    </div>
+                )}
+
+                {error && (
+                    <div className="py-24 text-center text-sm text-red-600">
+                        {error}
+                    </div>
+                )}
+
+                {!loading && !error && transfers.length === 0 && (
+                    <div className="py-24 text-center text-sm text-zinc-500">
+                        No transfer records available.
+                    </div>
+                )}
+
+                {!loading && !error && transfers.length > 0 && (
+                    <table className="w-full border-collapse cursor-pointer">
+                        <thead className="bg-gray-200 border border-black">
+                            <tr>
+                                {[
+                                    "#",
+                                    "IBT NUMBER",
+                                    "FROM LOCATION",
+                                    "TO LOCATION",
+                                    "TRANSPORTER",
+                                    "STATUS",
+                                    "ACTIONS",
+                                ].map(h => (
+                                    <th
+                                        key={h}
+                                        className="border-r border-black px-4 py-2 text-left text-md font-semibold uppercase tracking-wider text-zinc-600"
+                                    >
+                                        {h}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {transfers.map((t, index) => (
+                                <tr key={t.id} className="border border-b border-black hover:bg-zinc-100 cursor-pointer">
+                                    <td className="px-4 py-2 text-zinc-700 border-r border-black text-center">
+                                        {index + 1}
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-700 border-r border-black">
+                                        {t.ibtNumber}
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-700 border-r border-black">
+                                        {t.fromLocation.name}
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-700 border-r border-black">
+                                        {t.toLocation.name}
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-700 border-r border-black">
+                                        {t.transporter?.name ?? "—"}
+                                    </td>
+                                    <td className="px-4 py-2 border border-black">
+                                        <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${statusStyles(t.status)}`}>
+                                            {t.status.replaceAll("_", " ")}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => router.push(`/transfers/${t.id}`)}
+                                                className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-zinc-700 hover:text-zinc-900 cursor-pointer"
+                                            >
+                                                <Eye size={15} />
+                                                View
+                                            </button>
+                                            {t.status === 'PENDING' && (
+                                                <button
+                                                    onClick={() => router.push(`/transfers/${t.id}/dispatch-transfer`)}
+                                                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 px-2 py-1 rounded-md border border-gray-500 hover:text-blue-700 cursor-pointer"
+                                                >
+                                                    Dispatch
+                                                </button>
+                                            )}
+                                            {t.status === 'DISPATCHED' && (
+                                                <button
+                                                    onClick={() => router.push(`/transfers/${t.id}/receive-transfer`)}
+                                                    className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-green-600 hover:text-green-700 cursor-pointer"
+                                                >
+                                                    Receive
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDelete(t.id)}
+                                                className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md border border-gray-500 font-medium text-red-600 hover:text-red-700"
+                                            >
+                                                <Trash2 size={15} />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
-        </DashboardLayout>
+        </div>
     );
 }
 

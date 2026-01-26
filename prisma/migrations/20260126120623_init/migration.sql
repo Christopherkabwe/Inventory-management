@@ -2,10 +2,13 @@
 CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'MANAGER', 'USER');
 
 -- CreateEnum
-CREATE TYPE "InventorySource" AS ENUM ('SYSTEM', 'SALE', 'TRANSFER_IN', 'TRANSFER_OUT', 'PRODUCTION', 'ADJUSTMENT', 'RETURN');
+CREATE TYPE "InventorySource" AS ENUM ('SYSTEM', 'SALE', 'TRANSFER_IN', 'TRANSFER_IN_TRANSIT', 'TRANSFER_OUT', 'TRANSFER_DAMAGED', 'TRANSFER_EXPIRED', 'PRODUCTION', 'ADJUSTMENT', 'RETURN', 'INITIAL');
 
 -- CreateEnum
 CREATE TYPE "QuotationStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
+CREATE TYPE "ProformaStatus" AS ENUM ('DRAFT', 'SENT', 'APPROVED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "TransferStatus" AS ENUM ('PENDING', 'DISPATCHED', 'RECEIVED', 'CANCELLED');
@@ -17,7 +20,7 @@ CREATE TYPE "AdjustmentType" AS ENUM ('DAMAGED', 'EXPIRED', 'MANUAL');
 CREATE TYPE "SalesOrderStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PARTIALLY_INVOICED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "SaleStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PARTIALLY_INVOICED', 'CANCELLED');
+CREATE TYPE "SaleStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PARTIALLY_INVOICED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "ProductionStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'LOCKED');
@@ -74,9 +77,12 @@ CREATE TABLE "ProductList" (
     "costPerBag" DOUBLE PRECISION,
     "packSize" INTEGER NOT NULL,
     "category" TEXT,
+    "subCategory" TEXT,
     "weightValue" DOUBLE PRECISION NOT NULL,
     "weightUnit" TEXT NOT NULL,
     "createdById" TEXT NOT NULL,
+    "isTaxable" TEXT,
+    "taxRate" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -118,8 +124,11 @@ CREATE TABLE "InventoryHistory" (
     "locationId" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "delta" INTEGER NOT NULL,
+    "inTransitDelta" INTEGER,
     "sourceType" "InventorySource" NOT NULL,
     "reference" TEXT NOT NULL,
+    "createdById" TEXT,
+    "metadata" JSONB,
     "saleItemId" TEXT,
     "transferReceiptItemId" TEXT,
     "productionItemId" TEXT,
@@ -135,12 +144,15 @@ CREATE TABLE "InventoryHistory" (
 CREATE TABLE "Customer" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
-    "phone" TEXT NOT NULL,
+    "tpinNumber" TEXT,
+    "email" TEXT,
+    "phone" TEXT,
     "country" TEXT NOT NULL,
     "city" TEXT NOT NULL,
+    "address" TEXT,
     "createdById" TEXT NOT NULL,
     "userId" TEXT,
+    "assignedUser" TEXT,
     "locationId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -198,6 +210,7 @@ CREATE TABLE "Sale" (
     "transporterId" TEXT,
     "driverName" TEXT,
     "saleDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "dueDate" TIMESTAMP(3),
     "createdById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -223,6 +236,18 @@ CREATE TABLE "SaleItem" (
 );
 
 -- CreateTable
+CREATE TABLE "SalePayment" (
+    "id" TEXT NOT NULL,
+    "saleId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "method" TEXT NOT NULL,
+    "reference" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SalePayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "DeliveryNote" (
     "id" TEXT NOT NULL,
     "deliveryNoteNo" TEXT NOT NULL,
@@ -231,6 +256,7 @@ CREATE TABLE "DeliveryNote" (
     "locationId" TEXT NOT NULL,
     "transporterId" TEXT,
     "dispatchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdById" TEXT NOT NULL,
 
     CONSTRAINT "DeliveryNote_pkey" PRIMARY KEY ("id")
@@ -279,6 +305,7 @@ CREATE TABLE "CreditNote" (
     "id" TEXT NOT NULL,
     "creditNoteNumber" TEXT NOT NULL,
     "saleId" TEXT NOT NULL,
+    "saleReturnId" TEXT NOT NULL,
     "reason" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "createdById" TEXT NOT NULL,
@@ -302,6 +329,32 @@ CREATE TABLE "SaleReturn" (
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "SaleReturn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProformaInvoice" (
+    "id" TEXT NOT NULL,
+    "proformaNumber" TEXT NOT NULL,
+    "salesOrderId" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "locationId" TEXT NOT NULL,
+    "status" "ProformaStatus" NOT NULL DEFAULT 'DRAFT',
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProformaInvoice_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProformaInvoiceItem" (
+    "id" TEXT NOT NULL,
+    "proformaId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
+    "total" DOUBLE PRECISION NOT NULL,
+
+    CONSTRAINT "ProformaInvoiceItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -466,6 +519,15 @@ CREATE INDEX "SaleItem_productId_idx" ON "SaleItem"("productId");
 CREATE UNIQUE INDEX "DeliveryNote_deliveryNoteNo_key" ON "DeliveryNote"("deliveryNoteNo");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "DeliveryNote_saleId_key" ON "DeliveryNote"("saleId");
+
+-- CreateIndex
+CREATE INDEX "DeliveryNote_saleId_idx" ON "DeliveryNote"("saleId");
+
+-- CreateIndex
+CREATE INDEX "DeliveryNote_salesOrderId_idx" ON "DeliveryNote"("salesOrderId");
+
+-- CreateIndex
 CREATE INDEX "DeliveryNoteItem_deliveryNoteId_idx" ON "DeliveryNoteItem"("deliveryNoteId");
 
 -- CreateIndex
@@ -478,7 +540,13 @@ CREATE UNIQUE INDEX "Quotation_quoteNumber_key" ON "Quotation"("quoteNumber");
 CREATE UNIQUE INDEX "CreditNote_creditNoteNumber_key" ON "CreditNote"("creditNoteNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CreditNote_saleReturnId_key" ON "CreditNote"("saleReturnId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "SaleReturn_returnNumber_key" ON "SaleReturn"("returnNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ProformaInvoice_proformaNumber_key" ON "ProformaInvoice"("proformaNumber");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Transfer_ibtNumber_key" ON "Transfer"("ibtNumber");
@@ -530,6 +598,9 @@ ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_productId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_saleItemId_fkey" FOREIGN KEY ("saleItemId") REFERENCES "SaleItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -592,6 +663,9 @@ ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_saleId_fkey" FOREIGN KEY ("saleI
 ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SalePayment" ADD CONSTRAINT "SalePayment_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "DeliveryNote" ADD CONSTRAINT "DeliveryNote_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -631,6 +705,9 @@ ALTER TABLE "QuotationItem" ADD CONSTRAINT "QuotationItem_productId_fkey" FOREIG
 ALTER TABLE "CreditNote" ADD CONSTRAINT "CreditNote_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CreditNote" ADD CONSTRAINT "CreditNote_saleReturnId_fkey" FOREIGN KEY ("saleReturnId") REFERENCES "SaleReturn"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "CreditNote" ADD CONSTRAINT "CreditNote_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -644,6 +721,21 @@ ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_createdById_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProformaInvoice" ADD CONSTRAINT "ProformaInvoice_salesOrderId_fkey" FOREIGN KEY ("salesOrderId") REFERENCES "SalesOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProformaInvoice" ADD CONSTRAINT "ProformaInvoice_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProformaInvoice" ADD CONSTRAINT "ProformaInvoice_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProformaInvoiceItem" ADD CONSTRAINT "ProformaInvoiceItem_proformaId_fkey" FOREIGN KEY ("proformaId") REFERENCES "ProformaInvoice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProformaInvoiceItem" ADD CONSTRAINT "ProformaInvoiceItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Transfer" ADD CONSTRAINT "Transfer_fromLocationId_fkey" FOREIGN KEY ("fromLocationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

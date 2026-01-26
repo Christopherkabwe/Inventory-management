@@ -104,6 +104,14 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "Test Filters", href: "/test/test-filters" },
         ],
     },
+    {
+        name: "Users",
+        icon: User,
+        subItems: [
+            { name: "Create User", href: "/users/create-user" },
+            { name: "User Data", href: "/users/user-data" },
+        ],
+    },
     { name: "Settings", href: "/settings", icon: Settings },
     { name: "About Us", href: "/about-us", icon: Info },
 ];
