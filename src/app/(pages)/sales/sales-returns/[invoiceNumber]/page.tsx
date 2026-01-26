@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@/app/context/UserContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useRef } from "react";
@@ -30,11 +30,9 @@ export default function SaleReturnForm() {
     const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
     const fetchedRef = useRef(false);
     const [sale, setSale] = useState<Sale | null>(null);
-
     const [loading, setLoading] = useState(false);
     const [returns, setReturns] = useState<Record<string, { quantity: number; reason: string }>>({});
-
-
+    const router = useRouter();
     const fetchSale = async () => {
         if (!invoiceNumber) return;
 
@@ -104,6 +102,7 @@ export default function SaleReturnForm() {
             alert("Return submitted successfully!");
             setSale(null);
             setReturns({});
+            router.back();
         } catch (err: any) {
             alert(err.response?.data?.error || err.message);
         }
@@ -175,7 +174,7 @@ export default function SaleReturnForm() {
 
                     <button
                         onClick={handleSubmit}
-                        className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+                        className="mt-4 bg-green-600 text-white px-4 py-2 rounded cursor-pointer"
                     >
                         Submit Return
                     </button>

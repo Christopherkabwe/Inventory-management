@@ -203,6 +203,7 @@ export async function POST(req: NextRequest) {
                                 quantity: i.quantity,
                                 price: i.price,
                                 total: i.quantity * i.price,
+                                quantityDelivered: i.quantity,
                             })),
                         },
                     },
@@ -212,17 +213,15 @@ export async function POST(req: NextRequest) {
                 // =========================
                 // Update Sales Order Items
                 // =========================
-                for (const item of invoiceItems) {
-                    const soItem = soItemMap.get(item.productId)!;
-                    await tx.salesOrderItem.update({
-                        where: { id: soItem.id },
-                        data: {
-                            quantityInvoiced: {
-                                increment: item.quantity,
-                            },
-                        },
-                    });
-                }
+                await Promise.all(
+                    invoiceItems.map((item) => {
+                        const soItem = soItemMap.get(item.productId)!;
+                        return tx.salesOrderItem.update({
+                            where: { id: soItem.id },
+                            data: { quantityInvoiced: { increment: item.quantity } },
+                        });
+                    })
+                );
 
                 // =========================
                 // Update Sales Order Status
