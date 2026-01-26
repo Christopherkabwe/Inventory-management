@@ -10,7 +10,7 @@ interface Props {
 
 const ViewSelector = ({ view, setView }: Props) => {
     return (
-        <div className="grid gap-2 w-full grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] sm:flex sm:w-auto mb-2">
+        <div className="grid grid-cols-3 gap-2 w-full xl:grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] sm:flex sm:w-auto mb-2">
             <span className="h-8 text-xs text-center p-2">View By:</span>
 
             <button

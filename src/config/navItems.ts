@@ -85,51 +85,12 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "Sales Summary", href: "/sales/sales-summary" },
             { name: "Create Sale", href: "/sales/create-sale" },
             { name: "Credit Notes", href: "/sales/credit-notes" },
-            { name: "Sales Returns", href: "/sales/sales-return" },
+            { name: "Sales Return", href: "/sales/sales-returns" },
             { name: "Sales Data", href: "/sales/sales-data" },
             { name: "Sales Orders", href: "/sales/sales-orders" },
             { name: "Create Sales Order", href: "/sales/sales-orders/create-sales-order" },
             { name: "Invoices", href: "/sales/invoices" },
-        ],
-    },
-    {
-        name: "Sales orders",
-        icon: ShoppingCart,
-        subItems: [
-            { name: "Sales Orders", href: "/sales/sales-orders" },
-            { name: "Create Sales Order", href: "/order-flow/sales-order/create-sales-order" },
-            { name: "Edit Sales Order", href: "/order-flow/sales-order/edit-sales-order" },
-        ],
-    },
-    {
-        name: "Quotations",
-        icon: ShoppingCart,
-        subItems: [
-            { name: "Sales Summary", href: "/sales/sales-summary" },
-            { name: "Create Sale", href: "/sales/create-sale" },
-            { name: "Credit Notes", href: "/sales/credit-notes" },
-            { name: "Sales Returns", href: "/sales/sales-return" },
-            { name: "Sales Data", href: "/sales/sales-data" },
-        ],
-    },
-    {
-        name: "Invoices",
-        icon: ShoppingCart,
-        subItems: [
-            { name: "Sales Summary", href: "/sales/sales-summary" },
-            { name: "Create Sale", href: "/sales/create-sale" },
-            { name: "Credit Notes", href: "/sales/credit-notes" },
-            { name: "Sales Returns", href: "/sales/sales-return" },
-            { name: "Sales Data", href: "/sales/sales-data" },
-        ],
-    },
-    {
-        name: "Pro Forma Invoice",
-        icon: User,
-        subItems: [
-            { name: "Create User", href: "/users/create-user" },
-            { name: "Update Password", href: "/update-password/request" },
-            { name: "User Management", href: "/users/user-data" },
+            { name: "Delivery Notes", href: "/sales/delivery-notes" },
         ],
     },
     {

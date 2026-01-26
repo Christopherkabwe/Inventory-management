@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 import { UserRole, requireRole } from "@/lib/rbac";
 
 // -------------------- GET PRODUCTIONS --------------------
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
         const production = await prisma.$transaction(async (tx) => {
             // Generate production number using nextSequence
-            const productionNo = await nextSequence(tx, "PROD");
+            const productionNo = await nextSequence("PROD");
 
             // Create production record
             const prod = await tx.production.create({
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
             });
         });
 
+        await incrementSequence("PROD");
         return NextResponse.json({ success: true, production }, { status: 201 });
     } catch (err) {
         console.error("Create production failed:", err);

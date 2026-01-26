@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 
 export async function GET(req: NextRequest) {
     try {
         // Generate PROD and BATCH sequences
-        const productionNo = await nextSequence("PROD", false);
-        const batchNumber = await nextSequence("BATCH", false);
+        const productionNo = await nextSequence("PROD");
+        const batchNumber = await nextSequence("BATCH");
 
         return new Response(
             JSON.stringify({ data: { productionNo, batchNumber } }),

@@ -76,7 +76,7 @@ export default async function InventoryPage({
     }));
 
     return (
-        <DashboardLayout>
+        <div>
             <div className="mb-5">
                 <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
                 <p className="text-sm text-gray-500">Manage your stock products and track inventory levels</p>
@@ -150,6 +150,6 @@ export default async function InventoryPage({
                     />
                 </div>
             )}
-        </DashboardLayout >
+        </div >
     );
 }

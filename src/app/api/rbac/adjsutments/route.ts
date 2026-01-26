@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { requireRole, UserRole } from "@/lib/rbac";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 import { recordInventoryTransaction } from "@/lib/inventory"; // ✅ Option A
 
 export async function GET(req: Request) {
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         if (!locationId || !type || !items?.length) return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
 
         const adjustment = await prisma.$transaction(async (tx) => {
-            const adjustmentNo = await nextSequence(tx, "ADJ");
+            const adjustmentNo = await nextSequence("ADJ");
 
             // 1️⃣ Create adjustment
             const adj = await tx.adjustment.create({
@@ -100,6 +100,7 @@ export async function POST(req: Request) {
 
             return adj;
         });
+        await incrementSequence("ADJ");
 
         return NextResponse.json({ success: true, adjustment }, { status: 201 });
     } catch (err) {

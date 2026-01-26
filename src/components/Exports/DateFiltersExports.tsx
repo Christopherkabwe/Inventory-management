@@ -133,7 +133,7 @@ const DateFiltersExports = ({
     return (
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-2">
             {/* Date Pickers */}
-            <div className="flex flex-row gap-2 w-full xl:w-auto">
+            <div className="flex flex-row border border-gray-300 rounded gap-2 w-full xl:w-auto">
                 <label className="flex items-center gap-2 border rounded px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
                     <span className="whitespace-nowrap text-sm">Start :</span>
                     <input
@@ -155,7 +155,7 @@ const DateFiltersExports = ({
             </div>
 
             {/* Dropdown Filters */}
-            <div className="grid grid-cols-4 gap-2 sm:flex-nowrap w-full xl:w-auto">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-2 w-full xl:w-auto">
                 {/* Locations */}
                 <DropdownFilter
                     ref={locationRef}
@@ -240,7 +240,7 @@ const DropdownFilter = forwardRef<HTMLDivElement, DropdownFilterProps<any>>(
             <div ref={ref} className="relative flex-1 min-w-0 xl:flex-none">
                 <button
                     onClick={() => setShow(!show)}
-                    className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                    className="w-full px-3 py-1 h-8 border border-gray-300 rounded hover:bg-gray-200 text-sm truncate"
                 >
                     Select {label}
                 </button>

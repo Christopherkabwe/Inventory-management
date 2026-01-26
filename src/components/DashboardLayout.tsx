@@ -12,7 +12,7 @@ export default function DashboardLayout({
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     return (
-        <div className="min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div className="min-h-screen w-full bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
             {/* Sidebar */}
             <Sidebar
@@ -30,7 +30,7 @@ export default function DashboardLayout({
 
             {/* Main content */}
             <main
-                className={` transition-all duration-300  px-6 py-2 ${sidebarOpen ? "md:ml-64" : "md:ml-0"}`}
+                className={` transition-all duration-300  px-6 py-2 ${sidebarOpen ? "xl:ml-64" : "xl:ml-0"}`}
             >
                 {/* Top bar */}
                 <div className="flex items-center">

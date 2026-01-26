@@ -120,7 +120,7 @@ const FilterExports = ({
     return (
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-2">
             {/* Dropdown Filters */}
-            <div className="grid grid-cols-4 gap-2 sm:flex-nowrap w-full xl:w-auto">
+            <div className="grid grid-cols-1 xl:grid-cols-4 xl:gap-2 w-full xl:w-auto">
                 {/* Locations */}
                 <DropdownFilter
                     ref={locationRef}
@@ -168,10 +168,10 @@ const FilterExports = ({
 
             {/* Export Buttons */}
             <div className="flex flex-row gap-2 w-full xl:w-auto">
-                <button onClick={exportCSV} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer">
+                <button onClick={exportCSV} className="px-2 py-1 h-8 text-xs border border-gray-300 rounded hover:bg-gray-200 cursor-pointer">
                     Export CSV
                 </button>
-                <button onClick={exportPDF} className="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-200 cursor-pointer">
+                <button onClick={exportPDF} className="px-2 py-1 h-8 text-xs border border-gray-300 rounded hover:bg-gray-200 cursor-pointer">
                     Export PDF
                 </button>
             </div>
@@ -202,10 +202,10 @@ const DropdownFilter = forwardRef<HTMLDivElement, DropdownFilterProps<any>>(
         };
 
         return (
-            <div ref={ref} className="relative flex-1 min-w-0 xl:flex-none">
+            <div ref={ref} className="relative flex-1 min-w-10 xl:flex-none">
                 <button
                     onClick={() => setShow(!show)}
-                    className="w-full px-3 py-1 h-8 border rounded hover:bg-gray-200 text-sm truncate"
+                    className="w-full px-3 py-1 h-8 border border-gray-300 rounded hover:bg-gray-200 text-sm truncate mb-2 xl:mb-0"
                 >
                     Select {label}
                 </button>

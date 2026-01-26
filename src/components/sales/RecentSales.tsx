@@ -201,7 +201,7 @@ export default function RecentSales() {
         doc.save("sales.pdf");
     };
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow mb-5">
+        <div className="bg-white text-black p-6 rounded-xl border hover:shadow-md transition-shadow mb-5">
             <div className="mb-2">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
                     <Clock className="h-5 w-5 text-blue-500" />
@@ -220,12 +220,12 @@ export default function RecentSales() {
                         placeholder="Customer, product, location, invoice, delivery note or transporter..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border px-3 py-2 rounded text-sm focus:ring-2 focus:ring-gray-300 outline-none dark:text-black  cursor-pointer"
+                        className="border px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gray-300 outline-none dark:text-black  cursor-pointer"
                     />
                 </div>
 
                 {/* Start Date */}
-                <div className="flex flex-col">
+                <div className="flex flex-col text-black">
                     <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Start Date
                     </label>
@@ -233,7 +233,7 @@ export default function RecentSales() {
                         type="date"
                         value={startDate}
                         onChange={(e) => handleStartDateChange(e.target.value)}
-                        className="border px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black  cursor-pointer"
+                        className="border border-gray-300 px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 outline-none cursor-pointer"
                     />
                 </div>
 
@@ -246,7 +246,7 @@ export default function RecentSales() {
                         type="date"
                         value={endDate}
                         onChange={(e) => handleEndDateChange(e.target.value)}
-                        className="border px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 outline-none dark:text-black  cursor-pointer"
+                        className="border border-gray-300 px-3 py-2 rounded-md text-sm hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 outline-none dark:text-black  cursor-pointer"
                     />
                 </div>
 

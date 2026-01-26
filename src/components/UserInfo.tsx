@@ -65,10 +65,10 @@ export default function UserInfoDropdown() {
             {/* Profile button */}
             <button
                 onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="flex items-center gap-2 p-1 rounded hover:cursor-pointer"
             >
                 <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white uppercase">
-                    {user.fullName[0]}
+                    {user.fullName?.[0] ?? "?"}
                 </div>
                 <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-white dark:text-gray-100">{user.fullName}</p>

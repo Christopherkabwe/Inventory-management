@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { nextSequence } from '@/lib/sequence';
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 
 export async function GET() {
     const transfers = await prisma.transfer.findMany({
@@ -37,7 +37,7 @@ export async function POST(request) {
         }
 
         // Generate ibtNumber using sequence
-        const ibtNumber = await nextSequence("IBT", true);
+        const ibtNumber = await nextSequence("IBT");
 
         const transfer = await prisma.transfer.create({
             data: {
@@ -54,7 +54,7 @@ export async function POST(request) {
                 },
             },
         });
-
+        await incrementSequence("IBT");
         return NextResponse.json(transfer);
     } catch (error) {
         console.error(error);

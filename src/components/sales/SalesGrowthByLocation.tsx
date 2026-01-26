@@ -160,9 +160,9 @@ export default function SalesGrowthByLocation({
                 </div>
             ) : (
                 <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={growthByLocation} barCategoryGap={18}>
+                    <BarChart data={growthByLocation} barCategoryGap={10}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="location" tick={{ fontSize: 11 }} />
+                        <XAxis dataKey="location" tick={{ fontSize: 10 }} />
                         <YAxis tickFormatter={(v) => `${v}%`} />
                         <Tooltip
                             content={

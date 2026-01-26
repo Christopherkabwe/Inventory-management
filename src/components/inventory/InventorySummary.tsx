@@ -437,9 +437,7 @@ export default function InventorySummary({ title, iconColor }: Props) {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr>
-                                <Loading message="Loading Inventory" colSpan={13} />
-                            </tr>
+                            <Loading message="Loading Inventory" colSpan={13} />
                         ) : sortedData.length ? (
                             <>
                                 {sortedData.map((p, i) => {

@@ -26,11 +26,11 @@ const withRole = <P extends object>(
         // Loading user context
         if (!user) {
             return (
-                <DashboardLayout>
+                <div>
                     <div className="min-h-screen flex items-center justify-center">
                         <Loading message="Loading user..." />
                     </div>
-                </DashboardLayout>
+                </div>
             );
         }
 

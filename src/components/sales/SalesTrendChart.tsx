@@ -42,22 +42,21 @@ export default function SalesDashboard() {
     }, [sales]);
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-2 text-black">
             {/* Sales Trend */}
             <SalesTrend sales={sales} loading={loading} />
 
             {/* ================= BARS & PIE ================= */}
             {/* Category & Location */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                 {/* Category Pie */}
                 <SalesByCategoryPie sales={sales} loading={loading} oldestDate={oldestDate} />
                 {/* Sales Tonnage by Location */}
                 <SalesByLocation sales={sales} loading={loading} oldestDate={oldestDate} />
                 {/* Sales Growth by Location */}
                 <SalesGrowthByLocation sales={sales} loading={loading} oldestDate={oldestDate} />
-            </div>
-            {/* Top Products & Value */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
+
+                {/* Top Products & Value */}
                 {/* Top Products per Location */}
                 <TopProductsByLocation sales={sales} loading={loading} />
                 {/* Sales Value by Location */}
@@ -65,8 +64,7 @@ export default function SalesDashboard() {
                 {/* Contribution to Total Sales (Donut) */}
                 <SalesContributionByLocation sales={sales} loading={loading} />
             </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-5">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">
                 {/* Top & Least Selling Products */}
                 <TopProducts sales={sales} loading={loading} />
                 <LeastProducts sales={sales} loading={loading} limit={5} />
@@ -75,7 +73,7 @@ export default function SalesDashboard() {
                 <SalesByCategory sales={sales} loading={loading} />
             </div>
             {/* Top Customers and Location */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
                 <TopCustomers sales={sales} loading={loading} limit={5} />
                 <LeastCustomers sales={sales} loading={loading} limit={5} />
             </div>

@@ -37,7 +37,7 @@ export default function Loading({ message = "Loading…", colSpan, className = "
         // For use inside a table
         return (
             <tr>
-                <td colSpan={colSpan} className={`p-0 ${className}`}>
+                <td colSpan={colSpan} className={`p-0 items-center ${className}`}>
                     {content}
                 </td>
             </tr>

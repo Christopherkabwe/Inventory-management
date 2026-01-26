@@ -42,7 +42,7 @@
     "src/components/RecentSales.Clienttsx",
     "src/app/context/Toaster.js",
     "next.config.ts",
-    "src/app/dashboard/ClientRedirect.js",
+    "src/app/(pages)/dashboard/ClientRedirect.js",
     "src/app/api/rbac/sales/create-sale-from-quotation"
   ],
   "exclude": [

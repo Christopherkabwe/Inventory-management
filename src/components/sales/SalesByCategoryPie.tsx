@@ -126,7 +126,7 @@ export default function SalesByCategoryPie({
                     <div className="h-[260px] flex flex-col">
                         {/* Chart area */}
                         <div className="flex-1 min-h-0">
-                            <ResponsiveContainer width="100%" height={260}>
+                            <ResponsiveContainer width="100%" height={200}>
                                 <PieChart>
                                     <Pie
                                         data={categoryData}
@@ -148,7 +148,7 @@ export default function SalesByCategoryPie({
 
 
                         {/* Legend */}
-                        <div className="flex flex-wrap justify-center gap-2 mt-2 text-xs">
+                        <div className="hidden xl:flex xl:flex-wrap justify-center gap-2 mt-2 text-xs">
                             {categoryData.map((d, i) => (
                                 <div key={d.category} className="flex items-center gap-2">
                                     <span

@@ -8,7 +8,7 @@ interface Props {
 
 const UnauthorizedAccess: React.FC<Props> = ({ message = 'Only Admins can access this page' }) => {
     return (
-        <DashboardLayout>
+        <div>
             <div className="w-full flex justify-center pt-10">
                 <div className="flex flex-col w-full max-w-md rounded-lg border border-gray-500 bg-white text-center items-center justify-center p-5">
                     <h2 className="text-3xl font-bold text-red-500 p-2">
@@ -27,7 +27,7 @@ const UnauthorizedAccess: React.FC<Props> = ({ message = 'Only Admins can access
                 </div>
             </div>
 
-        </DashboardLayout>
+        </div>
     );
 };
 

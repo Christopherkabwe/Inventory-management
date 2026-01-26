@@ -279,7 +279,7 @@ export default function SalesTable() {
 
     /** ------------------ Render ------------------ */
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md">
+        <div className="bg-white text-black p-6 rounded-xl border hover:shadow-md">
             <h2 className="px-2 font-semibold mb-5">Sales Summary</h2>
 
             <ViewSelector view={view} setView={setView} />
@@ -345,9 +345,7 @@ export default function SalesTable() {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr>
-                                <Loading message="Loading Sales" colSpan={8} />
-                            </tr>
+                            <Loading message="Loading Sales" colSpan={8} />
                         ) : (
                             sortedData.map((d, i) => (
                                 <tr key={d.id} className={i % 2 ? "bg-gray-50" : ""}>

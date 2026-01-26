@@ -57,7 +57,7 @@ export default function DocumentPage({ data }: Props) {
     const totalVAT = items.reduce((s, i) => s + (i.total - (i.price * i.quantity)), 0);
 
     return (
-        <DashboardLayout>
+        <div>
             <div className="w-full p-6 border border-black bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                 {/* Header */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
@@ -173,6 +173,6 @@ export default function DocumentPage({ data }: Props) {
                     <p>It's a pleasure doing business with you.</p>
                 </div>
             </div>
-        </DashboardLayout>
+        </div>
     );
 }

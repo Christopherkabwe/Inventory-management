@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import withRetries from "@/lib/retry";
 import { runTransaction } from "../utils";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 
 /* ======================================================
    GET: List Invoices
@@ -158,11 +158,6 @@ export async function POST(req: NextRequest) {
                 }
 
                 // =========================
-                // Generate Invoice Number
-                // =========================
-                const invoiceNumber = await nextSequence("INV", true);
-
-                // =========================
                 // Create Invoice (Sale)
                 // =========================
                 if (transporterId) {
@@ -173,6 +168,12 @@ export async function POST(req: NextRequest) {
                         throw new Error("Invalid transporter selected");
                     }
                 }
+
+
+                // Generate delivery note number (just read current value)
+
+                const invoiceNumber = await nextSequence("INV");
+                const deliveryNoteNo = await nextSequence("DN");
 
                 const createdSale = await tx.sale.create({
                     data: {
@@ -194,6 +195,7 @@ export async function POST(req: NextRequest) {
                         },
                     },
                 });
+
 
                 // =========================
                 // Update Sales Order Items
@@ -257,7 +259,6 @@ export async function POST(req: NextRequest) {
                 // =========================
                 // CREATE DELIVERY NOTE
                 // =========================
-                const deliveryNoteNo = await nextSequence("DN", true);
 
                 // 1️⃣ Create delivery note FIRST
                 const deliveryNote = await tx.deliveryNote.create({
@@ -284,6 +285,10 @@ export async function POST(req: NextRequest) {
                 return createdSale;
             })
         );
+
+        // Generate invoice number (just read current value)
+        await incrementSequence("INV");
+        await incrementSequence("DN");
 
         return NextResponse.json({
             id: sale.id,

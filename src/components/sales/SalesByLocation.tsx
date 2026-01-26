@@ -89,8 +89,8 @@ export default function SalesByLocation({
 
     /* ---------------- RENDER ---------------- */
     return (
-        <div className="bg-white p-6 rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
+        <div className="bg-white rounded-xl border hover:shadow-md transition-shadow flex flex-col h-full">
+            <h3 className="font-semibold px-5 mb-2 mt-6 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-green-600" />
                 Sales by Location (Tonnage)
             </h3>
@@ -112,7 +112,7 @@ export default function SalesByLocation({
                 />
             </div>
 
-            <div className="flex-1">
+            <div className="w-full">
                 {loading ? (
                     <div className="flex justify-center items-center h-[250px]">
                         Loading...
@@ -123,10 +123,10 @@ export default function SalesByLocation({
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={locationData} barCategoryGap={18}>
+                        <BarChart data={locationData} barCategoryGap={10}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="location" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} />
+                            <XAxis dataKey="location" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} />
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="tonnage" fill="#16a34a" radius={[6, 6, 0, 0]} />
                         </BarChart>

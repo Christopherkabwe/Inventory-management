@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole, requireRole } from "@/lib/rbac";
 import { createSaleSchema } from "@/lib/validators/sale";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 
 // -------------------- GET ALL SALES --------------------
 export async function GET(req: NextRequest) {
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
                 resolvedDriverName = driverName ?? null;
             }
             // Handle invoice Number
-            const invoiceNumber = await nextSequence(tx, "INV");
+            const invoiceNumber = await nextSequence("INV");
 
             // Create Sale
 
@@ -152,6 +152,8 @@ export async function POST(req: NextRequest) {
                 },
             });
         });
+
+        await incrementSequence("INV");
 
         return NextResponse.json({ success: true, sale: newSale });
     } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { nextSequence } from "@/lib/sequence";
+import { nextSequence, incrementSequence } from "@/lib/sequence";
 import { recordInventoryTransaction } from "@/lib/inventory"; // ✅ updated
 
 // ---------------- GET all productions ----------------
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "All items must have valid productId and quantity > 0" }, { status: 400 });
         }
 
-        const productionNo = await nextSequence("PROD", true);
-        const batchNumber = await nextSequence("BATCH", true);
+        const productionNo = await nextSequence("PROD");
+        const batchNumber = await nextSequence("BATCH");
         const userId = createdById || "system";
         const production = await prisma.production.create({
             data: {
@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
         } catch (error) {
             console.error('Error recording inventory transaction:', error);
         }
-
+        await incrementSequence("BATCH");
+        await incrementSequence("PROD");
         return NextResponse.json({ data: production });
     } catch (error) {
         console.error('Error creating production:', error);
