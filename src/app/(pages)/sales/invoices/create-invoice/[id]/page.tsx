@@ -73,8 +73,6 @@ const CreateInvoicePage = () => {
     const [deliveryNoteNo, setDeliveryNoteNo] = useState<string | null>(null);
 
     const [loadingStock, setLoadingStock] = useState(false);
-    const PAYMENT_STATUSES = ["PENDING", "PARTIAL", "PAID"];
-    const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PARTIAL" | "PAID">("PENDING");
 
     /* ==============================
        LOAD FORM OPTIONS
@@ -491,19 +489,72 @@ const CreateInvoicePage = () => {
                             </div>
                         ))}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Payment Status</h3>
-                            <select
-                                className="border rounded px-3 py-2 w-48"
-                                value={paymentStatus}
-                                onChange={e => setPaymentStatus(e.target.value as any)}
-                            >
-                                {PAYMENT_STATUSES.map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                            </select>
-                            <div className="text-sm text-gray-600 mt-1">
-                                Already Paid: K{amountPaid.toFixed(2)} | Remaining Balance: K{remainingBalance.toFixed(2)}
+                            <h3 className="text-lg font-semibold">Payments</h3>
+                            {/* Show existing paid amount and remaining balance */}
+                            <div className="text-sm text-gray-600 mb-2">
+                                {amountPaid > 0 && <span>Already Paid: K{amountPaid.toFixed(2)}</span>}
+                                <span className={amountPaid > 0 ? "ml-4" : ""}>Remaining Balance: K{remainingBalance.toFixed(2)}</span>
                             </div>
+
+                            {/* Payment Inputs */}
+                            {payments.map((payment, idx) => (
+                                <div
+                                    key={idx}
+                                    className="grid grid-cols-1 xl:grid-cols-4 gap-3 items-end border p-3 rounded-lg"
+                                >
+                                    {/* Payment Method */}
+                                    <div>
+                                        <label className="text-sm font-medium">Method</label>
+                                        <select
+                                            className="w-full border rounded px-3 py-2"
+                                            value={payment.method}
+                                            onChange={e => updatePayment(idx, { method: e.target.value })}
+                                        >
+                                            {PAYMENT_METHODS.map(m => (
+                                                <option key={m} value={m}>{m.replace("_", " ")}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Amount */}
+                                    <NumberInput
+                                        label="Amount"
+                                        min={0}
+                                        value={payment.amount} // default stays 0
+                                        step={0.01}
+                                        onChange={val => updatePayment(idx, { amount: val })}
+                                    />
+
+                                    {/* Reference */}
+                                    <div>
+                                        <label className="text-sm font-medium">Reference (optional)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded px-3 py-2"
+                                            value={payment.reference ?? ""}
+                                            onChange={e => updatePayment(idx, { reference: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Remove */}
+                                    <button
+                                        type="button"
+                                        onClick={() => removePayment(idx)}
+                                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                                        disabled={payments.length === 1}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={addPayment}
+                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                                + Add Payment Method
+                            </button>
                         </div>
                         <div className="flex justify-end gap-3">
                             <Link href="/sales/sales-orders" className="px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600">

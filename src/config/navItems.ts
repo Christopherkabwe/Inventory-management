@@ -1,5 +1,6 @@
 // ./config/navItems.ts
 
+import { Money } from "@mui/icons-material";
 import {
     BarChart3,
     Package,
@@ -9,7 +10,8 @@ import {
     User,
     Factory,
     Ship,
-    Truck
+    Truck,
+    DollarSign
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -91,6 +93,14 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "Create Sales Order", href: "/sales/sales-orders/create-sales-order" },
             { name: "Invoices", href: "/sales/invoices" },
             { name: "Delivery Notes", href: "/sales/delivery-notes" },
+        ],
+    },
+    {
+        name: "Payments",
+        icon: DollarSign,
+        subItems: [
+            { name: "Create User", href: "/users/create-user" },
+            { name: "User Data", href: "/users/user-data" },
         ],
     },
     {

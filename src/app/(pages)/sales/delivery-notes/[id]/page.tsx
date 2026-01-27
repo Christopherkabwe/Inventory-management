@@ -138,7 +138,7 @@ export default function DeliveryNotePage() {
                                 <p className="text-sm">Date Issued: {new Date(note.dispatchedAt).toLocaleDateString()}</p>
                                 <p className="text-sm">Prepared By: {note.createdBy?.fullName}</p>
                                 <p className="text-sm">
-                                    {note.location?.name}
+                                    Point of sale: {note.location?.name}
                                 </p>
                             </div>
 

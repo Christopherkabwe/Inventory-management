@@ -241,8 +241,8 @@ export async function POST(req: NextRequest) {
 
             return createdSale;
         }, {
-            maxWait: 5000,
-            timeout: 10000,
+            maxWait: 5000, // 5 seconds
+            timeout: 10000, // 10 seconds
         });
 
         // Generate invoice number (just read current value)

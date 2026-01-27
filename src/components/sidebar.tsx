@@ -83,7 +83,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }: Props) {
                                     <button
                                         onClick={() => toggleItem(item.name)}
                                         className={`flex w-full items-center justify-between px-3 py-2 rounded-lg 
-                                            ${isParentActive(item) ? "font-bold" : "hover:underline"}`
+                                            ${isParentActive(item) ? "font-bold" : "hover:underline cursor-pointer"}`
                                         }
                                     >
                                         <div className="flex items-center gap-3">
