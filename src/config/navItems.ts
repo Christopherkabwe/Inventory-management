@@ -99,8 +99,10 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Payments",
         icon: DollarSign,
         subItems: [
-            { name: "Create User", href: "/users/create-user" },
-            { name: "User Data", href: "/users/user-data" },
+            { name: "Payment Overview", href: "/sales/payment-overview" },
+            { name: "Customer Payments", href: "/payments" },
+            { name: "Add Payment", href: "/payments/new" },
+            { name: "Allocate Payments", href: "/payments" },
         ],
     },
     {

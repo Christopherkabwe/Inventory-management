@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import PrintButton from "@/components/print/PrintButton";
 import { useUser } from "@/app/context/UserContext";
 import EmptyRows from "@/components/EmptyRows";
+import Link from "next/link";
 
 type ProductType = {
     id: string;
@@ -120,13 +121,13 @@ export default function SalesOrderPage() {
             <div className="px-5">
                 {/* Back */}
                 <div className="mb-4">
-                    <button
+                    <Link
                         className="inline-flex items-center gap-2 text-sm cursor-pointer font-medium text-zinc-600 hover:text-zinc-900"
-                        onClick={() => router.back()}
+                        href="/sales/sales-orders"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back to orders
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Header */}

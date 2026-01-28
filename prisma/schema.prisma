@@ -364,6 +364,7 @@ model CustomerPayment {
   amount      Float
   method      String
   reference   String?
+  allocatedAmount Float?
   paymentDate DateTime @default(now())
 
   createdById String
@@ -386,6 +387,7 @@ model PaymentAllocation {
 
   saleId String
   sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  history           AllocationHistory[]
 
   amount Float
 
@@ -394,6 +396,38 @@ model PaymentAllocation {
   @@unique([customerPaymentId, saleId])
   @@index([saleId])
   @@index([customerPaymentId])
+}
+model AllocationHistory {
+  id                 String   @id @default(cuid())
+  allocationId       String
+  saleId             String
+  customerPaymentId  String
+  amount             Decimal
+  action             AllocationAction
+  createdAt          DateTime @default(now())
+  createdById    String?
+  notes              String?
+
+  allocation         PaymentAllocation @relation(fields: [allocationId], references: [id])
+}
+
+enum AllocationAction {
+  CREATE
+  UPDATE
+  DELETE
+  ROLLBACK
+}
+
+model AllocationAudit {
+  id                String   @id @default(cuid())
+  customerPaymentId String
+  saleId            String?
+  oldAmount         Decimal
+  newAmount         Decimal
+  action           AllocationAction
+  createdAt        DateTime @default(now())
+  createdById  String
+  reason           String?
 }
 enum PaymentStatus {
   PENDING       // nothing paid yet

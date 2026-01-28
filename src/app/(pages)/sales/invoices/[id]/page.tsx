@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, RotateCw } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
 import PrintButton from "@/components/print/PrintButton";
 import EmptyRows from "@/components/EmptyRows";
 import { getBusinessInfo } from "@/lib/businessInfo";
@@ -247,7 +246,7 @@ export default function InvoicePage() {
                                         <th className="px-4 py-2 border-r border-black text-center">SKU</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Pack</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Price</th>
-                                        <th className="px-4 py-2 border-r border-black text-center">Qty</th>
+                                        <th className="px-4 py-2 border-r border-black text-center">Quantity</th>
                                         {hasPending && <th className="px-4 py-2 border-r border-black text-center">Pending</th>}
                                         <th className="px-4 py-2 border-r border-black text-center">Tonnage</th>
                                         <th className="px-4 py-2 text-center">Total</th>

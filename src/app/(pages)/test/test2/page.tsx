@@ -1,148 +1,511 @@
 "use client";
 
-import useSWR from "swr";
-import { useState, useMemo } from "react";
-import { format } from "date-fns";
-import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from "chart.js";
-import PaymentDistributionPie from "@/components/sales/PaymentDistributionPie";
-import MonthlySalesChart from "@/components/sales/MonthlySalesPaymentBarchart";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { formatNumber } from "@/lib/utils";
+import { CheckCircleIcon } from "lucide-react";
+import { useUser } from "@/app/context/UserContext";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+type Payment = {
+    id: string;
+    amount: number;
+    customer: {
+        name: string;
+    };
+};
 
-export default function SalesOverview() {
-    // -----------------------------
-    // Data fetching
-    // -----------------------------
-    const { data: sales, error } = useSWR("/api/invoices", fetcher, { refreshInterval: 5000 });
-    const [filterStatus, setFilterStatus] = useState("ALL");
-    const [search, setSearch] = useState("");
+type Invoice = {
+    id: string;
+    invoiceNumber: string;
+    total: number;
+    balance: number;        // global balance
+    allocatedNow: number;   // allocation from THIS payment
+    createdAt: string;
+};
 
-    // -----------------------------
-    // Filtered sales
-    // -----------------------------
-    const filteredSales = useMemo(() =>
-        sales?.filter((s: any) =>
-            (filterStatus === "ALL" || s.status === filterStatus) &&
-            (s.invoiceNumber.includes(search) || s.customer.name.toLowerCase().includes(search.toLowerCase()))
-        ), [sales, filterStatus, search]);
+export default function AllocatePaymentPage({
+    params,
+}: {
+    params: Promise<{ paymentId: string }>;
+}) {
+    const user = useUser();
+    const userRole = user?.role;
+    const [paymentId, setPaymentId] = useState<string | null>(null);
+    const [payment, setPayment] = useState<Payment | null>(null);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [allocations, setAllocations] = useState<Record<string, string>>({});
+    const [originalAllocations, setOriginalAllocations] = useState<Record<string, string>>({});
+    const [saving, setIsSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [unallocatedBalance, setUnallocatedBalance] = useState<number>(0);
+    const [manualEdit, setManualEdit] = useState(false);
+    const [audit, setAudit] = useState<any[]>([]);
+    const router = useRouter();
+    const [showAdminConfirm, setShowAdminConfirm] = useState(false);
+    const [showRollbackModal, setShowRollbackModal] = useState(false);
+    const [rollbackReason, setRollbackReason] = useState("");
 
-    // -----------------------------
-    // Summary totals
-    // -----------------------------
-    const totalSales = useMemo(() => filteredSales?.reduce((sum, s) => sum + s.total, 0), [filteredSales]);
-    const totalPaid = useMemo(() => filteredSales?.reduce((sum, s) => sum + s.paid, 0), [filteredSales]);
-    const totalCredit = useMemo(() => filteredSales?.reduce((sum, s) => sum + s.creditNotesTotal, 0), [filteredSales]);
-    const totalBalance = useMemo(() => filteredSales?.reduce((sum, s) => sum + s.balance, 0), [filteredSales]);
+    const [rollbackStep, setRollbackStep] = useState<"LAST" | "ENTRY" | "ALL">("LAST");
+    const [rollbackAuditId, setRollbackAuditId] = useState<string | null>(null);
+    // NEW allocations
+    const newAllocated = Object.values(allocations).reduce((sum, val) => {
+        const num = parseFloat(val);
+        return sum + (Number.isFinite(num) ? num : 0);
+    }, 0);
 
-    // -----------------------------
-    // Monthly sales chart
-    // -----------------------------
-    const monthlyData = useMemo(() => {
-        const monthMap: Record<string, { total: number; paid: number; credit: number }> = {};
+    const remainingUnallocated = unallocatedBalance - newAllocated;
 
-        filteredSales?.forEach((s: any) => {
-            const month = format(new Date(s.saleDate), "yyyy-MM");
-            if (!monthMap[month]) monthMap[month] = { total: 0, paid: 0, credit: 0 };
-            monthMap[month].total += s.total;
-            monthMap[month].paid += s.paid;
-            monthMap[month].credit += s.creditNotesTotal;
+    const reloadPayment = async () => {
+        if (!paymentId) return;
+        setLoading(true);
+
+        try {
+            const res = await axios.get(`/api/payments/${paymentId}`);
+
+            setPayment(res.data.payment);
+            setInvoices(res.data.invoices);
+            setUnallocatedBalance(res.data.unallocatedBalance);
+
+            // ✅ HYDRATE allocations from backend truth
+            const hydrated: Record<string, string> = {};
+            res.data.invoices.forEach((inv: Invoice) => {
+                if (inv.allocatedNow > 0) {
+                    hydrated[inv.id] = inv.allocatedNow.toString();
+                }
+            });
+
+            setAllocations(hydrated);
+            setOriginalAllocations(hydrated);
+            setManualEdit(false);
+
+            await reloadAudit();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const reloadAudit = async () => {
+        if (!paymentId) return;
+
+        const res = await axios.get(`/api/payments/${paymentId}/audit`);
+        setAudit(res.data.audit);
+        console.log(res.data.audit)
+    };
+
+    // AUTO allocate oldest invoices first
+    useEffect(() => {
+        // ❌ Do nothing if:
+        // 1. No invoices loaded
+        // 2. User manually edited allocations
+        // 3. Allocations already exist (hydrated from backend)
+        if (
+            !invoices?.length ||
+            manualEdit ||
+            Object.keys(allocations).length > 0
+        ) {
+            return;
+        }
+
+        // ✅ Sort invoices oldest → newest
+        const sorted = [...invoices].sort(
+            (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime()
+        );
+
+        let remaining = unallocatedBalance;
+        const autoAlloc: Record<string, string> = {};
+
+        // ✅ Allocate oldest invoices first
+        for (const inv of sorted) {
+            if (remaining <= 0) break;
+
+            const allocateAmount = Math.min(inv.balance, remaining);
+
+            if (allocateAmount > 0) {
+                autoAlloc[inv.id] = allocateAmount.toString();
+                remaining -= allocateAmount;
+            }
+        }
+
+        // ✅ Apply auto-allocation ONCE
+        setAllocations(autoAlloc);
+        setOriginalAllocations(autoAlloc);
+    }, [
+        invoices,
+        unallocatedBalance,
+        manualEdit,
+        allocations,
+    ]);
+
+    const rollback = async () => {
+        if (!rollbackReason.trim()) {
+            toast.error("Reason is required for rollback");
+            return;
+        }
+
+        try {
+            await axios.post(`/api/payments/${paymentId}/rollback`, {
+                step: rollbackStep,
+                auditId: rollbackAuditId,
+                reason: rollbackReason,
+            });
+
+            toast.success("Rollback complete");
+
+            setShowRollbackModal(false);
+            setRollbackReason("");
+            setRollbackAuditId(null);
+
+            // 🔥 THIS IS THE IMPORTANT PART
+            await reloadPayment();
+            await reloadAudit();
+        } catch {
+            toast.error("Rollback failed");
+        }
+    };
+
+    const openRollbackModal = (step: "LAST" | "ENTRY" | "ALL", auditId?: string) => {
+        setRollbackStep(step);
+        setRollbackAuditId(auditId || null);
+        setRollbackReason("");
+        setShowRollbackModal(true);
+    };
+
+    const invoicesWithRemaining = useMemo(() => {
+        return invoices.map((inv) => {
+            const allocatedInput = parseFloat(allocations[inv.id] ?? "");
+            const allocated =
+                Number.isFinite(allocatedInput) ? allocatedInput : inv.allocatedNow;
+
+            return {
+                ...inv,
+                allocatedNow: allocated,
+                remainingBalance: inv.balance - allocated,
+            };
         });
+    }, [invoices, allocations]);
 
-        // Return chart data object
-        return {
-            labels: Object.keys(monthMap),
-            datasets: [
-                { label: "Total", data: Object.values(monthMap).map(m => m.total), backgroundColor: "#3b82f6" },
-                { label: "Paid", data: Object.values(monthMap).map(m => m.paid), backgroundColor: "#10b981" },
-                { label: "Credit Notes", data: Object.values(monthMap).map(m => m.credit), backgroundColor: "#f59e0b" },
-            ],
-        };
-    }, [filteredSales]);
+    const isAnyInvoiceOverAllocated = invoicesWithRemaining?.some(
+        (inv) => inv.remainingBalance < 0
 
-    if (error) return <div>Error loading sales</div>;
-    if (!sales) return <div>Loading...</div>;
+    );
 
-    // -----------------------------
-    // Render
-    // -----------------------------
+    const isAllInvoicesFullyAllocated = invoicesWithRemaining?.every(
+        (inv) => inv.remainingBalance <= 0
+    );
+
+    useEffect(() => {
+        params.then((p) => setPaymentId(p.paymentId));
+    }, [params]);
+
+    useEffect(() => {
+        if (!paymentId) return;
+        reloadPayment();
+    }, [paymentId]);
+
+    const overrideInvoices = useMemo(() => {
+        if (userRole !== "ADMIN") return new Set<string>();
+
+        return new Set(
+            invoicesWithRemaining
+                ?.filter(inv => inv.balance <= 0 && Number(allocations[inv.id] ?? 0) > 0)
+                .map(inv => inv.id)
+        );
+    }, [invoicesWithRemaining, allocations, userRole]);
+
+    const changedAllocations = Object.fromEntries(
+        Object.entries(allocations).filter(
+            ([id, value]) => value !== originalAllocations[id]
+        )
+    );
+
+    const saveAllocations = async () => {
+        if (remainingUnallocated < 0) {
+            toast.error("Allocation exceeds customer unallocated balance");
+            return;
+        }
+
+        if (isAnyInvoiceOverAllocated) {
+            toast.error("One or more invoices exceed their balance");
+            return;
+        }
+
+        setIsSaving(true);
+
+        try {
+            await axios.post(`/api/payments/${paymentId}/allocate`, {
+                allocations: changedAllocations
+            });
+            toast.success("Payment allocated successfully");
+            router.push("/payments");
+        } catch (err) {
+            toast.error("Failed to allocate payment");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const isAdminOverride = userRole === "ADMIN" && invoicesWithRemaining?.some(
+        inv => inv.balance <= 0 && (Number(allocations[inv.id] ?? 0) > 0)
+    );
+
+    const [auditFilter, setAuditFilter] = useState("ALL");
+
+    const filteredAudit = useMemo(() => {
+        if (auditFilter === "ALL") return audit;
+
+        return audit?.filter((a) => a.action === auditFilter);
+    }, [audit, auditFilter]);
+
+
+
+    if (loading) return <p className="p-6">Loading...</p>;
+    if (!payment) return <p className="p-6">No payment found</p>;
+
     return (
-        <div className="p-4 space-y-6">
-            {/* Filters */}
-            <div className="flex gap-4">
-                <input
-                    className="p-2 border rounded"
-                    placeholder="Search by invoice or customer"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-                <select
-                    className="p-2 border rounded"
-                    value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
-                >
-                    <option value="ALL">All Status</option>
-                    <option value="CONFIRMED">Confirmed</option>
-                    <option value="PARTIALLY_PAID">Partially Paid</option>
-                    <option value="PAID">Paid</option>
-                </select>
+        <div className="bg-white p-6 rounded shadow max-w-5xl mx-auto">
+            <h1 className="text-2xl font-bold mb-4">Allocate Payment</h1>
+
+            <div className="mb-4 bg-gray-50 p-4 rounded">
+                <p>
+                    <strong>Customer:</strong> {payment.customer.name}
+                </p>
+                <p>
+                    <strong>Unallocated Balance:</strong> K{formatNumber(unallocatedBalance, 2)}
+                </p>
+                <p className={remainingUnallocated < 0 ? "text-red-600" : "text-green-700"}>
+                    <strong>Remaining After Allocation:</strong>{" "}
+                    K{formatNumber(remainingUnallocated, 2)}
+                </p>
             </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="p-4 bg-white shadow rounded">Total Sales: K{totalSales.toFixed(2)}</div>
-                <div className="p-4 bg-white shadow rounded">Total Paid: K{totalPaid.toFixed(2)}</div>
-                <div className="p-4 bg-white shadow rounded">Total Credit Notes: K{totalCredit.toFixed(2)}</div>
-                <div className="p-4 bg-white shadow rounded">Total Balance: K{totalBalance.toFixed(2)}</div>
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-2 gap-6">
-
-                <MonthlySalesChart data={monthlyData} title="Invoices Monthly Breakdown" />
-
-                {/* Payment Distribution Pie Chart */}
-                <div className="p-4 bg-white shadow rounded">
-                    <h3 className="mb-2 font-bold">Payment Distribution</h3>
-                    <PaymentDistributionPie
-                        paid={totalPaid}
-                        outstanding={totalBalance}
-                        creditNotes={totalCredit}
-                    />
-                </div>
-            </div>
-
-            {/* Sales Table */}
-            <table className="w-full table-auto border mt-4">
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="px-4 py-2 text-left">Invoice #</th>
-                        <th className="px-4 py-2 text-left">Customer</th>
-                        <th className="px-4 py-2 text-left">Status</th>
-                        <th className="px-4 py-2 text-left">Total</th>
-                        <th className="px-4 py-2 text-left">Paid</th>
-                        <th className="px-4 py-2 text-left">Credit Notes</th>
-                        <th className="px-4 py-2 text-left">Balance</th>
-                        <th className="px-4 py-2 text-left">Sale Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredSales.map((s: any) => (
-                        <tr key={s.id} className="border-b">
-                            <td className="px-4 py-2">{s.invoiceNumber}</td>
-                            <td className="px-4 py-2">{s.customer.name}</td>
-                            <td className="px-4 py-2">{s.status}</td>
-                            <td className="px-4 py-2">{s.total.toFixed(2)}</td>
-                            <td className="px-4 py-2">{s.paid.toFixed(2)}</td>
-                            <td className="px-4 py-2">{s.creditNotesTotal.toFixed(2)}</td>
-                            <td className="px-4 py-2">{s.balance.toFixed(2)}</td>
-                            <td className="px-4 py-2">{format(new Date(s.saleDate), "yyyy-MM-dd")}</td>
+            <div className="mb-5">
+                <table className="w-full border-collapse">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="border px-2 py-1 text-left">Invoice</th>
+                            <th className="border px-2 py-1 text-right">Total</th>
+                            <th className="border px-2 py-1 text-right">Balance</th>
+                            <th className="border px-2 py-1 text-right">Allocate</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {invoicesWithRemaining?.map((inv) => {
+                            const isFullyAllocated = inv.remainingBalance <= 0;
+
+                            return (
+                                <tr key={inv.id}>
+                                    <td className="border px-2 py-1">
+                                        <div className="flex items-center gap-2">
+                                            {inv.invoiceNumber}
+                                            {isFullyAllocated && (
+                                                <span className="text-green-600 flex items-center">
+                                                    <CheckCircleIcon className="w-4 h-4" />
+                                                    <span className="ml-1 text-xs">Fully Allocated</span>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="border px-2 py-1 text-right">{inv.total?.toFixed(2)}</td>
+                                    <td className={"border px-2 py-1 text-right " + (inv.remainingBalance < 0 ? "text-red-600" : "")}>
+                                        {inv.remainingBalance.toFixed(2)}
+                                    </td>
+                                    <td className="border px-2 py-1 text-right">
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={inv.balance}
+                                            className="border rounded p-1 w-28 text-right"
+                                            value={allocations[inv.id] ?? ""}
+                                            disabled={isFullyAllocated && userRole !== "ADMIN"}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                const num = parseFloat(value);
+                                                setManualEdit(true);
+                                                if (Number.isFinite(num) && num > inv.balance) {
+                                                    toast.error("Cannot allocate more than invoice balance");
+                                                } else {
+                                                    setAllocations({ ...allocations, [inv.id]: value });
+                                                }
+                                            }}
+                                        />
+                                        {overrideInvoices.has(inv.id) && (
+                                            <p className="text-sm text-red-600 mt-1">
+                                                ⚠ Admin override: allocating to a fully paid invoice
+                                            </p>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            <div className="text-sm text-gray-500">
+                <strong>Note:</strong> Fully allocated invoices can only be edited by an admin.
+            </div>
+            <div className="flex gap-5">
+                <button
+                    disabled={
+                        remainingUnallocated < 0 ||
+                        isAnyInvoiceOverAllocated ||
+                        saving ||
+                        (isAllInvoicesFullyAllocated && userRole !== "ADMIN")
+                    }
+                    onClick={() => {
+                        if (isAdminOverride) {
+                            setShowAdminConfirm(true);
+                            return;
+                        }
+                        saveAllocations();
+                    }}
+                    className="mt-4 bg-green-600 text-white px-6 py-2 rounded disabled:opacity-50 cursor-pointer"
+                >
+                    {saving ? "Saving..." : "Save Allocations"}
+                </button>
+            </div>
+            <div>
+                {showAdminConfirm && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                        <div className="bg-white rounded p-6 w-full max-w-md shadow-lg">
+                            <h2 className="text-lg font-semibold mb-2">
+                                Admin Override Confirmation
+                            </h2>
+
+                            <p className="text-sm text-gray-600 mb-4">
+                                You are about to allocate funds to one or more invoices that are
+                                already fully allocated. This action overrides existing balances.
+                            </p>
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    className="px-4 py-2 rounded border"
+                                    onClick={() => setShowAdminConfirm(false)}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    className="px-4 py-2 rounded bg-red-600 text-white"
+                                    onClick={() => {
+                                        setShowAdminConfirm(false);
+                                        saveAllocations();
+                                    }}
+                                >
+                                    Confirm Override
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+            <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-bold">Audit Trail</h2>
+
+                    <select
+                        className="border rounded p-2"
+                        value={auditFilter}
+                        onChange={(e) => setAuditFilter(e.target.value)}
+                    >
+                        <option value="ALL">All</option>
+                        <option value="ALLOCATE">Allocate</option>
+                        <option value="ROLLBACK">Rollback</option>
+                        <option value="UPDATE">Update</option>
+                    </select>
+                </div>
+
+                <table className="w-full border-collapse">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="border px-2 py-1 text-left">Date</th>
+                            <th className="border px-2 py-1 text-left">Action</th>
+                            <th className="border px-2 py-1 text-left">Invoice</th>
+                            <th className="border px-2 py-1 text-right">Old</th>
+                            <th className="border px-2 py-1 text-right">New</th>
+                            <th className="border px-2 py-1 text-left">Reason</th>
+                            <th className="border px-2 py-1 text-center">Rollback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredAudit?.map((a) => (
+                            <tr key={a.id}>
+                                <td className="border px-2 py-1">{new Date(a.createdAt).toLocaleString()}</td>
+                                <td className="border px-2 py-1">{a.action}</td>
+                                <td className="border px-2 py-1">{a.saleId}</td>
+                                <td className="border px-2 py-1 text-right">{Number(a.oldAmount).toFixed(2)}</td>
+                                <td className="border px-2 py-1 text-right">{Number(a.newAmount).toFixed(2)}</td>
+                                <td className="border px-2 py-1">{a.reason}</td>
+                                <td className="border px-2 py-1">
+                                    <button
+                                        className="px-3 py-1 rounded bg-yellow-400"
+                                        onClick={() => openRollbackModal("ENTRY", a.id)}
+                                    >
+                                        Rollback this
+                                    </button>
+
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {showRollbackModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded p-6 w-full max-w-md shadow-lg">
+                        <h2 className="text-lg font-semibold mb-2">Rollback Allocation</h2>
+
+                        <p className="text-sm text-gray-600 mb-4">
+                            This will revert the last allocation change. Please provide a reason.
+                        </p>
+
+                        <textarea
+                            className="w-full border rounded p-2 mb-4"
+                            rows={4}
+                            value={rollbackReason}
+                            onChange={(e) => setRollbackReason(e.target.value)}
+                            placeholder="Reason for rollback..."
+                        />
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                className="px-4 py-2 rounded border"
+                                onClick={() => setShowRollbackModal(false)}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="px-4 py-2 rounded bg-red-600 text-white"
+                                onClick={rollback}
+                            >
+                                Confirm Rollback
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <div className="flex gap-5">
+                {userRole === "ADMIN" && (
+                    <button
+                        className="mt-4 bg-red-600 text-white px-6 py-2 rounded"
+                        onClick={() => setShowRollbackModal(true)}
+                    >
+                        Rollback last allocation
+                    </button>
+                )}
+                {userRole === "ADMIN" && (
+                    <button
+                        className="mt-4 bg-red-600 text-white px-6 py-2 rounded"
+                        onClick={() => openRollbackModal("ALL")}
+                    >
+                        Rollback ALL allocations
+                    </button>
+                )}
+            </div>
+        </div >
     );
 }

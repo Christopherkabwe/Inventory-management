@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-
-import DashboardLayout from "@/components/DashboardLayout";
 import Loading from "@/components/Loading";
 import withRole from "@/components/withRole";
 
@@ -26,18 +24,6 @@ interface SalesOrderItem { productId: string; quantity: number; quantityInvoiced
 interface SalesOrder { id: string; orderNumber: string; customerId: string; locationId: string; items: SalesOrderItem[]; }
 interface InvoiceItem { productId: string; quantity: number; price: number; maxQuantity?: number; product: Product; }
 
-type PaymentInput = {
-    method: string;
-    amount: number;
-    reference?: string;
-};
-
-const PAYMENT_METHODS = [
-    "CASH",
-    "BANK_TRANSFER",
-    "MOBILE_MONEY",
-    "CARD",
-];
 const BUSINESS_INFO = {
     name: "Biz360° Business Management",
     address: "Lusaka, Zambia",
@@ -62,9 +48,6 @@ const CreateInvoicePage = () => {
     const [amountPaid, setAmountPaid] = useState(0);
     const [availableQuantities, setAvailableQuantities] = useState<Record<string, number>>({});
 
-    const [payments, setPayments] = useState<PaymentInput[]>([
-        { method: "CASH", amount: 0 },
-    ]);
     const business = getBusinessInfo();
 
     const [transporters, setTransporters] = useState<{ id: string; name: string; contact?: string; phone?: string }[]>([]);
@@ -99,9 +82,6 @@ const CreateInvoicePage = () => {
     /* ==============================
        LOAD SALES ORDER
     ============================== */
-    /* ==============================
-   LOAD SALES ORDER
-============================== */
     useEffect(() => {
         if (!salesOrderId) {
             setLoading(false);
@@ -125,7 +105,7 @@ const CreateInvoicePage = () => {
                         if (remaining <= 0) return null;
                         return {
                             productId: i.productId,
-                            quantity: i.quantity,
+                            quantity: remaining,
                             maxQuantity: remaining,
                             price: i.product.price,
                         };
@@ -146,37 +126,35 @@ const CreateInvoicePage = () => {
     }, [salesOrderId]);
 
     useEffect(() => {
-        if (!salesOrderId || !salesOrder) return;
+        if (!salesOrderId) return;
 
-        async function fetchExistingInvoices() {
+        async function fetchPaidAmount() {
             try {
                 const res = await fetch(`/api/invoices/invoice-list?salesOrderId=${salesOrderId}`);
-                if (!res.ok) throw new Error("Failed to load existing invoices");
+                if (!res.ok) throw new Error("Failed to load invoices");
 
-                const existingInvoices = await res.json();
-                const totalAlreadyPaid = existingInvoices.reduce((acc, invoice) => {
-                    const paid = invoice.payments?.reduce((pAcc, p) => pAcc + p.amount, 0) ?? 0;
-                    return acc + paid;
-                }, 0);
+                const invoices: {
+                    id: string;
+                    invoiceNumber: string;
+                    status: string;
+                    createdAt: string;
+                    totalAmount: number;
+                    amountPaid: number;
+                    balance: number;
+                }[] = await res.json();
 
-                setAmountPaid(totalAlreadyPaid);
+                // ✅ Sum money from PAYMENT ALLOCATIONS
+                const totalPaid = invoices.reduce((sum, invoice) => sum + (invoice.amountPaid ?? 0), 0);
 
-                // prefill payments with **remaining amount**
-                const totalOrderAmount = salesOrder.items.reduce(
-                    (sum, i) => sum + (i.quantity - i.quantityInvoiced) * i.product.price,
-                    0
-                );
-                const remainingAmount = totalOrderAmount - totalAlreadyPaid;
-
-                setPayments([{ method: "CASH", amount: Math.max(0, remainingAmount) }]);
+                setAmountPaid(totalPaid);
             } catch (err) {
-                console.error(err);
-                toast.error("Failed to load existing payments");
+                console.error("Failed to fetch paid amount:", err);
+                toast.error("Failed to load paid amount");
             }
         }
 
-        fetchExistingInvoices();
-    }, [salesOrderId, salesOrder]);
+        fetchPaidAmount();
+    }, [salesOrderId]);
 
     /* ==============================
        FETCH AVAILABLE QUANTITIES WHEN LOCATION OR ITEMS CHANGE
@@ -237,16 +215,12 @@ const CreateInvoicePage = () => {
        DERIVED VALUES
     ============================== */
 
-    const totalPaid = useMemo(
-        () => payments.reduce((a, p) => a + p.amount, 0),
-        [payments]
-    );
     const subtotal = useMemo(
         () => items.reduce((sum, i) => sum + i.quantity * i.price, 0),
         [items]
     );
-    const remainingBalance = subtotal - amountPaid; // correct remaining amount
-    const balance = subtotal - totalPaid;
+
+    const balance = subtotal - amountPaid;
     const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
 
     const updateItem = (index: number, patch: Partial<InvoiceItem>) => {
@@ -265,6 +239,11 @@ const CreateInvoicePage = () => {
         [items]
     );
 
+    const paymentStatus = useMemo(() => {
+        if (amountPaid >= subtotal) return "PAID";
+        if (amountPaid > 0) return "PARTIAL";
+        return "PENDING";
+    }, [amountPaid, subtotal]);
 
     /* ==============================
        VALIDATION
@@ -291,14 +270,6 @@ const CreateInvoicePage = () => {
             }
         }
 
-        if (totalPaid < 0) {
-            if (!confirm(`Are you sure the amount paid is K${totalPaid}?`)) {
-                return;
-            }
-            toast.error("Amount paid must be greater than zero");
-            return false;
-        }
-
         return true;
     };
 
@@ -320,7 +291,6 @@ const CreateInvoicePage = () => {
                     locationId: selectedLocation,
                     salesOrderId: salesOrder?.id,
                     items,
-                    payments: payments.filter(p => p.amount > 0),
                     transporterId: selectedTransporter || null, // ✅ include transporter
                 }),
             });
@@ -340,23 +310,6 @@ const CreateInvoicePage = () => {
             setIsCreating(false);
         }
     };
-
-    const updatePayment = (index: number, patch: Partial<PaymentInput>) => {
-        setPayments(prev =>
-            prev.map((p, i) => (i === index ? { ...p, ...patch } : p))
-        );
-    };
-
-    const addPayment = () => {
-        setPayments(prev => [...prev, { method: "CASH", amount: 0 }]);
-    };
-
-    const removePayment = (index: number) => {
-        setPayments(prev => prev.filter((_, i) => i !== index));
-    };
-
-
-
 
     if (loading) return
     <div>
@@ -407,12 +360,12 @@ const CreateInvoicePage = () => {
                             <h1 className="text-2xl font-semibold py-1">Create Invoice</h1>
                             <p className="text-sm text-zinc-500">Sales Order No. : {salesOrder?.orderNumber}</p>
                         </div>
-                        <div className="flex ml-auto justify-end">
+                        <div className="flex ml-auto justify-start">
                             {salesOrder && (
                                 <button
                                     type="button"
                                     onClick={() => router.push(`/sales/sales-orders/edit-sales-order/${salesOrder.id}`)}
-                                    className="px-4 py-2 bg-yellow-400 text-white rounded hover:bg-yellow-500 cursor-pointer"
+                                    className="px-4 py-2 mb-2 bg-yellow-400 text-white rounded hover:bg-yellow-500 cursor-pointer"
                                 >
                                     Edit Sales Order
                                 </button>
@@ -488,73 +441,16 @@ const CreateInvoicePage = () => {
                                 </div>
                             </div>
                         ))}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Payments</h3>
-                            {/* Show existing paid amount and remaining balance */}
-                            <div className="text-sm text-gray-600 mb-2">
-                                {amountPaid > 0 && <span>Already Paid: K{amountPaid.toFixed(2)}</span>}
-                                <span className={amountPaid > 0 ? "ml-4" : ""}>Remaining Balance: K{remainingBalance.toFixed(2)}</span>
-                            </div>
-
-                            {/* Payment Inputs */}
-                            {payments.map((payment, idx) => (
-                                <div
-                                    key={idx}
-                                    className="grid grid-cols-1 xl:grid-cols-4 gap-3 items-end border p-3 rounded-lg"
-                                >
-                                    {/* Payment Method */}
-                                    <div>
-                                        <label className="text-sm font-medium">Method</label>
-                                        <select
-                                            className="w-full border rounded px-3 py-2"
-                                            value={payment.method}
-                                            onChange={e => updatePayment(idx, { method: e.target.value })}
-                                        >
-                                            {PAYMENT_METHODS.map(m => (
-                                                <option key={m} value={m}>{m.replace("_", " ")}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Amount */}
-                                    <NumberInput
-                                        label="Amount"
-                                        min={0}
-                                        value={payment.amount} // default stays 0
-                                        step={0.01}
-                                        onChange={val => updatePayment(idx, { amount: val })}
-                                    />
-
-                                    {/* Reference */}
-                                    <div>
-                                        <label className="text-sm font-medium">Reference (optional)</label>
-                                        <input
-                                            type="text"
-                                            className="w-full border rounded px-3 py-2"
-                                            value={payment.reference ?? ""}
-                                            onChange={e => updatePayment(idx, { reference: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Remove */}
-                                    <button
-                                        type="button"
-                                        onClick={() => removePayment(idx)}
-                                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                                        disabled={payments.length === 1}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))}
-
-                            <button
-                                type="button"
-                                onClick={addPayment}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                            >
-                                + Add Payment Method
-                            </button>
+                        <div className="border-t pt-4 text-left space-y-1">
+                            <p><strong>Subtotal:</strong> K{subtotal.toFixed(2)}</p>
+                            <p><strong>Paid:</strong> K{amountPaid.toFixed(2)}</p>
+                            <p><strong>Balance:</strong> K{balance.toFixed(2)}</p>
+                            <p className="font-semibold">Status: {paymentStatus}</p>
+                            {amountPaid > 0 && (
+                                <p className="text-sm text-green-700">
+                                    Customer has existing payments applied to this order.
+                                </p>
+                            )}
                         </div>
                         <div className="flex justify-end gap-3">
                             <Link href="/sales/sales-orders" className="px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600">
@@ -640,7 +536,7 @@ const CreateInvoicePage = () => {
                         </tfoot>
                     </table>
                     <div className="mt-4 text-right space-y-1">
-                        <p><strong>Paid:</strong> K{totalPaid.toFixed(2)}</p>
+                        <p><strong>Paid:</strong> K{amountPaid.toFixed(2)}</p>
                         <p><strong>Balance:</strong> K{balance.toFixed(2)}</p>
                     </div>
                 </div>

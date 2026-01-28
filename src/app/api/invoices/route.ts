@@ -15,55 +15,61 @@ export async function GET() {
                 customer: true,
                 location: true,
                 salesOrder: {
-                    select: {
-                        id: true,
-                        orderNumber: true,
-                    },
+                    select: { id: true, orderNumber: true },
                 },
                 items: {
-                    include: {
-                        product: true,
-                    },
+                    include: { product: true },
                 },
-                payments: true,
+                allocations: true,
                 creditNotes: true,
             },
-            orderBy: {
-                saleDate: "desc",
-            },
+            orderBy: { saleDate: "desc" },
         });
 
         const mapped = sales.map((sale) => {
-            const total = sale.items.reduce((a, i) => a + i.total, 0);
-            const paid = sale.payments.reduce((a, p) => a + p.amount, 0);
-            const creditNotesTotal = sale.creditNotes.reduce((a, c) => a + c.amount, 0); // fixed syntax
-            const balance = total - paid - creditNotesTotal; // fixed syntax
+            const total = sale.items.reduce((sum, i) => sum + i.total, 0);
+
+            const paid = sale.allocations.reduce(
+                (sum, a) => sum + a.amount,
+                0
+            );
+
+            const creditNotesTotal = sale.creditNotes.reduce(
+                (sum, c) => sum + c.amount,
+                0
+            );
+
+            const balance = total - paid - creditNotesTotal;
+
+            const paymentStatus =
+                balance <= 0
+                    ? "PAID"
+                    : paid > 0
+                        ? "PARTIALLY_PAID"
+                        : "PENDING";
 
             return {
                 id: sale.id,
                 invoiceNumber: sale.invoiceNumber,
                 orderNumber: sale.salesOrder?.orderNumber ?? null,
+
+                // ✅ Structural status only
                 status: sale.status,
+
+                // ✅ Derived (this is what UI should show)
+                paymentStatus,
+
                 customer: sale.customer,
                 location: sale.location,
-                items: sale.items.map((item) => ({
-                    ...item,
-                    product: {
-                        id: item.product.id,
-                        name: item.product.name,
-                        sku: item.product.sku,
-                        price: item.product.price,
-                        packSize: item.product.packSize,
-                        weightValue: item.product.weightValue,
-                        weightUnit: item.product.weightUnit,
-                    },
-                })),
+                items: sale.items,
                 saleDate: sale.saleDate,
+
                 total,
                 paid,
                 creditNotesTotal,
                 balance,
-                credit: Math.max(0, paid + creditNotesTotal - total), // overpayment / advance
+                credit: Math.max(0, paid + creditNotesTotal - total),
+
                 salesOrderId: sale.salesOrderId,
             };
         });
@@ -82,7 +88,6 @@ export async function GET() {
    POST: Create Invoice with Sequence Number, Payments, Lock
 ====================================================== */
 
-
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) {
@@ -94,11 +99,9 @@ export async function POST(req: NextRequest) {
         locationId,
         salesOrderId,
         items,
-        payments = [],
         transporterId,
-        driverName,
+        paymentStatus,
     } = await req.json();
-
 
     if (!customerId || !locationId || !salesOrderId || !items?.length) {
         return NextResponse.json(
@@ -107,7 +110,6 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Ignore zero quantity items
     const invoiceItems = items.filter((i: any) => i.quantity > 0);
     if (!invoiceItems.length) {
         return NextResponse.json(
@@ -116,46 +118,32 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const invoiceTotal = invoiceItems.reduce(
-        (sum: number, i: any) => sum + i.quantity * i.price,
-        0
-    );
-
-    const amountPaid = payments.reduce(
-        (sum: number, p: any) => sum + Number(p.amount || 0),
-        0
-    );
-
-    // Determine invoice status
-    const saleStatus =
-        amountPaid === 0
-            ? "CONFIRMED"
-            : amountPaid < invoiceTotal
-                ? "PARTIALLY_PAID"
-                : "PAID";
+    const saleStatusMap = {
+        PENDING: "CONFIRMED",
+        PARTIAL: "PARTIALLY_PAID",
+        PAID: "PAID",
+    } as const;
 
     try {
         const sale = await withRetries(async () => {
-            // Load sales order items
             const soItems = await prisma.salesOrderItem.findMany({
                 where: { salesOrderId },
             });
-            const soItemMap = new Map(soItems.map((i) => [i.productId, i]));
 
-            // Validate quantities
+            const soItemMap = new Map(soItems.map(i => [i.productId, i]));
+
             for (const item of invoiceItems) {
                 const soItem = soItemMap.get(item.productId);
-                if (!soItem) {
-                    throw new Error(`Product ${item.productId} not found in sales order`);
-                }
+                if (!soItem) throw new Error("Product not in sales order");
+
                 const remaining = soItem.quantity - soItem.quantityInvoiced;
                 if (item.quantity > remaining) {
-                    throw new Error(`Cannot invoice more than remaining quantity for product ${item.productId}`);
+                    throw new Error("Quantity exceeds remaining order quantity");
                 }
             }
 
-            // Create Invoice (Sale)
             const invoiceNumber = await nextSequence("INV");
+
             const createdSale = await prisma.sale.create({
                 data: {
                     invoiceNumber,
@@ -163,7 +151,7 @@ export async function POST(req: NextRequest) {
                     customerId,
                     locationId,
                     createdById: user.id,
-                    status: saleStatus,
+                    status: "CONFIRMED",
                     items: {
                         create: invoiceItems.map((i: any) => ({
                             productId: i.productId,
@@ -176,9 +164,8 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            // Update Sales Order Items
             await Promise.all(
-                invoiceItems.map((item) => {
+                invoiceItems.map(item => {
                     const soItem = soItemMap.get(item.productId)!;
                     return prisma.salesOrderItem.update({
                         where: { id: soItem.id },
@@ -187,38 +174,25 @@ export async function POST(req: NextRequest) {
                 })
             );
 
-            // Update Sales Order Status
             const updatedItems = await prisma.salesOrderItem.findMany({
                 where: { salesOrderId },
             });
-            const fullyInvoiced = updatedItems.every((i) => i.quantityInvoiced >= i.quantity);
+
+            const fullyInvoiced = updatedItems.every(
+                i => i.quantityInvoiced >= i.quantity
+            );
+
             await prisma.salesOrder.update({
                 where: { id: salesOrderId },
-                data: { status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED" },
+                data: {
+                    status: fullyInvoiced
+                        ? "CONFIRMED"
+                        : "PARTIALLY_INVOICED",
+                },
             });
 
-            // Record Payments
-            if (payments.length > 0) {
-                await prisma.salePayment.createMany({
-                    data: payments.map((p: any) => ({
-                        saleId: createdSale.id,
-                        amount: p.amount,
-                        method: p.method,
-                        reference: p.reference ?? null,
-                    })),
-                });
-            }
-
-            // Lock Invoice if Paid
-            if (amountPaid >= invoiceTotal) {
-                await prisma.sale.update({
-                    where: { id: createdSale.id },
-                    data: { status: "PAID" },
-                });
-            }
-
-            // CREATE DELIVERY NOTE
             const deliveryNoteNo = await nextSequence("DN");
+
             const deliveryNote = await prisma.deliveryNote.create({
                 data: {
                     deliveryNoteNo,
@@ -240,18 +214,21 @@ export async function POST(req: NextRequest) {
             });
 
             return createdSale;
-        }, {
-            maxWait: 5000, // 5 seconds
-            timeout: 10000, // 10 seconds
         });
 
-        // Generate invoice number (just read current value)
         await incrementSequence("INV");
         await incrementSequence("DN");
 
-        return NextResponse.json({ id: sale.id, invoiceNumber: sale.invoiceNumber, status: sale.status });
+        return NextResponse.json({
+            id: sale.id,
+            invoiceNumber: sale.invoiceNumber,
+            status: sale.status,
+        });
     } catch (err: any) {
         console.error(err);
-        return NextResponse.json({ error: err.message || "Failed to create invoice" }, { status: 500 });
+        return NextResponse.json(
+            { error: err.message || "Failed to create invoice" },
+            { status: 500 }
+        );
     }
 }
