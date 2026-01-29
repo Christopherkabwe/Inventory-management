@@ -36,7 +36,7 @@ export default function DashboardLayout({
                 <div className="flex items-center">
                     <button
                         onClick={() => setSidebarOpen(prev => !prev)}
-                        className="py-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        className="py-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
                     >
                         <Menu />
                     </button>

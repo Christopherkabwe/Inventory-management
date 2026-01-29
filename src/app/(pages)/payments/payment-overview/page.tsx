@@ -7,8 +7,6 @@ import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from "chart.js";
 import PaymentDistributionPie from "@/components/sales/PaymentDistributionPie";
 import MonthlySalesChart from "@/components/sales/MonthlySalesPaymentBarchart";
-import DashboardLayout from "@/components/DashboardLayout";
-import SalesOverviewChart from "@/components/charts/salesOverviewChart";
 
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
@@ -19,7 +17,7 @@ export default function SalesOverview() {
     // -----------------------------
     // Data fetching
     // -----------------------------
-    const { data: sales, error } = useSWR("/api/invoices", fetcher, { refreshInterval: 5000 });
+    const { data: sales, error } = useSWR("/api/invoices", fetcher, { refreshInterval: 2000 });
     const [filterStatus, setFilterStatus] = useState("ALL");
     const [search, setSearch] = useState("");
 

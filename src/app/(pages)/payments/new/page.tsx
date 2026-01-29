@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { Dropdown } from "@/components/SingleSelectComboBox/GenericDropdown";
+import { CustomerCombobox } from "@/components/SingleSelectComboBox/CustomerComboBox";
+import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
 
 type Customer = {
     id: string;
@@ -42,7 +45,7 @@ export default function NewPaymentPage() {
             });
 
             router.push(
-                `/payments/${res.data.payment.id}/allocate`
+                `/payments`
             );
         } catch (err: any) {
             alert(err.response?.data?.error || "Failed to save payment");
@@ -59,50 +62,40 @@ export default function NewPaymentPage() {
 
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium">
-                        Customer
-                    </label>
-                    <select
-                        className="w-full border rounded p-2"
+                    <CustomerCombobox
+                        label="Customer"
+                        customers={customers}
                         value={customerId}
-                        onChange={e => setCustomerId(e.target.value)}
-                    >
-                        <option value="">Select customer</option>
-                        {customers.map(c => (
-                            <option key={c.id} value={c.id}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium">
-                        Amount
-                    </label>
-                    <input
-                        type="number"
-                        min={0}
-                        className="w-full border rounded p-2"
-                        value={amount}
-                        onChange={e => setAmount(e.target.value)}
+                        onChange={setCustomerId}
+                        disabled={false}
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium">
-                        Payment Method
-                    </label>
-                    <select
-                        className="w-full border rounded p-2"
+                    <NumberInput
+                        label="Amount"
+                        value={Number(amount) || 0}
+                        onChange={(num) => setAmount(num.toString())}
+                        min={0}
+                        placeholder="Enter amount"
+                        className="w-full"
+                    />
+                </div>
+
+                <div>
+                    <Dropdown
+                        label="Payment Method"
                         value={method}
-                        onChange={e => setMethod(e.target.value)}
-                    >
-                        <option value="CASH">Cash</option>
-                        <option value="BANK">Bank</option>
-                        <option value="MOBILE">Mobile Money</option>
-                        <option value="CHEQUE">Cheque</option>
-                    </select>
+                        onChange={(val) =>
+                            setMethod(val as "CASH" | "BANK" | "MOBILE" | "CHEQUE")
+                        }
+                        items={[
+                            { id: "CASH", label: "Cash" },
+                            { id: "BANK", label: "Bank" },
+                            { id: "MOBILE", label: "Mobile" },
+                            { id: "CHEQUE", label: "Cheque" },
+                        ]}
+                    />
                 </div>
 
                 <div>
@@ -111,7 +104,7 @@ export default function NewPaymentPage() {
                     </label>
                     <input
                         type="text"
-                        className="w-full border rounded p-2"
+                        className="w-full border rounded-md p-2"
                         value={reference}
                         onChange={e => setReference(e.target.value)}
                     />

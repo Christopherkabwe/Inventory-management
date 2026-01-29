@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
                     where: { id: salesOrderId },
                     data: {
                         status: fullyInvoiced
-                            ? "CONFIRMED"
+                            ? "PENDING"
                             : "PARTIALLY_INVOICED",
                     },
                 });

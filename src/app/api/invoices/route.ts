@@ -25,6 +25,19 @@ export async function GET() {
             },
             orderBy: { saleDate: "desc" },
         });
+        // 2️⃣ Fetch all customer payments with allocations
+        const payments = await prisma.customerPayment.findMany({
+            include: { allocations: true },
+        });
+
+        // 3️⃣ Compute unallocated per customer
+        const unallocatedMap = new Map<string, number>();
+        payments.forEach(p => {
+            const allocatedSum = p.allocations.reduce((sum, a) => sum + Number(a.amount), 0);
+            const unallocated = Number(p.amount) - allocatedSum;
+            if (!unallocatedMap.has(p.customerId)) unallocatedMap.set(p.customerId, 0);
+            unallocatedMap.set(p.customerId, unallocatedMap.get(p.customerId)! + unallocated);
+        });
 
         const mapped = sales.map((sale) => {
             const total = sale.items.reduce((sum, i) => sum + i.total, 0);
@@ -71,6 +84,7 @@ export async function GET() {
                 credit: Math.max(0, paid + creditNotesTotal - total),
 
                 salesOrderId: sale.salesOrderId,
+                unallocated: unallocatedMap.get(sale.customerId) ?? 0,
             };
         });
 
@@ -119,7 +133,7 @@ export async function POST(req: NextRequest) {
     }
 
     const saleStatusMap = {
-        PENDING: "CONFIRMED",
+        CONFIRMED: "CONFIRMED",
         PARTIAL: "PARTIALLY_PAID",
         PAID: "PAID",
     } as const;
@@ -151,7 +165,7 @@ export async function POST(req: NextRequest) {
                     customerId,
                     locationId,
                     createdById: user.id,
-                    status: "CONFIRMED",
+                    status: "PENDING",
                     items: {
                         create: invoiceItems.map((i: any) => ({
                             productId: i.productId,

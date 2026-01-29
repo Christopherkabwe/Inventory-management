@@ -46,7 +46,7 @@ type InvoiceItem = {
 type Invoice = {
     id: string;
     invoiceNumber: string;
-    status: "PAID" | "UNPAID" | "PARTIAL" | "CANCELLED" | "CONFIRMED";
+    status: "PAID" | "UNPAID" | "PARTIAL" | "CANCELLED" | "PENDING";
     createdAt: string;
     createdBy: string;
     dueDate?: string;
@@ -73,7 +73,6 @@ type Invoice = {
    STYLES
 ======================= */
 const statusStyles: Record<string, string> = {
-    CONFIRMED: "bg-green-400 text-black font-semibold",
     PAID: "bg-green-400 text-black font-semibold",
     UNPAID: "bg-red-400 text-black font-semibold",
     PARTIAL: "bg-yellow-400 text-black font-semibold",

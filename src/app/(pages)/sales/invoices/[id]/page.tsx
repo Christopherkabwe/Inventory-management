@@ -46,7 +46,7 @@ type InvoiceItem = {
 type Invoice = {
     id: string;
     invoiceNumber: string;
-    status: "PAID" | "UNPAID" | "PARTIAL" | "CANCELLED" | "CONFIRMED";
+    status: "PAID" | "UNPAID" | "PARTIAL" | "CANCELLED" | "PENDING";
     createdAt: string;
     createdBy: string;
     dueDate?: string;
@@ -244,7 +244,8 @@ export default function InvoicePage() {
                                     <tr>
                                         <th className="px-4 py-2 border-r border-black text-left">Product</th>
                                         <th className="px-4 py-2 border-r border-black text-center">SKU</th>
-                                        <th className="px-4 py-2 border-r border-black text-center">Pack</th>
+                                        <th className="px-4 py-2 border-r border-black text-center">Pack Size</th>
+                                        <th className="px-4 py-2 border-r border-black text-center">Weight</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Price</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Quantity</th>
                                         {hasPending && <th className="px-4 py-2 border-r border-black text-center">Pending</th>}
@@ -260,6 +261,9 @@ export default function InvoicePage() {
                                                 <td className="px-4 py-2 border-r border-black">{item.product.name}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.product.sku ?? "-"}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.product.packSize ?? "-"}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">
+                                                    {item.product.weightValue ?? "-"} {item.product.weightUnit ?? "-"}
+                                                </td>
                                                 <td className="px-4 py-2 border-r border-black text-center">K{(item.product.price ?? 0).toFixed(2)}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.quantity}</td>
                                                 {hasPending && <td className={`px-4 py-2 border-r border-black text-center ${isPartial ? " text-orange-500" : ""}`}>{item.pendingQty ?? 0}</td>}
@@ -270,7 +274,7 @@ export default function InvoicePage() {
                                             </tr>
                                         );
                                     })}
-                                    <EmptyRows columns={hasPending ? 8 : 7} count={Math.max(0, 10 - invoice.items.length)} />
+                                    <EmptyRows columns={hasPending ? 9 : 8} count={Math.max(0, 10 - invoice.items.length)} />
                                 </tbody>
                                 <tfoot className="border border-black">
                                     <tr className="bg-zinc-100 font-semibold">

@@ -99,10 +99,10 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Payments",
         icon: DollarSign,
         subItems: [
-            { name: "Payment Overview", href: "/sales/payment-overview" },
-            { name: "Customer Payments", href: "/payments" },
             { name: "Add Payment", href: "/payments/new" },
-            { name: "Allocate Payments", href: "/payments" },
+            { name: "Customer Payments", href: "/payments" },
+            { name: "Allocation Tracker", href: "/payments/allocations" },
+            { name: "Payment Overview", href: "/payments/payment-overview" },
         ],
     },
     {

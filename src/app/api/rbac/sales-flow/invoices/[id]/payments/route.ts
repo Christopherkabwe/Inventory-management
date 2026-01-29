@@ -49,9 +49,9 @@ export async function PATCH(
             const newTotalPaid = currentPaid + payments.reduce((sum, p: any) => sum + Number(p.amount), 0);
 
             // 5️⃣ Update invoice status
-            let status: "CONFIRMED" | "PARTIALLY_PAID" | "PAID" = "CONFIRMED";
+            let status: "PENDING" | "PARTIALLY_PAID" | "PAID" = "PENDING";
 
-            if (newTotalPaid === 0) status = "CONFIRMED";
+            if (newTotalPaid === 0) status = "PENDING";
             else if (newTotalPaid < totalInvoice) status = "PARTIALLY_PAID";
             else status = "PAID"; // allows overpayment
 

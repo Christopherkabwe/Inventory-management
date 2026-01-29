@@ -22,11 +22,11 @@ export async function POST(req: NextRequest) {
         // Determine status after invoicing
         const totalItems = order.items.reduce((sum, i) => sum + i.quantity, 0);
         const invoicedItems = itemsToInvoice.reduce((sum, i) => sum + i.quantity, 0);
-        let orderStatus: "CONFIRMED" | "PARTIALLY_INVOICED" | "PENDING" = "PENDING";
+        let orderStatus: "PENDING" | "PARTIALLY_INVOICED" | "PENDING" = "PENDING";
 
         if (invoicedItems === 0) orderStatus = "PENDING";
         else if (invoicedItems < totalItems) orderStatus = "PARTIALLY_INVOICED";
-        else orderStatus = "CONFIRMED";
+        else orderStatus = "PENDING";
 
         // Transactionally create Sale and update order
         const sale = await prisma.$transaction(async (tx) => {

@@ -12,7 +12,6 @@ type Invoice = {
     id: string;
     invoiceNumber: string;
     status:
-    | "PENDING"
     | "CONFIRMED"
     | "PARTIALLY_INVOICED"
     | "PARTIALLY_PAID"
@@ -27,7 +26,6 @@ type Invoice = {
 ======================= */
 const statusStyles: Record<string, string> = {
     PAID: "bg-green-100 text-green-800",
-    CONFIRMED: "bg-blue-100 text-blue-800",
     PARTIALLY_PAID: "bg-yellow-100 text-yellow-800",
     PARTIALLY_INVOICED: "bg-orange-100 text-orange-800",
     PENDING: "bg-red-100 text-red-800",

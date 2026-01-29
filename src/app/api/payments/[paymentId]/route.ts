@@ -44,33 +44,28 @@ export async function GET(
     const sales = await prisma.sale.findMany({
         where: {
             customerId: payment.customerId,
-            paymentStatus: { not: "PAID" },
+            OR: [
+                { paymentStatus: { not: "PAID" } }, // unpaid invoices
+                {
+                    allocations: { some: { customerPaymentId: paymentId } }, // invoices allocated from this payment
+                },
+            ],
         },
-        select: {
-            id: true,
-            invoiceNumber: true,
-            items: { select: { total: true } },
-            allocations: {
-                select: { amount: true, customerPaymentId: true },
-            },
-        },
+        include: { allocations: true, items: true },
     });
 
     // 3️⃣ Map invoices with correct allocations
     const invoices = sales.map((sale) => {
-        // Total of invoice items
         const invoiceTotal = sale.items.reduce(
             (sum, item) => sum.plus(new Prisma.Decimal(item.total)),
             new Prisma.Decimal(0)
         );
 
-        // Total allocated to this invoice from ALL payments
         const allocatedAllPayments = sale.allocations.reduce(
             (sum, a) => sum.plus(new Prisma.Decimal(a.amount)),
             new Prisma.Decimal(0)
         );
 
-        // Allocated from THIS payment
         const allocatedByThisPayment = sale.allocations
             .filter((a) => a.customerPaymentId === paymentId)
             .reduce((sum, a) => sum.plus(new Prisma.Decimal(a.amount)), new Prisma.Decimal(0));
@@ -79,15 +74,24 @@ export async function GET(
             id: sale.id,
             invoiceNumber: sale.invoiceNumber,
             total: invoiceTotal.toNumber(),
-            balance: invoiceTotal.minus(allocatedAllPayments).toNumber(),
+            balance: Math.max(0, invoiceTotal.minus(allocatedAllPayments).toNumber()),
             allocatedNow: allocatedByThisPayment.toNumber(),
         };
     });
+
+    // Now you have the invoices array, you can filter allocated ones
+    const allocatedInvoices = invoices
+        .filter((inv) => inv.allocatedNow > 0)
+        .map((inv) => ({
+            ...inv,
+            allocatedAmount: inv.allocatedNow,
+        }));
 
     return NextResponse.json({
         payment,
         customer: payment.customer,
         invoices,
+        allocatedInvoices,
         unallocatedBalance: unallocatedBalance.toNumber(),
     });
 }

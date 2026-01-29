@@ -156,9 +156,7 @@ export default function ManageInventory() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-300 whitespace-nowrap">
                                 {loading ? (
-                                    <tr>
-                                        <Loading message="Loading Inventory" colSpan={20} />
-                                    </tr>
+                                    <Loading message="Loading Inventory" colSpan={20} />
                                 ) : paginatedItems.length ? (
                                     paginatedItems.map((inv, idx) => (
                                         <tr key={inv.id ?? idx} className={`hover:bg-gray-50 ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>

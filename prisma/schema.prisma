@@ -63,9 +63,12 @@ model User {
   users     User[]  @relation("UserManager")
 
   // 🔹 INVENTORY
-  assignedInventory  Inventory[]        @relation("InventoryAssignedUser")
+  assignedInventory  Inventory[]         @relation("InventoryAssignedUser")
   inventoryHistories InventoryHistory[]
   customerPayments   CustomerPayment[]
+  paymentAllocations PaymentAllocation[]
+  allocationAudits   AllocationAudit[]
+  customerStatements CustomerStatement[]
 
   @@index([managerId])
 }
@@ -320,10 +323,12 @@ model Sale {
   allocations    PaymentAllocation[]
   paymentStatus  PaymentStatus       @default(PENDING)
 
-  items         SaleItem[]
-  creditNotes   CreditNote[]
-  returns       SaleReturn[]
-  deliveryNotes DeliveryNote[]
+  items                 SaleItem[]
+  creditNotes           CreditNote[]
+  returns               SaleReturn[]
+  deliveryNotes         DeliveryNote[]
+  allocationAudits      AllocationAudit[]
+  creditNoteAllocations CreditNoteAllocation[]
 }
 
 model SaleItem {
@@ -361,11 +366,12 @@ model CustomerPayment {
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id])
 
-  amount      Float
-  method      String
-  reference   String?
+  amount          Float
+  method          String
+  reference       String?
   allocatedAmount Float?
-  paymentDate DateTime @default(now())
+  balance         Float?
+  paymentDate     DateTime @default(now())
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id])
@@ -385,30 +391,46 @@ model PaymentAllocation {
   customerPaymentId String
   customerPayment   CustomerPayment @relation(fields: [customerPaymentId], references: [id], onDelete: Cascade)
 
-  saleId String
-  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  history           AllocationHistory[]
+  saleId  String
+  sale    Sale                @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  history AllocationHistory[]
 
-  amount Float
-
-  createdAt DateTime @default(now())
+  amount      Float
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
 
   @@unique([customerPaymentId, saleId])
   @@index([saleId])
   @@index([customerPaymentId])
 }
-model AllocationHistory {
-  id                 String   @id @default(cuid())
-  allocationId       String
-  saleId             String
-  customerPaymentId  String
-  amount             Decimal
-  action             AllocationAction
-  createdAt          DateTime @default(now())
-  createdById    String?
-  notes              String?
 
-  allocation         PaymentAllocation @relation(fields: [allocationId], references: [id])
+model CreditNoteAllocation {
+  id           String     @id @default(cuid())
+  creditNoteId String
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id])
+  saleId       String
+  sale         Sale       @relation(fields: [saleId], references: [id])
+  amount       Float
+  createdAt    DateTime   @default(now())
+
+  @@unique([creditNoteId, saleId])
+  @@index([saleId])
+  @@index([creditNoteId])
+}
+
+model AllocationHistory {
+  id                String           @id @default(cuid())
+  allocationId      String
+  saleId            String
+  customerPaymentId String
+  amount            Decimal
+  action            AllocationAction
+  createdAt         DateTime         @default(now())
+  createdById       String?
+  notes             String?
+
+  allocation PaymentAllocation @relation(fields: [allocationId], references: [id])
 }
 
 enum AllocationAction {
@@ -419,20 +441,27 @@ enum AllocationAction {
 }
 
 model AllocationAudit {
-  id                String   @id @default(cuid())
+  id                String           @id @default(cuid())
   customerPaymentId String
   saleId            String?
+  sale              Sale?            @relation(fields: [saleId], references: [id])
   oldAmount         Decimal
   newAmount         Decimal
-  action           AllocationAction
-  createdAt        DateTime @default(now())
-  createdById  String
-  reason           String?
+  action            AllocationAction
+  createdAt         DateTime         @default(now())
+  createdById       String?
+  createdBy         User?            @relation(fields: [createdById], references: [id])
+  reason            String?
+
+  @@index([customerPaymentId])
+  @@index([saleId])
+  @@index([createdById])
 }
+
 enum PaymentStatus {
-  PENDING       // nothing paid yet
-  PARTIAL       // partially paid
-  PAID          // fully paid
+  PENDING // nothing paid yet
+  PARTIAL // partially paid
+  PAID // fully paid
 }
 
 // ==================== DELIVERY NOTES ====================
@@ -517,12 +546,13 @@ model CreditNote {
   saleReturnId String     @unique
   saleReturn   SaleReturn @relation(fields: [saleReturnId], references: [id])
 
-  reason      String
-  amount      Float
-  createdById String
-  createdBy   User     @relation("CreditNotesCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  reason                String
+  amount                Float
+  createdById           String
+  createdBy             User                   @relation("CreditNotesCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @default(now())
+  creditNoteAllocations CreditNoteAllocation[]
 }
 
 // ==================== SALE RETURNS ====================
@@ -716,6 +746,51 @@ enum AdjustmentType {
   DAMAGED
   EXPIRED
   MANUAL
+}
+
+model AccountingPeriod {
+  id       String    @id @default(cuid())
+  year     Int
+  month    Int
+  isClosed Boolean   @default(false)
+  closedAt DateTime?
+  closedBy String?
+
+  @@unique([year, month])
+}
+
+model CustomerStatement {
+  id          String @id @default(cuid())
+  customerId  String
+  periodYear  Int
+  periodMonth Int
+
+  openingBalance Decimal
+  closingBalance Decimal
+
+  issuedAt   DateTime @default(now())
+  issuedById String
+  issuedBy   User     @relation(fields: [issuedById], references: [id])
+
+  locked Boolean @default(true)
+
+  lines CustomerStatementLine[]
+
+  @@unique([customerId, periodYear, periodMonth])
+}
+
+model CustomerStatementLine {
+  id          String            @id @default(cuid())
+  statementId String
+  statement   CustomerStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  reference String
+  type      String
+
+  debit   Decimal
+  credit  Decimal
+  balance Decimal
 }
 
 // ==================== ENUMS ====================

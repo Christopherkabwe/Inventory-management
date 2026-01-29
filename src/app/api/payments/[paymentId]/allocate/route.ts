@@ -150,7 +150,7 @@ export async function POST(
         const allocatedSum = totalAllocated._sum.amount;
         await tx.customerPayment.update({
             where: { id: payment.id },
-            data: { allocatedAmount: allocatedSum }, // Or store in a separate field if you add one
+            data: { allocatedAmount: allocatedSum },
         })
     });
 

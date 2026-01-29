@@ -9,15 +9,30 @@ export async function GET() {
             orderBy: { paymentDate: "desc" },
             include: {
                 customer: true,
-                allocations: true, // include allocations to compute allocated amount
+                allocations: true,
             },
         });
 
+        const creditNotes = await prisma.creditNote.findMany({
+            include: {
+                sale: {
+                    select: { customerId: true },
+                },
+            },
+        });
+
+        const creditNoteTotals = creditNotes.reduce<Record<string, number>>(
+            (acc, cn) => {
+                const customerId = cn.sale.customerId;
+                acc[customerId] = (acc[customerId] || 0) + cn.amount;
+                return acc;
+            },
+            {}
+        );
+
         const result = payments.map((p) => {
-            const allocated = p.allocations?.reduce(
-                (sum, a) => sum + Number(a.amount),
-                0
-            ) ?? 0;
+            const allocated =
+                p.allocations?.reduce((sum, a) => sum + Number(a.amount), 0) ?? 0;
 
             return {
                 id: p.id,
@@ -27,9 +42,9 @@ export async function GET() {
                 method: p.method,
                 reference: p.reference,
                 paymentDate: p.paymentDate,
-                createdById: p.createdById,
-                allocated,                 // sum of allocations
-                balance: Number(p.amount) - allocated, // computed on the fly
+                allocated,
+                balance: Number(p.amount) - allocated,
+                creditNotes: creditNoteTotals[p.customerId] ?? 0,
             };
         });
 
@@ -42,7 +57,6 @@ export async function GET() {
         );
     }
 }
-
 
 export async function POST(req: Request) {
     try {
