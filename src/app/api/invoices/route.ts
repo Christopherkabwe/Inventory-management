@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import withRetries from "@/lib/retry";
-import { runTransaction } from "./utils";
 import { nextSequence, incrementSequence } from "@/lib/sequence";
 
-/* ======================================================
-   GET: List Invoices
-====================================================== */
 export async function GET() {
     try {
         const sales = await prisma.sale.findMany({
@@ -15,16 +11,18 @@ export async function GET() {
                 customer: true,
                 location: true,
                 salesOrder: {
-                    select: { id: true, orderNumber: true },
+                    select: { id: true, orderNumber: true }
                 },
                 items: {
-                    include: { product: true },
+                    include: { product: true }
                 },
-                allocations: true,
+                allocations: true, // Customer payments
+                creditNoteAllocations: true, // Include credit note allocations
                 creditNotes: true,
             },
             orderBy: { saleDate: "desc" },
         });
+
         // 2️⃣ Fetch all customer payments with allocations
         const payments = await prisma.customerPayment.findMany({
             include: { allocations: true },
@@ -32,71 +30,60 @@ export async function GET() {
 
         // 3️⃣ Compute unallocated per customer
         const unallocatedMap = new Map<string, number>();
+        // Initialize unallocated map with 0 for all customers
+        sales.forEach(s => {
+            if (!unallocatedMap.has(s.customerId)) unallocatedMap.set(s.customerId, 0);
+        });
+
+        // Add unallocated payments to map
         payments.forEach(p => {
             const allocatedSum = p.allocations.reduce((sum, a) => sum + Number(a.amount), 0);
             const unallocated = Number(p.amount) - allocatedSum;
-            if (!unallocatedMap.has(p.customerId)) unallocatedMap.set(p.customerId, 0);
-            unallocatedMap.set(p.customerId, unallocatedMap.get(p.customerId)! + unallocated);
+            unallocatedMap.set(p.customerId, (unallocatedMap.get(p.customerId) ?? 0) + unallocated);
+        });
+
+        // Add unallocated credit notes to map
+        sales.forEach(s => {
+            const creditNotesTotal = s.creditNotes.reduce((sum, c) => sum + c.amount, 0);
+            const creditNoteAllocationsTotal = s.creditNoteAllocations.reduce((sum, c) => sum + c.amount, 0);
+            const unallocatedCreditNotes = creditNotesTotal - creditNoteAllocationsTotal;
+            unallocatedMap.set(s.customerId, (unallocatedMap.get(s.customerId) ?? 0) + unallocatedCreditNotes);
         });
 
         const mapped = sales.map((sale) => {
             const total = sale.items.reduce((sum, i) => sum + i.total, 0);
-
-            const paid = sale.allocations.reduce(
-                (sum, a) => sum + a.amount,
-                0
-            );
-
-            const creditNotesTotal = sale.creditNotes.reduce(
-                (sum, c) => sum + c.amount,
-                0
-            );
-
-            const balance = total - paid - creditNotesTotal;
-
-            const paymentStatus =
-                balance <= 0
-                    ? "PAID"
-                    : paid > 0
-                        ? "PARTIALLY_PAID"
-                        : "PENDING";
-
+            // ✅ Include both customer payments and credit note allocations
+            const paid = sale.allocations.reduce((sum, a) => sum + a.amount, 0) + sale.creditNoteAllocations.reduce((sum, c) => sum + c.amount, 0);
+            const creditNotesTotal = sale.creditNotes.reduce((sum, c) => sum + c.amount, 0);
+            const balance = total - paid;
+            const paymentStatus = balance <= 0 ? "PAID" : paid > 0 ? "PARTIALLY_PAID" : "UNPAID";
             return {
                 id: sale.id,
                 invoiceNumber: sale.invoiceNumber,
                 orderNumber: sale.salesOrder?.orderNumber ?? null,
-
-                // ✅ Structural status only
                 status: sale.status,
-
-                // ✅ Derived (this is what UI should show)
                 paymentStatus,
-
                 customer: sale.customer,
                 location: sale.location,
                 items: sale.items,
                 saleDate: sale.saleDate,
-
                 total,
                 paid,
                 creditNotesTotal,
                 balance,
-                credit: Math.max(0, paid + creditNotesTotal - total),
-
+                credit: Math.max(0, paid - total),
                 salesOrderId: sale.salesOrderId,
-                unallocated: unallocatedMap.get(sale.customerId) ?? 0,
+                unallocated: unallocatedMap.get(sale.customerId),
             };
         });
 
         return NextResponse.json(mapped);
     } catch (err) {
         console.error(err);
-        return NextResponse.json(
-            { error: "Failed to fetch sales" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
     }
 }
+
 
 /* ======================================================
    POST: Create Invoice with Sequence Number, Payments, Lock

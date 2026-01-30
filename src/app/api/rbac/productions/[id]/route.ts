@@ -5,8 +5,48 @@ import { recordInventoryTransaction } from "@/lib/inventory"; // ✅ use Option 
 
 interface Params {
     params: { id: string };
-}
+}export async function GET(
+    _req: Request,
+    context: { params: { id: string } }
+) {
+    try {
+        const { id } = await context.params;
 
+        const production = await prisma.production.findUnique({
+            where: { id },
+            include: {
+                location: true,
+                createdBy: true,
+                items: {
+                    include: {
+                        product: true,
+                    },
+                },
+                defects: {
+                    include: {
+                        product: true,
+                        recordedBy: true,
+                    },
+                },
+            },
+        });
+
+        if (!production) {
+            return NextResponse.json(
+                { error: "Production not found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(production);
+    } catch (error) {
+        console.error("GET production error:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch production" },
+            { status: 500 }
+        );
+    }
+}
 export async function PUT(req: NextRequest, { params }: Params) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

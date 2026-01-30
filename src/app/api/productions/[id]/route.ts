@@ -1,7 +1,7 @@
 // app/api/productions/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stackServerApp } from "@/stack/server";
+import { getCurrentUser } from "@/lib/auth";
 
 type Params = { params: { id: string } };
 
@@ -11,7 +11,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     try {
         // 1️⃣ Authenticate user
-        const user = await stackServerApp.getUser();
+        const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const userId = user.id;
 
@@ -115,7 +115,7 @@ export async function DELETE(_: NextRequest, { params }: Params) {
     const { id } = params;
 
     try {
-        const user = await stackServerApp.getUser();
+        const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         await prisma.$transaction(async (tx) => {

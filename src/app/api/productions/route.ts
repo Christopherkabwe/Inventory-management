@@ -15,7 +15,20 @@ export async function GET(req: Request) {
         const productions = await prisma.production.findMany({
             ...(limit ? { take: limit } : {}),
             orderBy: { createdAt: "desc" },
-            include: { items: { include: { product: true } }, location: true },
+            include: {
+                items: {
+                    include: {
+                        product: true
+                    }
+                },
+                defects: {
+                    include: {
+                        product: true,
+                        recordedBy: true,
+                    },
+                },
+                location: true
+            },
         });
 
         return NextResponse.json({ productions });

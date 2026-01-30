@@ -91,10 +91,13 @@ export async function GET(req: Request) {
             weightValue: prod.weightValue,
             weightUnit: prod.weightUnit,
             price: prod.price,
+            costPerBag: prod.costPerBag,
             quantity: qty,
             location: d.production.location.name,
             date: d.production.createdAt,
             totalValue: qty * (prod.price || 0),
+            totalCost: qty * (prod.costPerBag || 0),
+            profitMargin: ((prod.price - (prod.costPerBag || 0)) / prod.price) * 100,
             tonnage: (qty * (prod.weightValue || 0) * (prod.packSize || 1)) / 1000,
         };
     });

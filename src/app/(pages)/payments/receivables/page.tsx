@@ -16,160 +16,178 @@ interface Invoice {
     paid: number;
     creditNotesTotal: number;
     balance: number; // total - paid - credit
-    status: "PAID" | "PARTIALLY_PAID" | "UNPAID";
+    status: string;
+    paymentStatus: "PAID" | "PARTIALLY_PAID" | "UNPAID";
     saleDate: string;
     customerId: string;
     unallocated: number;
+    credit: number;
     customer: {
         id: string;
         name: string;
-    }
-}
-
-interface CustomerUnallocated {
-    customerId: string;
-    unallocated: number;
+    };
 }
 
 export default function AccountsReceivablePage() {
-    // -----------------------------
-    // Data Fetching
-    // -----------------------------
     const { data: invoices, error, mutate } = useSWR<Invoice[]>("/api/invoices", fetcher, {
         refreshInterval: 2000,
     });
 
-
-    const [filterStatus, setFilterStatus] = useState("ALL");
+    const [filterStatus, setFilterStatus] = useState<"ALL" | "PAID" | "PARTIALLY_PAID" | "UNPAID">("ALL");
     const [search, setSearch] = useState("");
-    const [autoAllocating, setAutoAllocating] = useState<string | null>(null);
+    const [allocatingCustomer, setAllocatingCustomer] = useState<string | null>(null);
 
     // -----------------------------
-    // Filter invoices
+    // Filter invoices based on search & status
     // -----------------------------
     const filteredInvoices = useMemo(() => {
         if (!invoices) return [];
         return invoices.filter(inv => {
-            const matchesStatus = filterStatus === "ALL" || inv.status === filterStatus;
+            const matchesStatus = filterStatus === "ALL" || inv.paymentStatus === filterStatus;
             const matchesSearch =
                 inv.invoiceNumber.includes(search) ||
-                (inv as any).customerName?.toLowerCase().includes(search.toLowerCase());
+                inv.customer.name.toLowerCase().includes(search.toLowerCase());
             return matchesStatus && matchesSearch;
         });
     }, [invoices, filterStatus, search]);
 
     // -----------------------------
-    // Handle Auto-Allocate per customer
+    // Group invoices by customer
     // -----------------------------
-    const handleAutoAllocate = async (customerId: string) => {
+    const invoicesByCustomer = useMemo(() => {
+        if (!filteredInvoices) return {};
+        const map: Record<string, Invoice[]> = {};
+        filteredInvoices.forEach(inv => {
+            if (!map[inv.customerId]) map[inv.customerId] = [];
+            map[inv.customerId].push(inv);
+        });
+        return map;
+    }, [filteredInvoices]);
+
+    // -----------------------------
+    // Auto-allocate credit per customer
+    // -----------------------------
+    const handleAllocateCreditForCustomer = async (customerId: string) => {
         try {
-            setAutoAllocating(customerId);
-            await axios.post("/api/payments/auto-allocate", { customerId });
-            await mutate(); // refresh invoices after allocation
+            setAllocatingCustomer(customerId);
+
+            // Backend will handle FIFO allocation across all unpaid invoices for this customer
+            await axios.post("/api/credit-notes/auto-allocate", { customerId });
+
+            await mutate(); // refresh invoices
         } catch (err) {
             console.error(err);
             alert("Auto-allocation failed. See console.");
         } finally {
-            setAutoAllocating(null);
+            setAllocatingCustomer(null);
         }
     };
 
     if (error) return <div>Error loading invoices</div>;
     if (!invoices) return <div>Loading...</div>;
 
-    // -----------------------------
-    // Render
-    // -----------------------------
     return (
-        <div className="">
-            <div>
-                <h1 className="text-3xl font-bold">Accounts Receivables</h1>
-                <p className="text-gray-500 mt-1 mb-2">Track your sales Receivables</p>
+        <div className="p-6">
+            <div className="mb-4">
+                <h1 className="text-3xl font-bold">Accounts Receivable</h1>
+                <p className="text-gray-500 mt-1">Track your sales receivables</p>
             </div>
-            <div className="p-6 bg-white shadow rounded space-y-6">
-                {/* Filters */}
-                <div className="flex flex-row justify-between gap-4 mb-4">
-                    <div className="w-full">
-                        <SearchInput
-                            value={search}
-                            onChange={setSearch}
-                            placeholder="Search by invoice or customer"
-                            className=""
-                        />
-                    </div>
-                    <div className="w-full">
-                        <Dropdown
-                            label=""
-                            value={filterStatus}
-                            onChange={(val) =>
-                                setFilterStatus(val as "ALL" | "UNPAID" | "PARTIALLY_PAID" | "UNPAID")
-                            }
-                            items={[
-                                { id: "ALL", label: "All" },
-                                { id: "PAID", label: "Paid" },
-                                { id: "PARTIALLY_PAID", label: "Partially Paid" },
-                                { id: "UNPAID", label: "Unpaid" },
-                            ]}
-                        />
-                    </div>
+
+            {/* Filters */}
+            <div className="flex flex-row justify-between gap-4 mb-4">
+                <div className="w-full">
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search by invoice or customer"
+                    />
                 </div>
+                <div className="w-full">
+                    <Dropdown
+                        label=""
+                        value={filterStatus}
+                        onChange={(val) =>
+                            setFilterStatus(val as "ALL" | "PAID" | "PARTIALLY_PAID" | "UNPAID")
+                        }
+                        items={[
+                            { id: "ALL", label: "All" },
+                            { id: "PAID", label: "Paid" },
+                            { id: "PARTIALLY_PAID", label: "Partially Paid" },
+                            { id: "UNPAID", label: "Unpaid" },
+                        ]}
+                    />
+                </div>
+            </div>
 
+            {/* Table */}
+            <div className="bg-white shadow rounded p-4 overflow-x-auto">
+                <table className="w-full table-auto border-collapse">
+                    <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th className="border px-2 py-1 text-left">Sale Date</th>
+                            <th className="border px-2 py-1 text-left">Invoice #</th>
+                            <th className="border px-2 py-1 text-left">Customer</th>
+                            <th className="border px-2 py-1 text-left">Status</th>
+                            <th className="border px-2 py-1 text-right">Invoice Total</th>
+                            <th className="border px-2 py-1 text-right">Paid</th>
+                            <th className="border px-2 py-1 text-right">Credit Notes</th>
+                            <th className="border px-2 py-1 text-right">Balance</th>
+                            <th className="border px-2 py-1 text-right">Unallocated</th>
+                            <th className="border px-2 py-1 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.values(invoicesByCustomer).map((customerInvoices) => {
+                            const customer = customerInvoices[0].customer;
 
-                {/* Table */}
-                <div>
-                    <table className="w-full table-auto border-collapse">
-                        <thead className="bg-gray-100 sticky top-0">
-                            <tr>
-                                <th className="border px-2 py-1 text-left">Invoice #</th>
-                                <th className="border px-2 py-1 text-left">Customer</th>
-                                <th className="border px-2 py-1 text-left">Status</th>
-                                <th className="border px-2 py-1 text-right">Invoice Total</th>
-                                <th className="border px-2 py-1 text-right">Paid</th>
-                                <th className="border px-2 py-1 text-right">Credit Notes</th>
-                                <th className="border px-2 py-1 text-right">Balance</th>
-                                <th className="border px-2 py-1 text-right">Unallocated</th>
-                                {/*<th className="border px-2 py-1">Action</th>*/}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredInvoices.map(inv => {
-                                const unallocated = inv.unallocated;
-                                const canAutoAllocate = inv.balance > 0 && unallocated > 0;
-                                return (
-                                    <tr key={inv.id} className="hover:bg-gray-50">
-                                        <td className="border px-2 py-1">{inv.invoiceNumber}</td>
-                                        <td className="border px-2 py-1">{inv.customer?.name}</td>
-                                        <td className="border px-2 py-1">{inv.status}</td>
-                                        <td className="border px-2 py-1 text-right">K{inv.total.toFixed(2)}</td>
-                                        <td className="border px-2 py-1 text-right">K{inv.paid.toFixed(2)}</td>
-                                        <td className="border px-2 py-1 text-right">K{inv.creditNotesTotal.toFixed(2)}</td>
-                                        <td
-                                            className={`border px-2 py-1 text-right ${inv.balance > 0 ? "text-red-600" : inv.balance < 0 ? "text-green-600" : ""
-                                                }`}
-                                        >
-                                            K{inv.balance.toFixed(2)}
-                                        </td>
-                                        <td
-                                            className={`border px-2 py-1 text-right ${unallocated > 0 ? "text-green-600" : "text-gray-400"
-                                                }`}
-                                        >
-                                            K{unallocated.toFixed(2)}
-                                        </td>
-                                        {/*<td className="border px-2 py-1">
+                            return customerInvoices.map((inv, idx) => (
+                                <tr key={inv.id} className="hover:bg-gray-50">
+                                    <td className="border px-2 py-1">{new Date(inv.saleDate).toLocaleDateString()}</td>
+                                    <td className="border px-2 py-1">{inv.invoiceNumber}</td>
+                                    <td className="border px-2 py-1">{inv.customer?.name}</td>
+                                    <td className="border px-2 py-1">{inv.paymentStatus}</td>
+                                    <td className="border px-2 py-1 text-right">K{inv.total.toFixed(2)}</td>
+                                    <td className="border px-2 py-1 text-right">K{inv.paid.toFixed(2)}</td>
+                                    <td className="border px-2 py-1 text-right">K{inv.creditNotesTotal.toFixed(2)}</td>
+                                    <td
+                                        className={`border px-2 py-1 text-right ${inv.balance > 0
+                                            ? "text-red-600"
+                                            : inv.balance <= 0
+                                                ? "text-green-600"
+                                                : ""
+                                            }`}
+                                    >
+                                        K{inv.balance.toFixed(2)}
+                                    </td>
+                                    <td
+                                        className={`border px-2 py-1 text-right ${inv.unallocated > 0 ? "text-green-600" : "text-gray-400"
+                                            }`}
+                                    >
+                                        K{inv.unallocated.toFixed(2)}
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                        {idx === 0 && customerInvoices[0].credit > 0 && inv.balance > 0 ? (
                                             <button
-                                                className="bg-green-600 text-white px-2 py-1 rounded disabled:opacity-50"
-                                                disabled={!canAutoAllocate || autoAllocating === inv.customerId}
-                                                onClick={() => handleAutoAllocate(inv.customerId)}
+                                                className="bg-green-600 text-white px-2 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-50"
+                                                disabled={allocatingCustomer === customer.id}
+                                                onClick={() => handleAllocateCreditForCustomer(customer.id)}
                                             >
-                                                {autoAllocating === inv.customerId ? "Allocating…" : "Auto-Allocate"}
+                                                {allocatingCustomer === customer.id ? "Allocating…" : (
+                                                    <>
+                                                        <CheckCircleIcon size={14} />
+                                                        Allocate Credit
+                                                    </>
+                                                )}
                                             </button>
-                                        </td>*/}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                        ) : (
+                                            <span className="text-gray-400">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ));
+                        })}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

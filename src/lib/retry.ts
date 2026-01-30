@@ -18,9 +18,7 @@ export default async function withRetries<T>(
                 const code = err.code;
 
                 if (code === "P2034" || code === "P2002") {
-                    if (attempt > retries) {
-                        throw new Error("FAILED TO ALLOCATE PAYMENT, PLEASE TRY AGAIN");
-                    }
+                    if (attempt > retries) throw err;
 
                     console.warn(
                         `Prisma retryable error (${code}). Attempt ${attempt}/${retries}. Retrying in ${delayMs}ms...`
@@ -31,8 +29,8 @@ export default async function withRetries<T>(
                 }
             }
 
-            // ❌ Non-retryable error → user-facing message
-            throw new Error("FAILED TO ALLOCATE PAYMENT, PLEASE TRY AGAIN");
+            // ❌ Not retryable → bubble up immediately
+            throw err;
         }
     }
 }

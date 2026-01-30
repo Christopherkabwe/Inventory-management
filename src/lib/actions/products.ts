@@ -15,11 +15,15 @@ const ProductSchema = z.object({
     weightValue: z.coerce.number().positive("Enter a valid weight"),
     weightUnit: z.string().min(1, "Weight unit is required (e.g., kg, lbs)"),
     category: z.string().optional(),
-    location: z.string().min(1, "Location is required"),
-    quantity: z.coerce.number().int().min(0, "Quantity is required"),
+    subCategory: z.string().optional(),
+    costPerBag: z.coerce.number().int().min(0).optional(),
+    location: z.string().min(1, "Location is required").optional(),
+    quantity: z.coerce.number().int().min(0, "Quantity is required").optional(),
     lowStockAt: z.coerce.number().int().min(0).optional(),
     expiryDate: z.coerce.date().optional(),
     assignedUserId: z.string().optional(),
+    isTaxable: z.string().optional(),
+    taxRate: z.coerce.number().int().min(0).optional(),
 });
 
 // ADMIN PERMISSION //
@@ -135,11 +139,13 @@ export async function CreateProduct(
         weightValue: formData.get("weightValue"),
         weightUnit: formData.get("weightUnit"),
         category: formData.get("category") || undefined,
+        subCategory: formData.get("subCategory") || undefined,
         location: formData.get("location") || undefined,
         quantity: formData.get("quantity"),
         lowStockAt: formData.get("lowStockAt") || undefined,
-        expiryDate: formData.get("expiryDate") ? new Date(formData.get("expiryDate") as string) : undefined,
-        assignedUserId: formData.get("assignedUserId") as string | undefined,
+        isTaxable: formData.get("isTaxable") || undefined,
+        taxRate: formData.get("taxRate") || 0,
+        costPerBag: formData.get("costPerBag") || 0,
     });
     console.log(parsed);
 
@@ -161,28 +167,17 @@ export async function CreateProduct(
                     weightValue: parsed.data.weightValue,
                     weightUnit: parsed.data.weightUnit,
                     category: parsed.data.category,
+                    subCategory: parsed.data.subCategory,
                     createdById: user.id,
+                    isTaxable: parsed.data.isTaxable,
+                    taxRate: parsed.data.taxRate,
+                    costPerBag: parsed.data.costPerBag,
                 },
             });
         }
 
-        const location = await prisma.location.findUnique({ where: { name: parsed.data.location } });
-        if (!location) return { success: false, message: "Location not found." };
-
-        await prisma.inventory.create({
-            data: {
-                productId: product.id,
-                locationId: location.id,
-                quantity: parsed.data.quantity,
-                lowStockAt: parsed.data.lowStockAt ?? 5,
-                expiryDate: parsed.data.expiryDate,
-                assignedUserId: parsed.data.assignedUserId,
-                createdById: user.id,
-            },
-        });
-
-        revalidatePath("/inventory/inventory");
-        return { success: true, message: "Product added to inventory!" };
+        revalidatePath("/products/product-management");
+        return { success: true, message: "Product created Successfully!" };
     } catch (error) {
         console.error(error);
         return { success: false, message: "Failed to add product." };
@@ -192,16 +187,11 @@ export async function CreateProduct(
 // ==================== GET INVENTORY ====================
 export async function getProducts() {
     try {
-        const user = await getCurrentUser();
-        checkAdminPermission(user);
-        const products = await prisma.inventory.findMany({
-            where: { createdById: user.id },
-            include: { product: true, location: true, assignedUser: true },
+        const products = await prisma.productList.findMany({
             orderBy: { createdAt: "desc" },
-            take: 50,
         });
         return products;
     } catch (error) {
-        return { error: "Unauthorized: only admins are allowed to perform this action" };
+        return { error: "Failed to fetch products" };
     }
 }

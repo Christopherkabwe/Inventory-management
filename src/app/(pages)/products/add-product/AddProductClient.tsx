@@ -3,21 +3,29 @@ import { useEffect, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import Sidebar from "@/components/sidebar";
 import { CreateProduct } from "@/lib/actions/products";
 import ProductList from "./ProductList";
 import { useFormStatus } from "react-dom";
+import { ChevronLeft, Plus } from "lucide-react";
+
+interface Product {
+    id: string;
+    sku: string;
+    name: string;
+    price: number;
+    packSize: number;
+    weightValue: number;
+    weightUnit: string;
+    category?: string | null;
+    subCategory?: string | null;
+}
 
 interface Props {
     isAdmin: boolean;
-    products: any[] | { error: string };
+    products: Product[];
     error?: string;
-    users: any[];
-    locations: any[];
-    categories: any[];
 }
-
-export default function AddProductClient({ isAdmin, products, users, locations, categories, error }: Props) {
+export default function AddProductClient({ isAdmin, products, error }: Props) {
     const initialState = { message: null, success: false };
     const [state, dispatch] = useActionState(CreateProduct, initialState);
     const router = useRouter();
@@ -44,7 +52,7 @@ export default function AddProductClient({ isAdmin, products, users, locations, 
             <div className="min-h-screen">
                 <main className="ml-64 p-8">
                     <div className="mb-8">
-                        <h1 className="text-2xl font-semibold">Add Product</h1>
+                        <h1 className="text-2xl font-semibold">Add New Product</h1>
                         <p className="text-sm text-gray-500"> You do not have permission to add products. </p>
                     </div>
                 </main>
@@ -56,10 +64,20 @@ export default function AddProductClient({ isAdmin, products, users, locations, 
     return (
         <div className="min-h-screen items-center">
             <main className="p-5">
-                <div className="mb-5 bg-white p-5 rounded-md ">
-                    <h1 className="text-2xl font-semibold">Add Product</h1>
-                    <p className="text-sm text-gray-500"> Add new products to your inventory </p>
+                <div className="flex justify-start mb-1">
+                    <Link
+                        href="/products"
+                        className="inline-flex items-center gap-2 px-2 py-2
+                                        text-sm font-medium text-black hover:cursor-pointer"
+                    >
+                        <ChevronLeft size={16} /> Back
+                    </Link>
                 </div>
+                <div className="mb-5 bg-white p-5 rounded-md ">
+                    <h1 className="text-2xl font-semibold">Add New Product</h1>
+                    <p className="text-sm text-gray-500"> Add new products to your product list </p>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* LEFT — FORM */}
                     <div className="lg:col-span-2 bg-white border rounded-lg p-6">
@@ -95,40 +113,32 @@ export default function AddProductClient({ isAdmin, products, users, locations, 
                                         <option value="g">g</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                                 <div>
-                                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-                                    <select id="location" name="location" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent">
-                                        <option value="">Select a location</option>
-                                        {locations.map((location) => (
-                                            <option key={location.id} value={location.name}>{location.name}</option>
-                                        ))}
-                                    </select>
+                                    <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">Category (optional)</label>
+                                    <input type="text" id="category" name="category" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Category" />
                                 </div>
                                 <div>
-                                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
-                                    <input type="number" id="quantity" name="quantity" step="1" min="0" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Quantity..." />
+                                    <label htmlFor="subCategory" className="block text-sm font-medium text-gray-700 mb-2">Sub-category (optional)</label>
+                                    <input type="text" id="subCategory" name="subCategory" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Sub-Category" />
                                 </div>
-                            </div>
-                            <div>
-                                <label htmlFor="lowStockAt" className="block text-sm font-medium text-gray-700 mb-2">Low Stock At (optional)</label>
-                                <input type="number" id="lowStockAt" name="lowStockAt" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter low stock threshold..." />
-                            </div>
-                            <select id="category" name="category" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent">
-                                <option value="">Select a category</option>
-                                {categories.map((category, index) => (
-                                    <option key={index} value={category}>{category}</option>
-                                ))}
-                            </select>
-                            <div>
-                                <label htmlFor="assignedUserId" className="block text-sm font-medium text-gray-700 mb-2">Assigned User (optional)</label>
-                                <select id="assignedUserId" name="assignedUserId" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent">
-                                    <option value="">Select a user</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>{user.fullName}</option>
-                                    ))}
-                                </select>
+                                <div>
+                                    <label htmlFor="lowStockAt" className="block text-sm font-medium text-gray-700 mb-2">Low Stock At (optional)</label>
+                                    <input type="number" id="lowStockAt" name="lowStockAt" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter low stock threshold..." />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="isTaxable" className="block text-sm font-medium text-gray-700 mb-2">Is Taxable (optional)</label>
+                                    <input type="text" id="isTaxable" name="isTaxable" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter yes | No" />
+                                </div>
+                                <div>
+                                    <label htmlFor="taxRate" className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (optional)</label>
+                                    <input type="number" id="taxRate" name="taxRate" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Tax rate" />
+                                </div>
+                                <div>
+                                    <label htmlFor="costPerBag" className="block text-sm font-medium text-gray-700 mb-2">Production Cost (optional)</label>
+                                    <input type="number" id="costPerBag" name="costPerBag" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Tax rate" />
+                                </div>
                             </div>
                             <SubmitButton />
                             <Link href="/products" className="px-6 py-3 bg-red-500 text-white ml-4 rounded-lg hover:bg-red-600" > Cancel </Link>

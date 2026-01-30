@@ -75,12 +75,14 @@ export async function GET(req: Request) {
             weightValue: product.weightValue,
             weightUnit: product.weightUnit,
             price: product.price,
+            costPerBag: product.costPerBag,
             quantity,  // total quantity
             totalQty: quantity,
             totalValue: quantity * product.price,
             tonnage: (quantity * (product.weightValue || 0) * product.packSize) / 1000,
         };
     });
+    //console.log(result)
 
     return NextResponse.json({ data: result });
 }

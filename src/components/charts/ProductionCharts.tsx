@@ -14,7 +14,6 @@ import { Bar, Pie } from "react-chartjs-2";
 import PieCard from "./ProductionPieChart";
 import { BarChart3, Factory, Package } from "lucide-react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import InventorySummary from "../InventorySummary";
 import Loading from "../Loading";
 
 

@@ -6,24 +6,30 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const { id } = await params;
         const body = await req.json();
 
-        // Optional: filter only allowed fields
-        const allowedFields = ['sku', 'name', 'costPerBag', 'packSize', 'category', 'weightValue', 'weightUnit'];
+        const allowedFields = ['sku', 'name', 'costPerBag', 'packSize', 'category', 'subCategory', 'isTaxable', 'taxRate', 'weightValue', 'weightUnit'];
         const dataToUpdate: Record<string, any> = {};
+
         for (const key of allowedFields) {
-            if (body[key] !== undefined) dataToUpdate[key] = body[key];
+            if (body[key] !== undefined) {
+                if (key === 'taxRate') {
+                    const taxRate = parseFloat(body[key]);
+                    if (!isNaN(taxRate)) {
+                        dataToUpdate[key] = taxRate;
+                    } else {
+                        return NextResponse.json({ message: "Invalid tax rate" }, { status: 400 });
+                    }
+                } else {
+                    dataToUpdate[key] = body[key];
+                }
+            }
         }
 
-        // Check if product exists
         const existing = await prisma.productList.findUnique({ where: { id } });
         if (!existing) {
             return NextResponse.json({ message: "Product not found" }, { status: 404 });
         }
 
-        const updated = await prisma.productList.update({
-            where: { id },
-            data: dataToUpdate,
-        });
-
+        const updated = await prisma.productList.update({ where: { id }, data: dataToUpdate });
         return NextResponse.json(updated);
     } catch (error) {
         console.error("PUT /product-management/[id] error:", error);

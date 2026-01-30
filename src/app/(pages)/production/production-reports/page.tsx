@@ -18,9 +18,11 @@ interface ProductSummary {
     weightValue: number;
     weightUnit: string;
     price: number;
+    costPerBag: number;
     totalQty: number;
     tonnage: number;
     totalValue: number;
+
 }
 
 interface LocationSummary {
@@ -38,14 +40,17 @@ interface BatchRow {
     sku: string;
     category: string;
     quantity: number;
+    tonnage: number;
     location: string;
     date: string;
     packSize: number;
     weightValue: number;
     weightUnit: string;
     price: number;
+    costPerBag: number;
     totalValue: number;
-    tonnage: number;
+    totalCost: number;
+    profitMargin: number;
 }
 
 export default function ProductionReportsPage() {
@@ -85,6 +90,7 @@ export default function ProductionReportsPage() {
             setByProduct(p.data || []);
             setByLocation(l.data || []);
             setBatchRows(b.data || []);
+            console.log(b.data)
         } catch (error) {
             console.error("Error fetching reports:", error);
         } finally {
@@ -212,12 +218,10 @@ export default function ProductionReportsPage() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
-                                    <Loading message="Loading Production Data"
-                                        colSpan={9}
-                                        className="items-center"
-                                    />
-                                </tr>
+                                <Loading message="Loading Production Data"
+                                    colSpan={9}
+                                    className="items-center"
+                                />
                             ) : byProduct.length === 0 ? (
                                 <tr>
                                     <td colSpan={9} className="px-4 py-2 text-sm text-gray-800 text-center">
@@ -305,11 +309,9 @@ export default function ProductionReportsPage() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
-                                    <Loading message="Loading Production Data"
-                                        colSpan={9}
-                                        className="px-4 py-2 text-sm text-gray-800 text-center" />
-                                </tr>
+                                <Loading message="Loading Production Data"
+                                    colSpan={9}
+                                    className="px-4 py-2 text-sm text-gray-800 text-center" />
                             ) : byLocation.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="px-4 py-2 text-sm text-gray-800 text-center">
@@ -385,34 +387,33 @@ export default function ProductionReportsPage() {
                     </button>
                 </div>
                 <div className="max-h-[500px] overflow-auto w-full text-black">
-                    <table className="w-full border-collapse">
+                    <table className="w-full border-collapse text-sm">
                         <thead className="bg-gray-100 text-left sticky top-0">
-                            <tr className="">
-                                <th className="border border-black border-t-2 p-2">Batch No.</th>
-                                <th className="border border-black border-t-2 p-2">Production No</th>
-                                <th className="border border-black border-t-2 p-2">Product Name</th>
-                                <th className="border border-black border-t-2 p-2">SKU</th>
-                                <th className="border border-black border-t-2 p-2">Pack Size</th>
-                                <th className="border border-black border-t-2 p-2">Weight Value</th>
-                                <th className="border border-black border-t-2 p-2">Weight Unit</th>
-                                <th className="border border-black border-t-2 p-2">Quantity</th>
-                                <th className="border border-black border-t-2 p-2">Tonnage</th>
-                                <th className="border border-black border-t-2 p-2">Cost Per Bag</th>
-                                <th className="border border-black border-t-2 p-2">Total Cost</th>
-                                <th className="border border-black border-t-2 p-2">Selling Price</th>
-                                <th className="border border-black border-t-2 p-2">Total Value</th>
-                                <th className="border border-black border-t-2 p-2">Profit Margin</th>
-                                <th className="border border-black border-t-2 p-2">Location</th>
-                                <th className="border border-black border-t-2 p-2">Date</th>
+                            <tr className="border-t-1 border-black">
+                                <th className="border border-black px-2 py-1">Batch No.</th>
+                                <th className="border border-black px-2 py-1">Production No</th>
+                                <th className="border border-black px-2 py-1">Date</th>
+                                <th className="border border-black px-2 py-1">Location</th>
+                                <th className="border border-black px-2 py-1">Product Name</th>
+                                <th className="border border-black px-2 py-1">SKU</th>
+                                <th className="border border-black px-2 py-1">Pack Size</th>
+                                <th className="border border-black px-2 py-1">Weight Value</th>
+                                <th className="border border-black px-2 py-1">Weight Unit</th>
+                                <th className="border border-black px-2 py-1">Quantity</th>
+                                <th className="border border-black px-2 py-1">Tonnage</th>
+                                <th className="border border-black px-2 py-1">Unit Cost</th>
+                                <th className="border border-black px-2 py-1">Selling Price</th>
+                                <th className="border border-black px-2 py-1">Profit Margin</th>
+                                <th className="border border-black px-2 py-1">Total Cost</th>
+                                <th className="border border-black px-2 py-1">Total Value</th>
+                                <th className="border border-black px-2 py-1">Total Profit</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
-                                    <Loading message="Loading Production Data"
-                                        colSpan={9}
-                                        className="px-4 py-2 text-sm text-gray-800 text-center" />
-                                </tr>
+                                <Loading
+                                    colSpan={20} message="Loading Production Data"
+                                />
                             ) : batchRows.length === 0 ? (
                                 <tr>
                                     <td colSpan={20} className="px-4 py-2 text-sm text-gray-800 text-center">
@@ -425,6 +426,8 @@ export default function ProductionReportsPage() {
                                         <tr key={i} className="whitespace-nowrap">
                                             <td className="border border-black p-2">{b.batchNumber}</td>
                                             <td className="border border-black p-2">{b.productionNo}</td>
+                                            <td className="border border-black p-2">{new Date(b.date).toLocaleDateString()}</td>
+                                            <td className="border border-black p-2">{b.location}</td>
                                             <td className="border border-black p-2">{b.product}</td>
                                             <td className="border border-black p-2">{b.sku}</td>
                                             <td className="border border-black p-2">{b.packSize}</td>
@@ -432,19 +435,19 @@ export default function ProductionReportsPage() {
                                             <td className="border border-black p-2">{b.weightUnit}</td>
                                             <td className="border border-black p-2">{b.quantity}</td>
                                             <td className="border border-black p-2">{(b.tonnage).toFixed(2)}</td>
+                                            <td className="border p-2 border-black">{`K${b.costPerBag.toFixed(2)}`}</td>
                                             <td className="border p-2 border-black">{`K${b.price.toFixed(2)}`}</td>
+                                            <td className="border p-2 border-black">{b.profitMargin | 0}%</td>
+                                            <td className="border p-2 border-black">{`K${b.totalCost.toFixed(2)}`}</td>
                                             <td className="border p-2 border-black">{`K${b.totalValue.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${b.price.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${b.totalValue.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${b.totalValue.toFixed(2)}`}</td>
-                                            <td className="border border-black p-2">{b.location}</td>
-                                            <td className="border border-black p-2">{new Date(b.date).toLocaleDateString()}</td>
+                                            <td className="border p-2 border-black">{`K${(b.totalValue - b.totalCost).toFixed(2)}`}</td>
+
                                         </tr>
                                     ))}
 
                                     {/* Total Row */}
                                     <tr className="bg-gray-200 font-semibold">
-                                        <td className="border border-black p-2 text-center" colSpan={7}>Total</td>
+                                        <td className="border border-black p-2 text-center" colSpan={9}>Total</td>
                                         <td className="border border-black p-2 ">
                                             {batchRows.reduce((sum, b) => sum + b.quantity, 0)}
                                         </td>
@@ -452,18 +455,17 @@ export default function ProductionReportsPage() {
                                             {batchRows.reduce((sum, b) => sum + b.tonnage, 0).toFixed(2)}
                                         </td>
                                         <td className="border border-black p-2 text-center">-</td>
-                                        <td className="border border-black p-2">
-                                            {batchRows.reduce((sum, b) => sum + b.totalValue, 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-black p-2 text-center">-</td>
-                                        <td className="border border-black p-2">
-                                            {batchRows.reduce((sum, b) => sum + b.totalValue, 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-black p-2">
-                                            {batchRows.reduce((sum, b) => sum + b.totalValue, 0).toFixed(2)}
-                                        </td>
                                         <td className="border border-black p-2 text-center">-</td>
                                         <td className="border border-black p-2 text-center">-</td>
+                                        <td className="border border-black p-2">
+                                            K{batchRows.reduce((sum, b) => sum + b.totalCost, 0).toFixed(2)}
+                                        </td>
+                                        <td className="border border-black p-2">
+                                            K{batchRows.reduce((sum, b) => sum + b.totalValue, 0).toFixed(2)}
+                                        </td>
+                                        <td className="border border-black p-2">
+                                            K{batchRows.reduce((sum, b) => sum + (b.totalValue - b.totalCost), 0).toFixed(2)}
+                                        </td>
                                     </tr>
                                 </>
                             )}

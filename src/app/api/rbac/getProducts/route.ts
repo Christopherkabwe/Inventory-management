@@ -30,6 +30,8 @@ export async function GET(req: NextRequest) {
                 price: true,
                 packSize: true,
                 category: true,
+                weightUnit: true,
+                weightValue: true,
             },
             orderBy: { name: "asc" },
         });

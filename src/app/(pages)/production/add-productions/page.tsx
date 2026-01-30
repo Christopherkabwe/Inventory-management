@@ -14,6 +14,8 @@ interface Product {
     sku: string;
     price: number;
     packSize: number;
+    weightValue: number;
+    weightUnit: string;
 }
 
 interface Location {
@@ -25,13 +27,18 @@ interface ProductionItem {
     productId: string;
     quantity: number;
 }
-
 interface Production {
     id: string;
     productionNo: string;
     batchNumber: string;
     location: Location;
     createdById: string;
+    createdBy: {
+        id: string;
+        fullName: string;
+        role: string;
+    }
+    createdAt: string;
     updatedAt: string;
     items: { product: Product; quantity: number }[];
     notes?: string;
@@ -251,6 +258,7 @@ export default function ProductionPage() {
                     {/* Items */}
                     {items.map((item, index) => {
                         const selectedProduct = products.find(p => p.id === item.productId);
+                        console.log(selectedProduct)
                         return (
                             <div key={index} className="border p-2 rounded flex flex-col gap-2">
                                 <div className="flex gap-2 flex-wrap">
@@ -266,12 +274,19 @@ export default function ProductionPage() {
                                         <input type="text" className="border border-gray-200 text-sm rounded-lg p-2" value={selectedProduct?.sku || ""} readOnly />
                                     </div>
                                     <div className="flex flex-col flex-1">
-                                        <label className="font-medium mb-2">Price</label>
-                                        <input type="number" className="border border-gray-200 text-sm rounded-lg p-2" value={(selectedProduct?.price || 0).toFixed(2)} readOnly />
-                                    </div>
-                                    <div className="flex flex-col flex-1">
                                         <label className="font-medium mb-2">Pack Size</label>
                                         <input type="number" className="border border-gray-200 text-sm rounded-lg p-2" value={selectedProduct?.packSize || 0} readOnly />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                        <label className="font-medium mb-2">Weight</label>
+                                        <input type="text" className="border border-gray-200 text-sm rounded-lg p-2"
+                                            value={`${selectedProduct?.weightValue ?? 0} ${selectedProduct?.weightUnit ?? ''}`}
+                                            readOnly
+                                        />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                        <label className="font-medium mb-2">Price</label>
+                                        <input type="number" className="border border-gray-200 text-sm rounded-lg p-2" value={(selectedProduct?.price || 0).toFixed(2)} readOnly />
                                     </div>
                                     <div className="flex flex-col flex-1">
                                         <label className="font-medium mb-2">Quantity</label>
@@ -318,15 +333,16 @@ export default function ProductionPage() {
                         Recent Productions
                     </h3>
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
+                        <thead className="bg-gray-200">
                             <tr>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">#</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Production No</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Batch</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Location</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Created By</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Updated At</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">#</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Production No</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Batch</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Location</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Created By</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Created At</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Updated At</th>
+                                <th className="px-2 py-1 text-center text-sm font-semibold text-gray-700">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -347,13 +363,14 @@ export default function ProductionPage() {
                             ) : (
                                 productions.slice(0, 10).map((p, index) => (
                                     <tr key={p.id} className="even:bg-gray-50 hover:bg-gray-100">
-                                        <td className="px-4 py-2 text-sm text-gray-800">{index + 1}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{p.productionNo}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{p.batchNumber}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{p.location.name}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{p.createdById}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800">{new Date(p.updatedAt).toLocaleString()}</td>
-                                        <td className="px-4 py-2 flex gap-2">
+                                        <td className="px-2 py-1 text-sm text-gray-800">{index + 1}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.productionNo}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.batchNumber}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.location.name}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.createdBy?.fullName}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{new Date(p.createdAt).toLocaleString()}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{new Date(p.updatedAt).toLocaleString()}</td>
+                                        <td className="px-2 py-1 flex gap-2 justify-center">
                                             <button className="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600 text-white" onClick={() => setViewingProduction(p)}>View</button>
                                             <button className="bg-yellow-400 px-3 py-1 rounded hover:bg-yellow-500 text-white" onClick={() => handleEdit(p)}>Edit</button>
                                             <button className="bg-red-500 px-3 py-1 rounded hover:bg-red-600 text-white" onClick={() => handleDelete(p.id)}>Delete</button>

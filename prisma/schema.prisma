@@ -69,6 +69,7 @@ model User {
   paymentAllocations PaymentAllocation[]
   allocationAudits   AllocationAudit[]
   customerStatements CustomerStatement[]
+  productionDefects  ProductionDefect[]
 
   @@index([managerId])
 }
@@ -130,6 +131,7 @@ model ProductList {
   inventoryHistories   InventoryHistory[]
   proformaInvoiceItems ProformaInvoiceItem[]
   saleReturnItems      SaleReturnItem[]
+  productionDefects    ProductionDefect[]
 }
 
 // ==================== LOCATIONS ====================
@@ -188,22 +190,25 @@ enum InventorySource {
   TRANSFER_DAMAGED
   TRANSFER_EXPIRED
   PRODUCTION // production adds stock
+  PRODUCTION_DEFECT
   ADJUSTMENT // manual adjustment
   RETURN // sale return adds stock
   INITIAL
 }
 
 model InventoryHistory {
-  id             String          @id @default(cuid())
-  productId      String
-  product        ProductList     @relation(fields: [productId], references: [id])
-  locationId     String
-  location       Location        @relation(fields: [locationId], references: [id])
-  date           DateTime // time of the transaction
-  delta          Int // positive for stock in, negative for stock out
-  inTransitDelta Int?
-  sourceType     InventorySource
-  reference      String // e.g., SALE-INV123, TRANSFER-IBT001
+  id                 String            @id @default(cuid())
+  productId          String
+  product            ProductList       @relation(fields: [productId], references: [id])
+  locationId         String
+  location           Location          @relation(fields: [locationId], references: [id])
+  date               DateTime // time of the transaction
+  delta              Int // positive for stock in, negative for stock out
+  inTransitDelta     Int?
+  sourceType         InventorySource
+  reference          String // e.g., SALE-INV123, TRANSFER-IBT001
+  productionDefectId String?
+  productionDefect   ProductionDefect? @relation(fields: [productionDefectId], references: [id])
 
   // Optional links for auditing
   createdById String? // optional
@@ -688,17 +693,19 @@ enum TransferStatus {
 
 // ==================== PRODUCTION ====================
 model Production {
-  id           String           @id @default(cuid())
-  productionNo String           @unique
+  id           String             @id @default(cuid())
+  productionNo String             @unique
   locationId   String
-  location     Location         @relation(fields: [locationId], references: [id])
+  location     Location           @relation(fields: [locationId], references: [id])
   batchNumber  String
   notes        String?
+  status       ProductionStatus?  @default(DRAFT)
   createdById  String
-  createdBy    User             @relation("ProductionsCreatedBy", fields: [createdById], references: [id])
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @default(now())
+  createdBy    User               @relation("ProductionsCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now())
   items        ProductionItem[]
+  defects      ProductionDefect[]
 
   @@index([createdAt])
   @@index([locationId])
@@ -714,6 +721,47 @@ model ProductionItem {
   quantity           Int
   updatedAt          DateTime           @default(now()) @updatedAt
   inventoryHistories InventoryHistory[]
+}
+
+model ProductionDefect {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   ProductList @relation(fields: [productId], references: [id])
+
+  quantity   Int
+  defectType DefectType
+  reason     String?
+
+  disposition DefectDisposition @default(SCRAPPED)
+
+  recordedById String
+  recordedBy   User   @relation(fields: [recordedById], references: [id])
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  inventoryHistories InventoryHistory[]
+
+  @@index([productionId])
+  @@index([productId])
+}
+
+enum DefectType {
+  PACKAGING
+  CONTAMINATION
+  WEIGHT_VARIANCE
+  DAMAGED
+  EXPIRED
+  OTHER
+}
+
+enum DefectDisposition {
+  SCRAPPED // destroyed / written off
+  REWORKED // sent back to production
+  RETURNED // returned to supplier
+  HELD // pending decision
 }
 
 // ==================== ADJUSTMENTS ====================

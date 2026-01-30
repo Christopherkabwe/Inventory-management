@@ -1,8 +1,8 @@
 "use client";
 
-import DashboardLayout from "@/components/DashboardLayout";
 import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Product {
     id: string;
@@ -28,6 +28,12 @@ interface Production {
     batchNumber: string;
     location: Location;
     createdById: string;
+    createdBy: {
+        id: string;
+        fullName: string;
+        role: string;
+    }
+    createdAt: string;
     updatedAt: string;
     items: { product: Product; quantity: number }[];
     notes?: string;
@@ -35,6 +41,7 @@ interface Production {
 
 export default function ProductionPage() {
     const [productions, setProductions] = useState<Production[]>([]);
+    const router = useRouter();
     const [products, setProducts] = useState<Product[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
     const [productionNo, setProductionNo] = useState("");
@@ -204,19 +211,20 @@ export default function ProductionPage() {
 
                 {/* Production Table */}
                 <div className="bg-white overflow-auto border shadow p-2 rounded-lg hover:shadow-lg transition-shadow">
-                    <table className="min-w-full border-collapse border border-black">
-                        <thead className="bg-gray-100">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-200">
                             <tr>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">#</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Production No</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Batch</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Location</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Created By</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Updated At</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border border-black border-t-2">Actions</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">#</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Production No</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Batch</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Location</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Created By</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Created At</th>
+                                <th className="px-2 py-1 text-left text-sm font-semibold text-gray-700">Updated At</th>
+                                <th className="px-2 py-1 text-center text-sm font-semibold text-gray-700">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-x divide-black">
+                        <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-2 text-sm text-gray-800 text-center">
@@ -234,16 +242,23 @@ export default function ProductionPage() {
                             ) : (
                                 productions.map((p, index) => (
                                     <tr key={p.id} className="even:bg-gray-50 hover:bg-gray-100">
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{index + 1}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{p.productionNo}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{p.batchNumber}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{p.location.name}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{p.createdById}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-800 border-r border-black">{new Date(p.updatedAt).toLocaleString()}</td>
-                                        <td className="px-4 py-2 flex gap-2">
+                                        <td className="px-2 py-1 text-sm text-gray-800">{index + 1}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.productionNo}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.batchNumber}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.location.name}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{p.createdBy?.fullName}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{new Date(p.createdAt).toLocaleString()}</td>
+                                        <td className="px-2 py-1 text-sm text-gray-800">{new Date(p.updatedAt).toLocaleString()}</td>
+                                        <td className="px-2 py-1 flex gap-2 justify-center">
                                             <button className="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600 text-white" onClick={() => setViewingProduction(p)}>View</button>
                                             <button className="bg-yellow-400 px-3 py-1 rounded hover:bg-yellow-500 text-white" onClick={() => handleEdit(p)}>Edit</button>
                                             <button className="bg-red-500 px-3 py-1 rounded hover:bg-red-600 text-white" onClick={() => handleDelete(p.id)}>Delete</button>
+                                            <button
+                                                className="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600 text-white"
+                                                onClick={() => router.push(`/production/${p.id}`)}
+                                            >
+                                                View Doc
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -283,7 +298,10 @@ export default function ProductionPage() {
                                     ))}
                                 </tbody>
                             </table>
-                            <button className="bg-gray-500 text-white px-4 py-2 rounded" onClick={() => setViewingProduction(null)}>Close</button>
+                            <button className="bg-gray-500 text-white px-4 py-2 rounded"
+                                onClick={() => setViewingProduction(null)}>
+                                Close
+                            </button>
                         </div>
                     </div>
                 )}

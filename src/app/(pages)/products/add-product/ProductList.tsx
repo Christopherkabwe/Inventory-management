@@ -1,34 +1,52 @@
 "use client";
-
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 
-export default function ProductList({ products }: { products: any[] }) {
+interface Product {
+    id: string;
+    sku: string;
+    name: string;
+    price: number;
+    packSize: number;
+    weightValue: number;
+    weightUnit: string;
+    category?: string | null;
+    subCategory?: string | null;
+}
+
+
+export default function ProductList({ products }: { products: Product[] }) {
     const [query, setQuery] = useState("");
 
     const filteredProducts = useMemo(() => {
         const q = query.toLowerCase();
-        return products.filter(
-            (item) =>
-                item.product.name.toLowerCase().includes(q) ||
-                item.product.sku.toLowerCase().includes(q)
-        );
+        return products
+            .filter((item) =>
+                item.name.toLowerCase().includes(q) ||
+                item.sku.toLowerCase().includes(q)
+            )
+            .reduce((acc: Product[], item) => {
+                if (!acc.find((p) => p.id === item.id)) {
+                    acc.push(item);
+                }
+                return acc;
+            }, []);
     }, [products, query]);
 
     // Handle click: ask for confirmation and redirect/scroll
-    const handleProductClick = (item: any) => {
+    const handleProductClick = (item: Product) => {
         const confirmRedirect = confirm(
             "Do you want to view this product in the Inventory table?"
         );
         if (confirmRedirect) {
             // Use the actual product ID
-            window.location.href = `/inventory/inventory?productId=${item.product.id}`;
+            window.location.href = "/products/product-management";
         }
     };
 
     return (
-        <div className="bg-white border rounded-sm ">
-            <div className="sticky top-0 z-10 border-b p-4">
+        <div className="bg-white border rounded-sm flex flex-col h-full">
+            <div className="bg-white sticky top-0 z-10 border-b p-4">
                 <h2 className="text-sm font-semibold mb-3">Existing Products</h2>
                 <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -50,8 +68,7 @@ export default function ProductList({ products }: { products: any[] }) {
                     )}
                 </div>
             </div>
-
-            <div className="p-4 h-170 overflow-y-auto">
+            <div className="flex-1 p-4 h-170 overflow-y-auto">
                 {filteredProducts.length === 0 ? (
                     <p className="text-sm text-gray-400">
                         {query ? "No matching products" : "No products yet"}
@@ -65,23 +82,16 @@ export default function ProductList({ products }: { products: any[] }) {
                                 className="cursor-pointer border rounded-md px-3 py-2 hover:bg-gray-50 transition"
                             >
                                 <div className="text-sm font-medium">
-                                    {item.product.name}
+                                    {item.name}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    Sku: {item.product.sku}
+                                    Sku: {item.sku}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    Pack Size: {item.product.packSize}
+                                    Pack Size: {item.packSize}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    Weight: {item.product.weightValue}{" "}
-                                    {item.product.weightUnit}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    Qty: {item.quantity}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    Low Stock At: {item.lowStockAt}
+                                    Weight: {item.weightValue} {item.weightUnit}
                                 </div>
                             </li>
                         ))}
