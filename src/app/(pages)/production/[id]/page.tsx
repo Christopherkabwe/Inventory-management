@@ -54,6 +54,8 @@ export default function ProductionViewPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!id) return;
+
         async function fetchProduction() {
             try {
                 const res = await fetch(`/api/rbac/productions/${id}`);
@@ -76,7 +78,7 @@ export default function ProductionViewPage() {
     /* =======================
        TOTALS
     ======================= */
-    const totals = production.items.reduce(
+    const totals = production.items?.reduce(
         (acc, item) => {
             const weight = item.product.weightValue ?? 0;
             acc.quantity += item.quantity;
@@ -147,7 +149,7 @@ export default function ProductionViewPage() {
 
                         <div>
                             <h1 className="font-semibold">Location</h1>
-                            <p className="text-sm">{production.location.name}</p>
+                            <p className="text-sm">{production.location?.name}</p>
                         </div>
 
                         <div>
@@ -172,7 +174,7 @@ export default function ProductionViewPage() {
                                 </tr>
                             </thead>
                             <tbody className="border border-black">
-                                {production.items.map((item, idx) => (
+                                {production.items?.map((item, idx) => (
                                     <tr key={idx}>
                                         <td className="px-4 py-2 border-r border-black">
                                             {item.product.name}
@@ -195,7 +197,7 @@ export default function ProductionViewPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                <EmptyRows columns={6} count={Math.max(0, 10 - production.items.length)} />
+                                <EmptyRows columns={6} count={Math.max(0, 10 - production.items?.length)} />
                             </tbody>
                             <tfoot className="border border-black">
                                 <tr className="bg-zinc-100 font-semibold">
@@ -203,10 +205,10 @@ export default function ProductionViewPage() {
                                         TOTAL
                                     </td>
                                     <td className="px-4 py-2 border-r border-black text-center">
-                                        {totals.quantity}
+                                        {totals?.quantity}
                                     </td>
                                     <td className="px-4 py-2 text-center">
-                                        {totals.tonnage.toFixed(2)}
+                                        {totals?.tonnage.toFixed(2)}
                                     </td>
                                 </tr>
                             </tfoot>

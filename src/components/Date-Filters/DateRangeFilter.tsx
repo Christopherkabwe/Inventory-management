@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarIcon, X } from "lucide-react";
+import { Calendar1, CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/search/Calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,7 +28,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                         !value.start && "text-muted-foreground"
                     )}
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Calendar1 className="mr-2 h-10 w-10 text-blue-500" />
                     {value.start
                         ? value.end
                             ? `${value.start.toLocaleDateString()} – ${value.end.toLocaleDateString()}`
@@ -145,5 +145,28 @@ useEffect(() => {
     value={dateRange}
     onChange={setDateRange}
     />
+
+*/}
+
+{/*
+    const filteredbatchRows = batchRows.filter(b => {
+    // --- Search filter ---
+    const matchesSearch =
+        b.productionNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.batchNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.location.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // --- Date range filter ---
+    const rowDate = new Date(b.date);
+    const start = dateRange.start ? new Date(dateRange.start.setHours(0,0,0,0)) : null;
+    const end = dateRange.end ? new Date(dateRange.end.setHours(23,59,59,999)) : null;
+
+    if (start && rowDate < start) return false;
+    if (end && rowDate > end) return false;
+
+    return true;
+});
 
 */}

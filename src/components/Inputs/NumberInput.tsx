@@ -31,7 +31,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     return (
         <div className="space-y-1">
             {label && (
-                <label className="text-sm font-medium text-gray-700 px-2 py-1">
+                <label className="text-sm font-medium text-black px-2 py-1">
                     {label}
                     {required && <span className="text-red-500 ml-1">*</span>}
                 </label>

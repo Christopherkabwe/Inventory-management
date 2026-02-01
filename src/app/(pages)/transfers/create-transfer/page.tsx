@@ -9,7 +9,7 @@ import { useUser } from "@/app/context/UserContext";
 import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboBox";
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
 import { TransporterCombobox } from "@/components/SingleSelectComboBox/TransporterComboBox";
-import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
+import { NumberInput } from "@/components/Inputs/NumberInput";
 
 
 interface Location {

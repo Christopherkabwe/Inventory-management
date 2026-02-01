@@ -212,9 +212,8 @@ export default function ProductionPage() {
     return (
         <div>
             <div className="p-5 text-black">
-                <h1 className="text-2xl dark:text-white font-bold">Production Management</h1>
-                <p className="mb-2 text-gray-500">Record and manage Production transactions</p>
-
+                <h1 className="text-2xl dark:text-white font-bold">Add Production</h1>
+                <p className="mb-2 text-gray-500">Record and Manage Production transactions</p>
                 {/* Form */}
                 <div className="bg-white mb-6 border p-4 rounded-lg shadow">
                     <h2 className="font-semibold mb-2">{editingId ? "Edit Production" : "Create Production"}</h2>
@@ -308,20 +307,19 @@ export default function ProductionPage() {
                     })}
                     <div className="flex flex-row flex-1 justify-center gap-5 mt-5">
 
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded mb-2" onClick={addItem} disabled={products.length === 0}>
+                        <button className="bg-blue-500 text-white px-2 py-1 rounded mb-2" onClick={addItem} disabled={products.length === 0}>
                             + Add Item
                         </button>
 
-
                         <button
-                            className={`bg-green-500 text-white px-4 py-2 rounded mb-2 ${loading ? "opacity-50" : ""}`}
+                            className={`bg-green-500 text-white px-2 py-1 rounded mb-2 ${loading ? "opacity-50" : ""}`}
                             onClick={handleSubmit}
                             disabled={loading}
                         >
                             {editingId ? "Update Production" : "Save Production"}
                         </button>
                         {editingId && (
-                            <button className="ml-2 px-4 py-2 border rounded" onClick={resetForm}>Cancel</button>
+                            <button className="bg-red-500 text-white px-2 py-1 rounded-md mb-2" onClick={resetForm}>Cancel</button>
                         )}
                     </div>
                 </div>

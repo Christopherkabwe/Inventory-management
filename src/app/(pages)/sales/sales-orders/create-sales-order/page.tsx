@@ -8,7 +8,7 @@ import toast, { Toaster } from "react-hot-toast";
 import withRole from "@/components/withRole";
 
 import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboBox";
-import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
+import { NumberInput } from "@/components/Inputs/NumberInput";
 import { CustomerCombobox } from "@/components/SingleSelectComboBox/CustomerComboBox";
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox"; // <-- new
 

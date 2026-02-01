@@ -47,7 +47,6 @@ interface DefectForm {
     disposition: string;
     reason: string;
 }
-
 /* ================= PAGE ================= */
 
 export default function ProductionsPage() {
@@ -56,8 +55,7 @@ export default function ProductionsPage() {
     const [defects, setDefects] = useState<Record<string, DefectForm>>({});
     const [loading, setLoading] = useState(true);
 
-    /* ================= FETCH ================= */
-
+    // Fetch productions
     async function fetchProductions() {
         setLoading(true);
         const res = await fetch("/api/rbac/productions");
@@ -70,19 +68,18 @@ export default function ProductionsPage() {
         fetchProductions();
     }, []);
 
-    /* ================= ACTIONS ================= */
-
+    // Actions
     async function confirmProduction(id: string) {
         if (!confirm("Confirm this production? Inventory will be posted.")) return;
         await fetch(`/api/rbac/productions/${id}/confirm`, { method: "POST" });
-        fetchProductions();
+        window.location.reload();
     }
 
     async function lockProduction(id: string) {
         if (!confirm("LOCKING IS FINAL. Continue?")) return;
         await fetch(`/api/rbac/productions/${id}/lock`, { method: "POST" });
         setSelected(null);
-        fetchProductions();
+        window.location.reload();
     }
 
     async function recordDefect(
@@ -113,28 +110,20 @@ export default function ProductionsPage() {
 
         setDefects(prev => ({
             ...prev,
-            [productId]: {
-                quantity: 0,
-                defectType: "",
-                disposition: "",
-                reason: "",
-            },
+            [productId]: { quantity: 0, defectType: "", disposition: "", reason: "" },
         }));
 
-        fetchProductions();
+        window.location.reload();
     }
 
-    function updateDefect(
-        productId: string,
-        field: keyof DefectForm,
-        value: any
-    ) {
+    function updateDefect(productId: string, field: keyof DefectForm, value: any) {
         setDefects(prev => ({
             ...prev,
             [productId]: { ...prev[productId], [field]: value },
         }));
     }
 
+    // Flatten all defects for general table
     const allDefects = productions.flatMap(p =>
         p.defects.map(d => ({
             ...d,
@@ -145,28 +134,34 @@ export default function ProductionsPage() {
         }))
     );
 
-    /* ================= LOADING ================= */
-
     if (loading) return <Loading message="Loading productions..." />;
 
     /* ================= DETAILS VIEW ================= */
-
     if (selected)
         return (
-            <div className="p-6 space-y-6">
+            <div className="bg-white p-6 space-y-6">
                 <button
                     onClick={() => setSelected(null)}
-                    className="text-blue-600 underline"
+                    className="text-blue-600 font-medium hover:cursor-pointer"
                 >
                     ← Back to list
                 </button>
 
-                <h2 className="text-xl font-bold">
-                    {selected.productionNo} · {selected.status}
+                <h2 className="text-2xl font-bold text-gray-800">
+                    {selected.productionNo} ·{" "}
+                    <span
+                        className={`px-2 py-1 rounded text-white text-sm ${selected.status === "DRAFT"
+                            ? "bg-gray-500"
+                            : selected.status === "CONFIRMED"
+                                ? "bg-green-600"
+                                : "bg-purple-700"
+                            }`}
+                    >
+                        {selected.status}
+                    </span>
                 </h2>
 
-                {/* ================= ITEMS ================= */}
-
+                {/* Items & Defects */}
                 {selected.items.map(item => {
                     const defectTotal = selected.defects
                         .filter(d => d.productId === item.product.id)
@@ -175,14 +170,18 @@ export default function ProductionsPage() {
                     return (
                         <div
                             key={item.product.id}
-                            className="border rounded p-4 space-y-2"
+                            className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow space-y-2"
                         >
-                            <div className="flex justify-between">
-                                <strong>{item.product.name}</strong>
-                                <span className="text-sm">
-                                    Produced: {item.quantity} · Defects:{" "}
-                                    {defectTotal}
-                                </span>
+                            <div className="gap-2">
+                                <strong className="text-gray-800">{item.product.name}</strong>
+                                <div className="flex flex-cols-2 px-2 gap-5">
+                                    <div className="text-sm text-gray-500">
+                                        Produced: {item.quantity}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        Defects: {defectTotal}
+                                    </div>
+                                </div>
                             </div>
 
                             {selected.status !== "LOCKED" && (
@@ -193,59 +192,34 @@ export default function ProductionsPage() {
                                             min={1}
                                             max={item.quantity}
                                             placeholder="Defect Qty"
-                                            className="border p-2 rounded"
-                                            value={
-                                                defects[item.product.id]?.quantity ||
-                                                ""
-                                            }
+                                            className="border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
+                                            value={defects[item.product.id]?.quantity || ""}
                                             onChange={e =>
-                                                updateDefect(
-                                                    item.product.id,
-                                                    "quantity",
-                                                    Number(e.target.value)
-                                                )
+                                                updateDefect(item.product.id, "quantity", Number(e.target.value))
                                             }
                                         />
 
                                         <select
-                                            className="border p-2 rounded"
-                                            value={
-                                                defects[item.product.id]?.defectType ||
-                                                ""
-                                            }
+                                            className="border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
+                                            value={defects[item.product.id]?.defectType || ""}
                                             onChange={e =>
-                                                updateDefect(
-                                                    item.product.id,
-                                                    "defectType",
-                                                    e.target.value
-                                                )
+                                                updateDefect(item.product.id, "defectType", e.target.value)
                                             }
                                         >
                                             <option value="">Defect Type</option>
                                             <option value="PACKAGING">Packaging</option>
-                                            <option value="CONTAMINATION">
-                                                Contamination
-                                            </option>
-                                            <option value="WEIGHT_VARIANCE">
-                                                Weight Variance
-                                            </option>
+                                            <option value="CONTAMINATION">Contamination</option>
+                                            <option value="WEIGHT_VARIANCE">Weight Variance</option>
                                             <option value="DAMAGED">Damaged</option>
                                             <option value="EXPIRED">Expired</option>
                                             <option value="OTHER">Other</option>
                                         </select>
 
                                         <select
-                                            className="border p-2 rounded"
-                                            value={
-                                                defects[item.product.id]?.disposition ||
-                                                ""
-                                            }
+                                            className="border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
+                                            value={defects[item.product.id]?.disposition || ""}
                                             onChange={e =>
-                                                updateDefect(
-                                                    item.product.id,
-                                                    "disposition",
-                                                    e.target.value
-                                                )
+                                                updateDefect(item.product.id, "disposition", e.target.value)
                                             }
                                         >
                                             <option value="">Disposition</option>
@@ -255,29 +229,19 @@ export default function ProductionsPage() {
                                         </select>
 
                                         <input
-                                            className="border p-2 rounded"
                                             placeholder="Reason"
-                                            value={
-                                                defects[item.product.id]?.reason || ""
-                                            }
+                                            className="border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
+                                            value={defects[item.product.id]?.reason || ""}
                                             onChange={e =>
-                                                updateDefect(
-                                                    item.product.id,
-                                                    "reason",
-                                                    e.target.value
-                                                )
+                                                updateDefect(item.product.id, "reason", e.target.value)
                                             }
                                         />
                                     </div>
 
                                     <button
-                                        className="bg-red-600 text-white px-3 py-1 rounded"
+                                        className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700 transition"
                                         onClick={() =>
-                                            recordDefect(
-                                                selected.id,
-                                                item.product.id,
-                                                item.quantity
-                                            )
+                                            recordDefect(selected.id, item.product.id, item.quantity)
                                         }
                                     >
                                         Record Defect
@@ -288,73 +252,54 @@ export default function ProductionsPage() {
                     );
                 })}
 
-                {/* ================= DEFECTS TABLE ================= */}
-
+                {/* Production Defects Table */}
                 {selected.defects.length > 0 && (
-                    <div>
-                        <h3 className="font-bold text-lg mb-2">
-                            Recorded Defects
-                        </h3>
-
-                        <table className="w-full border text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border p-2">Product</th>
-                                    <th className="border p-2">Qty</th>
-                                    <th className="border p-2">Type</th>
-                                    <th className="border p-2">Disposition</th>
-                                    <th className="border p-2">Reason</th>
-                                    <th className="border p-2">Recorded By</th>
-                                    <th className="border p-2">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {selected.defects.map(d => {
-                                    const productName =
-                                        selected.items.find(
-                                            i => i.product.id === d.productId
-                                        )?.product.name || "-";
-
-                                    return (
-                                        <tr key={d.id} className="border-b">
-                                            <td className="border p-2">
-                                                {productName}
-                                            </td>
-                                            <td className="border p-2 text-center">
-                                                {d.quantity}
-                                            </td>
-                                            <td className="border p-2">
-                                                {d.defectType}
-                                            </td>
-                                            <td className="border p-2">
-                                                {d.disposition}
-                                            </td>
-                                            <td className="border p-2">
-                                                {d.reason || "-"}
-                                            </td>
-                                            <td className="border p-2">
-                                                {d.recordedBy.fullName}
-                                            </td>
-                                            <td className="border p-2">
-                                                {new Date(
-                                                    d.createdAt
-                                                ).toLocaleDateString()}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div className="mt-6 border rounded-lg p-4 shadow-sm">
+                        <h3 className="font-semibold text-lg mb-3">Recorded Defects</h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm table-auto border-collapse">
+                                <thead className="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th className="border px-2 py-1">Product</th>
+                                        <th className="border px-2 py-1">Qty</th>
+                                        <th className="border px-2 py-1">Type</th>
+                                        <th className="border px-2 py-1">Disposition</th>
+                                        <th className="border px-2 py-1">Reason</th>
+                                        <th className="border px-2 py-1">Recorded By</th>
+                                        <th className="border px-2 py-1">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selected.defects.map(d => {
+                                        const productName =
+                                            selected.items.find(i => i.product.id === d.productId)
+                                                ?.product.name || "-";
+                                        return (
+                                            <tr key={d.id} className="hover:bg-gray-50">
+                                                <td className="border px-2 py-1">{productName}</td>
+                                                <td className="border px-2 py-1 text-center">{d.quantity}</td>
+                                                <td className="border px-2 py-1">{d.defectType}</td>
+                                                <td className="border px-2 py-1">{d.disposition}</td>
+                                                <td className="border px-2 py-1">{d.reason || "-"}</td>
+                                                <td className="border px-2 py-1">{d.recordedBy.fullName}</td>
+                                                <td className="border px-2 py-1">
+                                                    {new Date(d.createdAt).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
-                {/* ================= ACTIONS ================= */}
-
-                <div className="flex gap-3">
+                {/* Actions */}
+                <div className="flex gap-3 mt-4">
                     {selected.status === "DRAFT" && (
                         <button
                             onClick={() => confirmProduction(selected.id)}
-                            className="bg-green-600 text-white px-4 py-2 rounded"
+                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
                         >
                             Confirm Production
                         </button>
@@ -363,7 +308,7 @@ export default function ProductionsPage() {
                     {selected.status === "CONFIRMED" && (
                         <button
                             onClick={() => lockProduction(selected.id)}
-                            className="bg-purple-700 text-white px-4 py-2 rounded"
+                            className="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800 transition"
                         >
                             Lock Production
                         </button>
@@ -373,93 +318,107 @@ export default function ProductionsPage() {
         );
 
     /* ================= LIST VIEW ================= */
-
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">
+        <div className="bg-white p-6 space-y-6">
+            <h1 className="text-2xl font-bold text-gray-800">
                 Production Management
             </h1>
 
-            <table className="w-full border">
-                <thead className="bg-gray-100 text-left">
-                    <tr>
-                        <th>#</th>
-                        <th>No</th>
-                        <th>Batch</th>
-                        <th>Status</th>
-                        <th>Location</th>
-                        <th>Created By</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {productions.map((p, i) => (
-                        <tr key={p.id} className="border-b">
-                            <td>{i + 1}</td>
-                            <td>{p.productionNo}</td>
-                            <td>{p.batchNumber}</td>
-                            <td>
-                                <span className="px-2 py-1 text-xs rounded bg-gray-200">
-                                    {p.status}
-                                </span>
-                            </td>
-                            <td>{p.location.name}</td>
-                            <td>{p.createdBy.fullName}</td>
-                            <td>
-                                <button
-                                    onClick={() => setSelected(p)}
-                                    className="text-blue-600 underline"
-                                >
-                                    Open
-                                </button>
-                            </td>
+            {/* Productions Table */}
+            <div className="overflow-x-auto border rounded-lg shadow-sm">
+                <table className="w-full text-sm table-auto border-collapse">
+                    <thead className="bg-gray-100 sticky top-0 text-left">
+                        <tr>
+                            <th className="border px-2 py-1">#</th>
+                            <th className="border px-2 py-1">No</th>
+                            <th className="border px-2 py-1">Batch</th>
+                            <th className="border px-2 py-1">Status</th>
+                            <th className="border px-2 py-1">Location</th>
+                            <th className="border px-2 py-1">Created By</th>
+                            <th className="border px-2 py-1">Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            {/* ================= GLOBAL DEFECTS TABLE ================= */}
-
-            {allDefects.length > 0 && (
-                <div className="mt-10">
-                    <h2 className="text-xl font-bold mb-3">
-                        Production Defects
-                    </h2>
-
-                    <table className="w-full border text-sm">
-                        <thead className="bg-gray-100 text-left">
+                    </thead>
+                    <tbody>
+                        {productions.length === 0 ? (
                             <tr>
-                                <th className="border p-2">Production No</th>
-                                <th className="border p-2">Batch</th>
-                                <th className="border p-2">Product</th>
-                                <th className="border p-2">Qty</th>
-                                <th className="border p-2">Type</th>
-                                <th className="border p-2">Disposition</th>
-                                <th className="border p-2">Reason</th>
-                                <th className="border p-2">Recorded By</th>
-                                <th className="border p-2">Date</th>
+                                <td colSpan={7} className="text-center py-4 text-gray-500">
+                                    No productions found
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {allDefects.map(d => (
-                                <tr key={d.id} className="border-b">
-                                    <td className="border p-2">{d.productionNo}</td>
-                                    <td className="border p-2">{d.batchNumber}</td>
-                                    <td className="border p-2">{d.productName}</td>
-                                    <td className="border p-2 text-center">{d.quantity}</td>
-                                    <td className="border p-2">{d.defectType}</td>
-                                    <td className="border p-2">{d.disposition}</td>
-                                    <td className="border p-2">{d.reason || "-"}</td>
-                                    <td className="border p-2">
-                                        {d.recordedBy.fullName}
+                        ) : (
+                            productions.map((p, i) => (
+                                <tr
+                                    key={p.id}
+                                    className="even:bg-gray-50 hover:bg-gray-100 transition"
+                                >
+                                    <td className="border px-2 py-1">{i + 1}</td>
+                                    <td className="border px-2 py-1">{p.productionNo}</td>
+                                    <td className="border px-2 py-1">{p.batchNumber}</td>
+                                    <td className="border px-2 py-1">
+                                        <span
+                                            className={`px-2 py-1 rounded text-white text-xs ${p.status === "DRAFT"
+                                                ? "bg-gray-500"
+                                                : p.status === "CONFIRMED"
+                                                    ? "bg-green-600"
+                                                    : "bg-purple-700"
+                                                }`}
+                                        >
+                                            {p.status}
+                                        </span>
                                     </td>
-                                    <td className="border p-2">
-                                        {new Date(d.createdAt).toLocaleDateString()}
+                                    <td className="border px-2 py-1">{p.location.name}</td>
+                                    <td className="border px-2 py-1">{p.createdBy.fullName}</td>
+                                    <td className="border px-2 py-1">
+                                        <button
+                                            onClick={() => setSelected(p)}
+                                            className="text-blue-600 font-medium hover:underline"
+                                        >
+                                            Open
+                                        </button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Global Defects Table */}
+            {allDefects.length > 0 && (
+                <div className="mt-10 border rounded-lg shadow-sm p-4">
+                    <h2 className="text-xl font-semibold mb-3">All Production Defects</h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm table-auto border-collapse">
+                            <thead className="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th className="border px-2 py-1">Production No</th>
+                                    <th className="border px-2 py-1">Batch</th>
+                                    <th className="border px-2 py-1">Product</th>
+                                    <th className="border px-2 py-1">Qty</th>
+                                    <th className="border px-2 py-1">Type</th>
+                                    <th className="border px-2 py-1">Disposition</th>
+                                    <th className="border px-2 py-1">Reason</th>
+                                    <th className="border px-2 py-1">Recorded By</th>
+                                    <th className="border px-2 py-1">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {allDefects.map(d => (
+                                    <tr key={d.id} className="hover:bg-gray-50">
+                                        <td className="border px-2 py-1">{d.productionNo}</td>
+                                        <td className="border px-2 py-1">{d.batchNumber}</td>
+                                        <td className="border px-2 py-1">{d.productName}</td>
+                                        <td className="border px-2 py-1 text-center font-semibold">{d.quantity}</td>
+                                        <td className="border px-2 py-1">{d.defectType}</td>
+                                        <td className="border px-2 py-1">{d.disposition}</td>
+                                        <td className="border px-2 py-1">{d.reason || "-"}</td>
+                                        <td className="border px-2 py-1">{d.recordedBy.fullName}</td>
+                                        <td className="border px-2 py-1">{new Date(d.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

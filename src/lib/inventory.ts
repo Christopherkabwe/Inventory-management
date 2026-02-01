@@ -1,17 +1,17 @@
-import { prisma, type PrismaClient } from '@/lib/prisma'; // path to your prisma.ts
-import type { Prisma } from '@/generated/prisma';         // generated types
-
-export type InventorySource = Prisma.InventorySource;
+import { prisma } from '@/lib/prisma'; // path to your prisma.ts
+import type { Prisma } from '@/generated/prisma';
+import { InventorySource } from '@/generated/prisma';
 
 interface RecordInventoryParams {
-    tx?: typeof prisma;
+    tx?: Prisma.TransactionClient; //typeof prisma;
     productId: string;
     locationId: string;
     delta: number;
-    source: InventorySource; // matches Prisma enum
+    source: InventorySource;
     reference: string;
     createdById: string;
     metadata?: Record<string, any>;
+    productionDefectId?: string;
 }
 
 /**

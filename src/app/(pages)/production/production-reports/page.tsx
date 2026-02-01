@@ -7,6 +7,7 @@ import autoTable from "jspdf-autotable";
 import Loading from "@/components/Loading";
 import ProductionCharts from "@/components/charts/ProductionCharts";
 import InventorySummary from "@/components/inventory/InventorySummary";
+import ProductionBatchTracking from "@/components/production/batchTracking";
 
 
 interface ProductSummary {
@@ -164,7 +165,7 @@ export default function ProductionReportsPage() {
                     byLocation={byLocation}
                 />
             </div>
-            <div className="dark:text-black mb-5">
+            <div className="mb-5">
                 <InventorySummary
                     title="Inventory Levels"
                     iconColor="text-blue-600"
@@ -349,130 +350,7 @@ export default function ProductionReportsPage() {
                 </div>
             </div>
 
-            {/* --- Batch Tracking --- */}
-            <div className="bg-white p-4 rounded border space-y-2 mb-5">
-                <h2 className="font-semibold mb-2 dark:text-black">Batch Tracking Report</h2>
-                <div className="flex gap-2 mb-2 justify-end">
-                    <button
-                        className="bg-green-600 text-white px-4 py-1 rounded"
-                        onClick={() =>
-                            exportCSV(
-                                "batch_tracking.csv",
-                                batchRows,
-                                [
-                                    "batchNumber", "productionNo", "product", "sku", "category",
-                                    "quantity", "location", "date", "packSize", "weightValue",
-                                    "weightUnit", "price", "totalValue", "tonnage"
-                                ]
-                            )
-                        }
-                    >
-                        Export CSV
-                    </button>
-                    <button
-                        className="bg-blue-600 text-white px-4 py-1 rounded"
-                        onClick={() =>
-                            exportPDF(
-                                "Batch Tracking",
-                                [
-                                    "batchNumber", "productionNo", "product", "sku", "category",
-                                    "quantity", "location", "date", "packSize", "weightValue",
-                                    "weightUnit", "price", "totalValue", "tonnage"
-                                ],
-                                batchRows
-                            )
-                        }
-                    >
-                        Export PDF
-                    </button>
-                </div>
-                <div className="max-h-[500px] overflow-auto w-full text-black">
-                    <table className="w-full border-collapse text-sm">
-                        <thead className="bg-gray-100 text-left sticky top-0">
-                            <tr className="border-t-1 border-black">
-                                <th className="border border-black px-2 py-1">Batch No.</th>
-                                <th className="border border-black px-2 py-1">Production No</th>
-                                <th className="border border-black px-2 py-1">Date</th>
-                                <th className="border border-black px-2 py-1">Location</th>
-                                <th className="border border-black px-2 py-1">Product Name</th>
-                                <th className="border border-black px-2 py-1">SKU</th>
-                                <th className="border border-black px-2 py-1">Pack Size</th>
-                                <th className="border border-black px-2 py-1">Weight Value</th>
-                                <th className="border border-black px-2 py-1">Weight Unit</th>
-                                <th className="border border-black px-2 py-1">Quantity</th>
-                                <th className="border border-black px-2 py-1">Tonnage</th>
-                                <th className="border border-black px-2 py-1">Unit Cost</th>
-                                <th className="border border-black px-2 py-1">Selling Price</th>
-                                <th className="border border-black px-2 py-1">Profit Margin</th>
-                                <th className="border border-black px-2 py-1">Total Cost</th>
-                                <th className="border border-black px-2 py-1">Total Value</th>
-                                <th className="border border-black px-2 py-1">Total Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <Loading
-                                    colSpan={20} message="Loading Production Data"
-                                />
-                            ) : batchRows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={20} className="px-4 py-2 text-sm text-gray-800 text-center">
-                                        No productions found.
-                                    </td>
-                                </tr>
-                            ) : (
-                                <>
-                                    {batchRows.map((b, i) => (
-                                        <tr key={i} className="whitespace-nowrap">
-                                            <td className="border border-black p-2">{b.batchNumber}</td>
-                                            <td className="border border-black p-2">{b.productionNo}</td>
-                                            <td className="border border-black p-2">{new Date(b.date).toLocaleDateString()}</td>
-                                            <td className="border border-black p-2">{b.location}</td>
-                                            <td className="border border-black p-2">{b.product}</td>
-                                            <td className="border border-black p-2">{b.sku}</td>
-                                            <td className="border border-black p-2">{b.packSize}</td>
-                                            <td className="border border-black p-2">{(b.weightValue).toFixed(2)}</td>
-                                            <td className="border border-black p-2">{b.weightUnit}</td>
-                                            <td className="border border-black p-2">{b.quantity}</td>
-                                            <td className="border border-black p-2">{(b.tonnage).toFixed(2)}</td>
-                                            <td className="border p-2 border-black">{`K${b.costPerBag.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${b.price.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{b.profitMargin | 0}%</td>
-                                            <td className="border p-2 border-black">{`K${b.totalCost.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${b.totalValue.toFixed(2)}`}</td>
-                                            <td className="border p-2 border-black">{`K${(b.totalValue - b.totalCost).toFixed(2)}`}</td>
-
-                                        </tr>
-                                    ))}
-
-                                    {/* Total Row */}
-                                    <tr className="bg-gray-200 font-semibold">
-                                        <td className="border border-black p-2 text-center" colSpan={9}>Total</td>
-                                        <td className="border border-black p-2 ">
-                                            {batchRows.reduce((sum, b) => sum + b.quantity, 0)}
-                                        </td>
-                                        <td className="border border-black p-2">
-                                            {batchRows.reduce((sum, b) => sum + b.tonnage, 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-black p-2 text-center">-</td>
-                                        <td className="border border-black p-2 text-center">-</td>
-                                        <td className="border border-black p-2 text-center">-</td>
-                                        <td className="border border-black p-2">
-                                            K{batchRows.reduce((sum, b) => sum + b.totalCost, 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-black p-2">
-                                            K{batchRows.reduce((sum, b) => sum + b.totalValue, 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-black p-2">
-                                            K{batchRows.reduce((sum, b) => sum + (b.totalValue - b.totalCost), 0).toFixed(2)}
-                                        </td>
-                                    </tr>
-                                </>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+            <ProductionBatchTracking />
+        </div >
     );
 }

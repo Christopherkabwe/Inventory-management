@@ -40,8 +40,9 @@ export const NAV_ITEMS: NavItem[] = [
         icon: Factory,
         subItems: [
             { name: "Add Productions", href: "/production/add-productions" },
+            { name: "Production Management", href: "/production/production-management" },
+            { name: "Production Records", href: "/production/production-records" },
             { name: "Production Report", href: "/production/production-reports" },
-            { name: "Production Data", href: "/production/production-data" },
             { name: "Bill of Materials", href: "/production/production-reports" },
             { name: "Work Order Management", href: "/production/production-reports" },
             { name: "Quality Control", href: "/production/production-reports" },

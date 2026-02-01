@@ -191,6 +191,7 @@ enum InventorySource {
   TRANSFER_EXPIRED
   PRODUCTION // production adds stock
   PRODUCTION_DEFECT
+  REVERSED_PRODUCTION_DEFECT
   ADJUSTMENT // manual adjustment
   RETURN // sale return adds stock
   INITIAL
@@ -862,4 +863,46 @@ enum ProductionStatus {
   DRAFT
   CONFIRMED
   LOCKED
+}
+
+
+// ==================== BILL OF MATERIALS ====================
+model BOM {
+  id           String      @id @default(cuid())
+  productId    String      // the finished product
+  product      ProductList @relation(fields: [productId], references: [id])
+  version      Int         @default(1)
+  description  String?
+  status       BOMStatus   @default(ACTIVE)
+  createdById  String
+  createdBy    User        @relation(fields: [createdById], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  components BOMItem[]
+
+  @@index([productId])
+  @@unique([productId, version])
+}
+
+model BOMItem {
+  id        String      @id @default(cuid())
+  bomId     String
+  bom       BOM         @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  component ProductList @relation(fields: [componentId], references: [id])
+  componentId String
+  quantity  Float        // quantity required for the finished product
+  unit      String       // unit of measurement, e.g., kg, pcs
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @default(now())
+
+  @@index([bomId])
+  @@index([componentId])
+}
+
+enum BOMStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
 }

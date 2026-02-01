@@ -23,13 +23,25 @@ export default async function InventoryStockPage() {
         delta: h.delta,
         sourceType: h.sourceType,
         reference: h.reference,
+        createdAt: h.createdAt,
     }));
 
     // Sort for correct ledger math
     rows.sort((a, b) => {
+        // 1️⃣ Sort by date first, newest first
+        const dateDiff = b.createdAt.getTime() - a.createdAt.getTime();
+        if (dateDiff !== 0) return dateDiff;
+
+        // 2️⃣ Then by reference (ascending)
+        if (a.reference !== b.reference) return a.reference.localeCompare(b.reference);
+
+        // 3️⃣ Then by productId (ascending)
         if (a.productId !== b.productId) return a.productId.localeCompare(b.productId);
+
+        // 4️⃣ Then by locationId (ascending)
         if (a.locationId !== b.locationId) return a.locationId.localeCompare(b.locationId);
-        return a.date.getTime() - b.date.getTime();
+
+        return 0; // completely equal
     });
 
     // Running balance per product + location

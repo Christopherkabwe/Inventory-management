@@ -10,6 +10,7 @@ import { TextArea } from "@/components/Inputs/TextArea";
 import { ExportButton } from "@/components/Exports/ExportButton";
 import { ExportHeader } from "@/lib/ExportUtils";
 import SearchInput from "@/components/search/SearchInput";
+import Pagination from "@/components/pagination/pagination";
 
 /* ================= TYPES ================= */
 
@@ -173,6 +174,7 @@ export default function ProductionsPage() {
         { key: "status", label: "Status" },
         { key: "locationName", label: "Location" },
         { key: "createdByName", label: "Recorded By" },
+        { key: "createdAt", label: "Created At" },
     ];
 
     const defectExportHeaders: ExportHeader<ProductionDefect & { productionNo: string; batchNumber: string; productName: string; }>[] = [
@@ -198,6 +200,24 @@ export default function ProductionsPage() {
     const filteredAllDefects = allDefects.filter(p =>
         p.productionNo.toLowerCase().includes(searchDefectsQuery.toLowerCase()) ||
         p.batchNumber.toLowerCase().includes(searchDefectsQuery.toLowerCase())
+    );
+
+    const ITEMS_PER_PAGE = 10;
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPageProd, setCurrentPageProd] = useState(1);
+
+    const totalPages = Math.ceil(filteredAllDefects.length / ITEMS_PER_PAGE);
+    const paginatedfilteredAllDefects = filteredAllDefects.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
+    const totalPagesProductions = Math.ceil(filteredProductions.length / ITEMS_PER_PAGE);
+
+    const paginatedfilteredProductions = filteredProductions.slice(
+        (currentPageProd - 1) * ITEMS_PER_PAGE,
+        currentPageProd * ITEMS_PER_PAGE
     );
 
     if (loading) return <Loading message="Loading productions..." />;
@@ -373,8 +393,8 @@ export default function ProductionsPage() {
             {/* Productions Table */}
             <div className="overflow-x-auto border rounded-md px-5 py-2 shadow-sm">
                 <div><h2 className="text-xl font-bold mb-3">Production Management</h2></div>
-                <div className="flex">
-                    <div className="flex flex-cols-2 justify-between gap-5 mb-2 p-2">
+                <div className="bg-white mb-5">
+                    <div className="flex flex-cols-2 justify-between gap-5 mb-2">
                         <SearchInput
                             value={searchQuery}
                             onChange={setSearchQuery}
@@ -399,7 +419,7 @@ export default function ProductionsPage() {
                         />
                     </div>
                 </div>
-                <div className="">
+                <div className="gap-5">
                     <table className="w-full text-sm table-auto border-collapse">
                         <thead className="bg-gray-100 sticky top-0 text-left border border-black">
                             <tr>
@@ -414,14 +434,14 @@ export default function ProductionsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredProductions.length === 0 ? (
+                            {paginatedfilteredProductions.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="text-center py-4 text-gray-500">
                                         No productions found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredProductions.map((p, i) => (
+                                paginatedfilteredProductions.map((p, i) => (
                                     <tr
                                         key={p.id}
                                         className="even:bg-gray-50 hover:bg-gray-100 transition"
@@ -464,15 +484,22 @@ export default function ProductionsPage() {
                         </tbody>
                     </table>
                 </div>
+                <div className="mt-5">
+                    <Pagination
+                        currentPage={currentPageProd}
+                        totalPages={totalPagesProductions}
+                        onPageChange={setCurrentPageProd}
+                    />
+                </div>
             </div>
 
             {/* Global Defects Table */}
-            {filteredAllDefects.length > 0 && (
+            {paginatedfilteredAllDefects.length > 0 && (
                 <div className="border rounded-sm shadow-sm p-5">
                     <div className="overflow-x-auto">
                         <div><h2 className="text-xl font-bold p-2">Defects Register</h2></div>
-                        <div className="flex flex-cols-2 justify-between">
-                            <div className="flex justify-end gap-5 p-2">
+                        <div className="bg-white mb-2">
+                            <div className="flex justify-end gap-5 mb-2">
                                 <SearchInput
                                     value={searchDefectsQuery}
                                     onChange={setSearchDefectsQuery}
@@ -511,7 +538,7 @@ export default function ProductionsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredAllDefects.map(d => (
+                                {paginatedfilteredAllDefects.map(d => (
                                     <tr key={d.id} className="hover:bg-gray-50">
                                         <td className="border px-2 py-1">{d.productionNo}</td>
                                         <td className="border px-2 py-1">{d.batchNumber}</td>
@@ -526,6 +553,13 @@ export default function ProductionsPage() {
                                 ))}
                             </tbody>
                         </table>
+                        <div className="mt-5">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

@@ -381,7 +381,7 @@ export default function InventorySummary({ title, iconColor }: Props) {
 
     /* ---------------- RENDER ---------------- */
     return (
-        <div className="bg-white opacity-80 p-4 rounded-xl border hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 rounded-xl border hover:shadow-md transition-shadow">
             <h3 className="font-semibold flex items-center gap-2">
                 <Package className={`h-5 w-5 ${iconColor}`} />
                 {title}

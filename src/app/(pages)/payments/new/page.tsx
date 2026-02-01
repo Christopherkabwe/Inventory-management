@@ -5,7 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { Dropdown } from "@/components/SingleSelectComboBox/GenericDropdown";
 import { CustomerCombobox } from "@/components/SingleSelectComboBox/CustomerComboBox";
-import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
+import { NumberInput } from "@/components/Inputs/NumberInput";
 
 type Customer = {
     id: string;

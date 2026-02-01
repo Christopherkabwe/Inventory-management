@@ -8,7 +8,7 @@ import withRole from "@/components/withRole";
 
 import { CustomerCombobox } from "@/components/SingleSelectComboBox/CustomerComboBox";
 import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboBox";
-import { NumberInput } from "@/components/SingleSelectComboBox/NumberInput";
+import { NumberInput } from "@/components/Inputs/NumberInput";
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
 import Link from "next/link";
 import { TransporterCombobox } from "@/components/SingleSelectComboBox/TransporterComboBox";

@@ -44,7 +44,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             <button
                 onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg cursor-pointer
+                className={`flex items-center px-2 py-1 text-sm font-medium rounded-lg cursor-pointer
                     ${currentPage <= 1
                         ? "text-gray-500 cursor-not-allowed bg-gray-100"   // visually disabled but pointer still shows
                         : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100"
@@ -55,14 +55,14 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
             {visiblePages.map((page, index) =>
                 page === "..." ? (
-                    <span key={`dots-${index}`} className="px-3 py-2 text-sm text-black">
+                    <span key={`dots-${index}`} className="px-2 py-1 text-sm text-black">
                         ...
                     </span>
                 ) : (
                     <button
                         key={`page-${page}-${index}`}
                         onClick={() => onPageChange(Number(page))}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg cursor-pointer ${page === currentPage ? "bg-purple-600 text-white" : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+                        className={`px-2 py-1 text-sm font-medium rounded-lg cursor-pointer ${page === currentPage ? "bg-purple-600 text-white" : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
                             }`}
                     >
                         {page}
@@ -73,7 +73,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             <button
                 onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg cursor-pointer ${currentPage >= totalPages
+                className={`flex items-center px-2 py-1 text-sm font-medium rounded-lg cursor-pointer ${currentPage >= totalPages
                     ? "text-gray-400 cursor-not-allowed bg-gray-100"
                     : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
                     }`}
