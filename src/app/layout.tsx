@@ -5,8 +5,8 @@ import { Toaster } from "react-hot-toast";
 import { ToasterProvider } from "./context/Toaster";
 import ThemeProviderWrapper from "@/components/ThemeProviderWrapper";
 import { UserProvider, useUser } from "./context/UserContext";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getCurrentUser } from "@/lib/auth";
+import Providers from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,13 +50,15 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       ><ThemeProviderWrapper>
-          <ToasterProvider>
-            <UserProvider user={user}>
-              {children}
-            </UserProvider>
-            {/* Only one Toaster instance */}
-            <Toaster position="bottom-right" />
-          </ToasterProvider>
+          <Providers>
+            <ToasterProvider>
+              <UserProvider user={user}>
+                {children}
+              </UserProvider>
+              {/* Only one Toaster instance */}
+              <Toaster position="bottom-right" />
+            </ToasterProvider>
+          </Providers>
         </ThemeProviderWrapper>
       </body >
     </html >

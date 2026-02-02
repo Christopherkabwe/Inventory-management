@@ -70,6 +70,7 @@ model User {
   allocationAudits   AllocationAudit[]
   customerStatements CustomerStatement[]
   productionDefects  ProductionDefect[]
+  boms               BOM[]
 
   @@index([managerId])
 }
@@ -132,6 +133,8 @@ model ProductList {
   proformaInvoiceItems ProformaInvoiceItem[]
   saleReturnItems      SaleReturnItem[]
   productionDefects    ProductionDefect[]
+  boms                 BOM[]
+  bomitems             BOMItem[]
 }
 
 // ==================== LOCATIONS ====================
@@ -865,37 +868,36 @@ enum ProductionStatus {
   LOCKED
 }
 
-
 // ==================== BILL OF MATERIALS ====================
 model BOM {
-  id           String      @id @default(cuid())
-  productId    String      // the finished product
-  product      ProductList @relation(fields: [productId], references: [id])
-  version      Int         @default(1)
-  description  String?
-  status       BOMStatus   @default(ACTIVE)
-  createdById  String
-  createdBy    User        @relation(fields: [createdById], references: [id])
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  productId   String // the finished product
+  product     ProductList @relation(fields: [productId], references: [id])
+  version     Int         @default(1)
+  description String?
+  status      BOMStatus   @default(ACTIVE)
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   components BOMItem[]
 
-  @@index([productId])
   @@unique([productId, version])
+  @@index([productId])
 }
 
 model BOMItem {
-  id        String      @id @default(cuid())
-  bomId     String
-  bom       BOM         @relation(fields: [bomId], references: [id], onDelete: Cascade)
-  component ProductList @relation(fields: [componentId], references: [id])
+  id          String      @id @default(cuid())
+  bomId       String
+  bom         BOM         @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  component   ProductList @relation(fields: [componentId], references: [id])
   componentId String
-  quantity  Float        // quantity required for the finished product
-  unit      String       // unit of measurement, e.g., kg, pcs
-  notes     String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @default(now())
+  quantity    Float // quantity required for the finished product
+  unit        String // unit of measurement, e.g., kg, pcs
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now())
 
   @@index([bomId])
   @@index([componentId])
