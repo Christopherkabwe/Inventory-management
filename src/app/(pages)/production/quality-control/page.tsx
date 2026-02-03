@@ -11,10 +11,20 @@ import { ExportButton } from "@/components/Exports/ExportButton";
 import { ExportHeader } from "@/lib/ExportUtils";
 import SearchInput from "@/components/search/SearchInput";
 import Pagination from "@/components/pagination/pagination";
-
-import ProductionReportsPage from "./production-reports/page";
+import {
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Legend,
+} from "recharts";
 import QualityChartsPage from "@/components/quality-control/QualityReports";
-import ProductionBatchTracking from "@/components/production/batchTracking";
 
 /* ================= TYPES ================= */
 
@@ -68,7 +78,7 @@ interface DefectForm {
 
 /* ================= PAGE ================= */
 
-export default function ProductionPage() {
+export default function QualityManagementPage() {
     const user = useUser();
     const canEdit = user?.role === "ADMIN" || user?.role === "OPERATOR";
     const canSubmit = user?.role === "ADMIN";
@@ -81,7 +91,7 @@ export default function ProductionPage() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchDefectsQuery, setSearchDefectsQuery] = useState("");
-    const [view, setView] = useState<"list" | "defects" | "Production charts" | "Quality charts">("list");
+    const [view, setView] = useState<"list" | "defects" | "charts">("list");
 
     const ITEMS_PER_PAGE = 20;
     const [currentPage, setCurrentPage] = useState(1);
@@ -364,16 +374,10 @@ export default function ProductionPage() {
                     Defects Register
                 </button>
                 <button
-                    onClick={() => setView("Production charts")}
-                    className={view === "Production charts" ? "font-bold underline" : ""}
+                    onClick={() => setView("charts")}
+                    className={view === "charts" ? "font-bold underline" : ""}
                 >
-                    Production Report
-                </button>
-                <button
-                    onClick={() => setView("Quality charts")}
-                    className={view === "Quality charts" ? "font-bold underline" : ""}
-                >
-                    Quality Control Report
+                    Charts
                 </button>
             </div>
 
@@ -463,9 +467,6 @@ export default function ProductionPage() {
                     <div className="mt-5">
                         <Pagination currentPage={currentPageProd} totalPages={totalPagesProductions} onPageChange={setCurrentPageProd} />
                     </div>
-                    <div className="mt-5">
-                        <ProductionBatchTracking />
-                    </div>
                 </div>
             )}
 
@@ -531,12 +532,7 @@ export default function ProductionPage() {
                 </div>
             )}
 
-            {view === "Production charts" && (
-                <div className="">
-                    <ProductionReportsPage />
-                </div>
-            )}
-            {view === "Quality charts" && (
+            {view === "charts" && (
                 <div className="">
                     <QualityChartsPage />
                 </div>

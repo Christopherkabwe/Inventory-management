@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import DashboardLayout from "@/components/DashboardLayout";
 import { useUser } from "@/app/context/UserContext";
 import Loading from "@/components/Loading";
 import Pagination from "@/components/pagination/pagination";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProductType } from "@/generated/prisma";
 
 interface User {
     id: string;
@@ -32,6 +32,7 @@ interface Product {
     createdById: string;
     isTaxable: string;
     taxRate: number;
+    type: ProductType;
 }
 
 export default function ProductsPage() {
@@ -231,6 +232,28 @@ export default function ProductsPage() {
                                         required
                                     />
                                 </div>
+                                <div>
+                                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Product Type *
+                                    </label>
+                                    <select
+                                        id="type"
+                                        name="type"
+                                        value={form.type || ""}
+                                        onChange={(e) => setForm({ ...form, type: e.target.value as ProductType })}
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                                    >
+                                        <option value="">Select product type</option>
+                                        <option value={ProductType.FINISHED}>Finished Good</option>
+                                        <option value={ProductType.RAW_MATERIAL}>Raw Material</option>
+                                        <option value={ProductType.PACKAGING}>Packaging</option>
+                                        <option value={ProductType.SEMI_FINISHED}>Semi-Finished</option>
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Determines how the product behaves in BOMs, inventory, and production.
+                                    </p>
+                                </div>
                                 <div className="col-span-2 flex justify-end space-x-2 mt-4">
                                     <button
                                         type="button"
@@ -257,13 +280,14 @@ export default function ProductsPage() {
                 <div className="bg-white rounded-md overflow-x-auto p-2 hover:shadow-lg mb-5">
                     <table className="min-w-full bg-white text-sm border rounded shadow">
                         <thead>
-                            <tr className="bg-gray-200 text-left px-2 py-1">
+                            <tr className="bg-gray-100 text-left px-2 py-1">
                                 <th className="border p-2">SKU</th>
                                 <th className="border p-2">Product Name</th>
                                 <th className="border p-2">Pack Size</th>
                                 <th className="border p-2">Weight</th>
                                 <th className="border p-2">Category</th>
                                 <th className="border p-2">Sub-Category</th>
+                                <th className="border p-2 text-left">Type</th>
                                 <th className="border p-2 text-right">Unit Cost</th>
                                 <th className="border p-2 text-right">Price</th>
                                 <th className="border p-2 text-right">Tax Rate</th>
@@ -276,7 +300,7 @@ export default function ProductsPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={isAdmin ? 9 : 8} className="text-center p-4">
+                                    <td colSpan={isAdmin ? 14 : 13} className="text-center p-4">
                                         <Loading message="Loading Products..." />
                                     </td>
                                 </tr>
@@ -289,6 +313,7 @@ export default function ProductsPage() {
                                         <td className="border p-2">{`${p.weightValue} ${p.weightUnit}`}</td>
                                         <td className="border p-2">{p.category || "-"}</td>
                                         <td className="border p-2 text-center">{p.subCategory || "-"}</td>
+                                        <td className="border p-2 text-left">{p.type}</td>
                                         <td className="border p-2 text-right">{p.costPerBag || "-"}</td>
                                         <td className="border p-2 text-right">{p.price}</td>
                                         <td className="border p-2 text-right">{(p.taxRate * 100).toFixed(2)}%</td>

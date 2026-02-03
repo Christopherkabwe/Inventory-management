@@ -1,0 +1,6 @@
+export enum ProductType {
+    FINISHED_GOOD = 'FINISHED_GOOD',
+    RAW_MATERIAL = 'RAW_MATERIAL',
+    PACKAGING = 'PACKAGING',
+    SEMI_FINISHED = 'SEMI_FINISHED',
+}

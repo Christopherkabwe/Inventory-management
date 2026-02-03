@@ -5,12 +5,18 @@ import { prisma } from "../prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { UserRole, CurrentUser } from "../rbac";
-
+import { ProductType } from "@/generated/prisma";
 // ==================== SCHEMA ====================
 const ProductSchema = z.object({
     name: z.string().min(3, "Name is required"),
     sku: z.string().min(1, "SKU is required"),
-    price: z.coerce.number().positive("Enter a valid price"),
+    type: z.enum([
+        "FINISHED_GOOD",
+        "RAW_MATERIAL",
+        "PACKAGING",
+        "SEMI_FINISHED",
+    ]),
+    price: z.coerce.number().optional(),
     packSize: z.coerce.number().int().positive("Enter a valid pack size"),
     weightValue: z.coerce.number().positive("Enter a valid weight"),
     weightUnit: z.string().min(1, "Weight unit is required (e.g., kg, lbs)"),
@@ -26,14 +32,14 @@ const ProductSchema = z.object({
     taxRate: z.coerce.number().int().min(0).optional(),
 });
 
-// ADMIN PERMISSION //
-
+// ==================== ADMIN PERMISSION ====================
 function checkAdminPermission(user: CurrentUser) {
     if (!user || user.role !== UserRole.ADMIN) {
-        throw new Error("Unauthorized: only admins are allowed to perform this action");
+        throw new Error(
+            "Unauthorized: only admins are allowed to perform this action"
+        );
     }
 }
-
 
 // ==================== DELETE INVENTORY ====================
 export async function deleteFromInventory(
@@ -59,22 +65,23 @@ export async function deleteFromInventory(
         await prisma.inventory.delete({ where: { id } });
 
         revalidatePath("/inventory/inventory");
-        return { success: true, message: `Inventory for "${inventory.product.name}" has been deleted!` };
+        return {
+            success: true,
+            message: `Inventory for "${inventory.product.name}" has been deleted!`,
+        };
     } catch (error) {
         console.error(error);
         return { success: false, message: "Failed to delete inventory. Try again later." };
     }
 }
+
 // ==================== EDIT INVENTORY ====================
-export async function editInventory(
-    _prevState: any,
-    formData: FormData
-) {
+export async function editInventory(_prevState: any, formData: FormData) {
     const user = await getCurrentUser();
     checkAdminPermission(user);
 
     const id = formData.get("id") as string;
-    const price = Number(formData.get("price"));
+    const price = Number(formData.get("price")) || 0;
     const quantity = Number(formData.get("quantity"));
     const lowStockAt = Number(formData.get("lowStockAt")) || 0;
     const locationId = formData.get("locationId") as string;
@@ -110,9 +117,7 @@ export async function editInventory(
             }),
         ]);
 
-        // Revalidate page so client fetches fresh inventory
         revalidatePath("/inventory/inventory");
-
         return {
             success: true,
             message: `Inventory updated for ${inventory.product.name}!`,
@@ -134,41 +139,66 @@ export async function CreateProduct(
     const parsed = ProductSchema.safeParse({
         name: formData.get("name"),
         sku: formData.get("sku"),
-        price: formData.get("price"),
+        type: formData.get("type"),
+
+        price: formData.get("price") || 0,
         packSize: formData.get("packSize"),
         weightValue: formData.get("weightValue"),
         weightUnit: formData.get("weightUnit"),
+
         category: formData.get("category") || undefined,
         subCategory: formData.get("subCategory") || undefined,
         location: formData.get("location") || undefined,
+
         quantity: formData.get("quantity"),
         lowStockAt: formData.get("lowStockAt") || undefined,
+
         isTaxable: formData.get("isTaxable") || undefined,
         taxRate: formData.get("taxRate") || 0,
         costPerBag: formData.get("costPerBag") || 0,
     });
-    console.log(parsed);
 
     if (!parsed.success) {
         console.error(parsed.error);
-        return { success: false, message: "Validation failed", errors: parsed.error.flatten().fieldErrors };
+        return {
+            success: false,
+            message: "Validation failed",
+            errors: parsed.error.flatten().fieldErrors,
+        };
     }
 
     try {
-        // Check if product with same SKU exists
-        let product = await prisma.productList.findUnique({ where: { sku: parsed.data.sku } });
+        // Business rules
+        if (parsed.data.type === "FINISHED_GOOD" && !parsed.data.packSize) {
+            return { success: false, message: "Finished goods must define a pack size" };
+        }
+
+        if (parsed.data.type === "RAW_MATERIAL" && parsed.data.price > 0) {
+            return { success: false, message: "Raw materials should not have a selling price" };
+        }
+
+        // Check for existing product
+        let product = await prisma.productList.findUnique({
+            where: { sku: parsed.data.sku },
+        });
+
         if (!product) {
             product = await prisma.productList.create({
                 data: {
                     name: parsed.data.name,
                     sku: parsed.data.sku,
-                    price: parsed.data.price,
+                    type: parsed.data.type,
+
+                    price: parsed.data.price || 0,
                     packSize: parsed.data.packSize,
                     weightValue: parsed.data.weightValue,
                     weightUnit: parsed.data.weightUnit,
+
                     category: parsed.data.category,
                     subCategory: parsed.data.subCategory,
+
                     createdById: user.id,
+
                     isTaxable: parsed.data.isTaxable,
                     taxRate: parsed.data.taxRate,
                     costPerBag: parsed.data.costPerBag,
@@ -177,14 +207,14 @@ export async function CreateProduct(
         }
 
         revalidatePath("/products/product-management");
-        return { success: true, message: "Product created Successfully!" };
+        return { success: true, message: "Product created successfully!" };
     } catch (error) {
         console.error(error);
         return { success: false, message: "Failed to add product." };
     }
 }
 
-// ==================== GET INVENTORY ====================
+// ==================== GET PRODUCTS ====================
 export async function getProducts() {
     try {
         const products = await prisma.productList.findMany({
@@ -192,6 +222,7 @@ export async function getProducts() {
         });
         return products;
     } catch (error) {
+        console.error(error);
         return { error: "Failed to fetch products" };
     }
 }

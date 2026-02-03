@@ -12,9 +12,8 @@ import { ExportHeader } from "@/lib/ExportUtils";
 import SearchInput from "@/components/search/SearchInput";
 import Pagination from "@/components/pagination/pagination";
 
-import ProductionReportsPage from "./production-reports/page";
+import ProductionReportsPage from "../production-reports/page";
 import QualityChartsPage from "@/components/quality-control/QualityReports";
-import ProductionBatchTracking from "@/components/production/batchTracking";
 
 /* ================= TYPES ================= */
 
@@ -68,7 +67,7 @@ interface DefectForm {
 
 /* ================= PAGE ================= */
 
-export default function ProductionPage() {
+export default function QualityManagementPage() {
     const user = useUser();
     const canEdit = user?.role === "ADMIN" || user?.role === "OPERATOR";
     const canSubmit = user?.role === "ADMIN";
@@ -462,9 +461,6 @@ export default function ProductionPage() {
                     </table>
                     <div className="mt-5">
                         <Pagination currentPage={currentPageProd} totalPages={totalPagesProductions} onPageChange={setCurrentPageProd} />
-                    </div>
-                    <div className="mt-5">
-                        <ProductionBatchTracking />
                     </div>
                 </div>
             )}

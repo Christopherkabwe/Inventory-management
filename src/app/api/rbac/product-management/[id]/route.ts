@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ProductType } from "@/lib/enums/enums";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const { id } = await params;
         const body = await req.json();
 
-        const allowedFields = ['sku', 'name', 'costPerBag', 'packSize', 'category', 'subCategory', 'isTaxable', 'taxRate', 'weightValue', 'weightUnit'];
+        const allowedFields = ['sku', 'name', 'costPerBag', 'packSize', 'category', 'subCategory', 'type', 'isTaxable', 'taxRate', 'weightValue', 'weightUnit'];
         const dataToUpdate: Record<string, any> = {};
 
         for (const key of allowedFields) {
             if (body[key] !== undefined) {
-                if (key === 'taxRate') {
+                if (key === "taxRate") {
                     const taxRate = parseFloat(body[key]);
-                    if (!isNaN(taxRate)) {
-                        dataToUpdate[key] = taxRate;
-                    } else {
-                        return NextResponse.json({ message: "Invalid tax rate" }, { status: 400 });
-                    }
+                    if (isNaN(taxRate)) return NextResponse.json({ message: "Invalid tax rate" }, { status: 400 });
+                    dataToUpdate[key] = taxRate;
+                } else if (key === 'type') {
+                    dataToUpdate[key] = body[key] as ProductType;
                 } else {
                     dataToUpdate[key] = body[key];
                 }
             }
         }
-
         const existing = await prisma.productList.findUnique({ where: { id } });
         if (!existing) {
             return NextResponse.json({ message: "Product not found" }, { status: 404 });

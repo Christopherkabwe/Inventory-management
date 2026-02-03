@@ -1,15 +1,22 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import { Plus, Trash2, Loader2, Save } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 // --------------------
 // Types
 // --------------------
+type BOM = {
+    id: string;
+    productId: string;
+    status: string;
+    items: ComponentItem[];
+};
+
 type Product = {
     id: string;
     name: string;
@@ -31,7 +38,8 @@ type ComponentItem = {
 // --------------------
 // Page
 // --------------------
-export default function CreateBOMPage() {
+export default function EditBOMPage() {
+    const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -42,6 +50,15 @@ export default function CreateBOMPage() {
     // --------------------
     // Queries
     // --------------------
+    const bomQuery = useQuery<BOM>({
+        queryKey: ["bom", id],
+        queryFn: async () => {
+            const res = await fetch(`/api/bom/${id}`);
+            if (!res.ok) throw new Error("Failed to load BOM");
+            return res.json();
+        },
+    });
+
     const productsQuery = useQuery<Product[]>({
         queryKey: ["products"],
         queryFn: async () => {
@@ -61,17 +78,27 @@ export default function CreateBOMPage() {
     });
 
     // --------------------
+    // Initialize form
+    // --------------------
+    useEffect(() => {
+        if (bomQuery.data) {
+            setProductId(bomQuery.data.productId);
+            setComponents(bomQuery.data.items);
+        }
+    }, [bomQuery.data]);
+
+    // --------------------
     // Derived state
     // --------------------
     const usedComponentIds = useMemo(
-        () => components.map((c) => c.componentId).filter(Boolean),
+        () => components?.map((c) => c.componentId).filter(Boolean),
         [components]
     );
 
     const isValid = useMemo(() => {
         if (!productId) return false;
-        if (components.length === 0) return false;
-        return components.every(
+        if (components?.length === 0) return false;
+        return components?.every(
             (c) => c.componentId && c.quantity > 0 && c.unit.trim().length > 0
         );
     }, [productId, components]);
@@ -79,26 +106,26 @@ export default function CreateBOMPage() {
     // --------------------
     // Mutations
     // --------------------
-    const createBOM = useMutation({
+    const updateBOM = useMutation({
         mutationFn: async () => {
             setError(null);
-            const res = await fetch("/api/bom/create", {
-                method: "POST",
+            const res = await fetch(`/api/bom/${id}`, {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     productId,
-                    status: "DRAFT",
                     items: components,
                 }),
             });
 
             if (!res.ok) {
                 const msg = await res.text();
-                throw new Error(msg || "Failed to create BOM");
+                throw new Error(msg || "Failed to update BOM");
             }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["boms"] });
+            queryClient.invalidateQueries({ queryKey: ["bom", id] });
             router.push("/bom");
         },
         onError: (err: any) => {
@@ -117,15 +144,23 @@ export default function CreateBOMPage() {
     };
 
     const removeComponent = (index: number) => {
-        setComponents((prev) => prev.filter((_, i) => i !== index));
+        setComponents((prev) => prev?.filter((_, i) => i !== index));
     };
 
     // --------------------
     // Render
     // --------------------
+    if (bomQuery.isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-5xl mx-auto p-6">
-            <h1 className="text-3xl font-semibold mb-6">Create Bill of Materials</h1>
+            <h1 className="text-3xl font-semibold mb-6">Edit Bill of Materials</h1>
 
             <Card className="mb-6">
                 <CardContent className="p-6 space-y-4">
@@ -156,18 +191,9 @@ export default function CreateBOMPage() {
                         </Button>
                     </div>
 
-                    {components.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                            No components added yet.
-                        </p>
-                    )}
-
                     <div className="space-y-3">
-                        {components.map((c, idx) => (
-                            <div
-                                key={idx}
-                                className="grid grid-cols-12 gap-3 items-center"
-                            >
+                        {components?.map((c, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-3 items-center">
                                 <select
                                     className="col-span-6 border rounded p-2"
                                     value={c.componentId}
@@ -194,7 +220,7 @@ export default function CreateBOMPage() {
                                 <input
                                     type="number"
                                     min={0.0001}
-                                    step="0.001"
+                                    step="0.0001"
                                     className="col-span-2 border rounded p-2"
                                     value={c.quantity}
                                     onChange={(e) => {
@@ -213,7 +239,6 @@ export default function CreateBOMPage() {
                                         setComponents(copy);
                                     }}
                                 />
-
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -228,22 +253,22 @@ export default function CreateBOMPage() {
                 </CardContent>
             </Card>
 
-            {error && (
-                <div className="mb-4 text-sm text-red-600">{error}</div>
-            )}
+            {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 
             <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => router.push("/bom")}>
                     Cancel
                 </Button>
                 <Button
-                    disabled={!isValid || createBOM.isPending}
-                    onClick={() => createBOM.mutate()}
+                    disabled={!isValid || updateBOM.isPending}
+                    onClick={() => updateBOM.mutate()}
                 >
-                    {createBOM.isPending && (
+                    {updateBOM.isPending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                        <Save className="w-4 h-4 mr-2" />
                     )}
-                    Create BOM
+                    Save Changes
                 </Button>
             </div>
         </div>

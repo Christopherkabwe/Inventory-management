@@ -32,11 +32,11 @@ export default function BOMListPage() {
     if (error instanceof Error) return <div>{error.message}</div>;
 
     return (
-        <div className="p-6">
+        <div className="p-6 bg-white rounded-md">
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold">Bill of Materials</h1>
                 <Link
-                    href="/bom/create"
+                    href="/production/bom/create"
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                     + New BOM
@@ -44,7 +44,7 @@ export default function BOMListPage() {
             </div>
 
             <table className="min-w-full border border-gray-200 rounded">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 text-left">
                     <tr>
                         <th className="p-2 border">Product</th>
                         <th className="p-2 border">Version</th>
@@ -62,12 +62,18 @@ export default function BOMListPage() {
                             <td className="p-2 border">
                                 {new Date(bom.createdAt).toLocaleDateString()}
                             </td>
-                            <td className="p-2 border">
+                            <td className="p-2 border space-x-3">
                                 <Link
-                                    href={`/bom/${bom.id}`}
+                                    href={`/production/bom/${bom.id}/view`}
                                     className="text-blue-600 hover:underline"
                                 >
-                                    View / Edit
+                                    View
+                                </Link>
+                                <Link
+                                    href={`/production/bom/${bom.id}/edit`}
+                                    className="text-green-600 hover:underline"
+                                >
+                                    Edit
                                 </Link>
                             </td>
                         </tr>

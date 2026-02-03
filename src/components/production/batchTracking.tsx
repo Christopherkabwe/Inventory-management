@@ -202,7 +202,7 @@ export default function ProductionBatchTracking() {
                     headers={batchExportHeaders}
                     data={filteredbatchRows}
                     filename="productions.pdf"
-                    label="Export PDf"
+                    label="Export PDF"
                     mode="landscape"
                 />
             </div>

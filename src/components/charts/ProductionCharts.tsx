@@ -15,6 +15,9 @@ import PieCard from "./ProductionPieChart";
 import { BarChart3, Factory, Package } from "lucide-react";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import Loading from "../Loading";
+import StandardBarChart from "./StandardBarChart";
+import StandardPieChart from "./StandardPieChart";
+import ProductionTrendLineChart from "../production/ProductionTrendLineChart";
 
 
 ChartJS.register(
@@ -72,52 +75,6 @@ export interface Production {
         email: string;
     };
 }
-
-export const baseBarOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        datalabels: {
-            anchor: "end",
-            align: "top",
-            offset: 4,
-            font: {
-                weight: "bold",
-                size: 12,
-            },
-            formatter: (value: number) => value.toFixed(2),
-        },
-    },
-    scales: {
-        x: {
-            ticks: { autoSkip: false },
-            grid: {
-                drawTicks: false,  // optional: remove tick marks
-                drawOnChartArea: false, // <--- disables vertical grid lines
-            },
-        },
-        y: {
-            beginAtZero: true,
-            grid: {
-                drawTicks: true,      // keeps horizontal ticks if you want
-                drawOnChartArea: true, // keeps horizontal grid lines
-            },
-            ticks: {
-                callback: (v: any) => `${v} t`,
-            },
-        },
-    },
-};
-
-const barOptionsNoLabels = {
-    ...baseBarOptions,
-    plugins: {
-        ...baseBarOptions.plugins,
-        datalabels: { display: false },
-    },
-};
-
 
 function groupProductionByMonth(productions: Production[]) {
     const map: Record<string, number> = {};
@@ -193,10 +150,23 @@ export default function ProductionCharts({
 
     // Fetch productions once
     useEffect(() => {
+        setLoading(true);
         fetch("/api/rbac/productions")
             .then(res => res.json())
-            .then(data => setProductions(data.data || []))
-            .catch(err => console.error("Failed to fetch productions", err));
+            .then(data => {
+                if (Array.isArray(data.data)) {
+                    setProductions(data.data);
+                } else {
+                    setProductions([]);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to fetch productions", err);
+                setProductions([]);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     // Group by month
@@ -214,61 +184,7 @@ export default function ProductionCharts({
         ],
     };
 
-    const dailyProductionData = groupProductionByDay(productions);
-
-    const dailyTrendData = {
-        labels: dailyProductionData.map(d => d.day),
-        datasets: [
-            {
-                label: "Production (Tonnage)",
-                data: dailyProductionData.map(d => d.tonnage),
-                backgroundColor: "#10b981", // green
-                borderRadius: 6,
-            },
-        ],
-    };
-
-
-    /* ---------------- Product Quantity Chart ---------------- */
-    const productQtyData = {
-        labels: byProduct.map(p => p.name),
-        datasets: [
-            {
-                label: "Total Quantity",
-                data: byProduct.map(p => p.totalQty),
-                backgroundColor: "#2563eb",
-            },
-        ],
-    };
-
-    /* ---------------- Product Value Chart ---------------- */
-    const productValueData = {
-        labels: byProduct.map(p => p.name),
-        datasets: [
-            {
-                label: "Total Value",
-                data: byProduct.map(p => p.totalValue),
-                backgroundColor: "#16a34a",
-            },
-        ],
-    };
-
-    /* ---------------- Location Tonnage Pie ---------------- */
-    const locationTonnageData = {
-        labels: byLocation.map(l => l.location),
-        datasets: [
-            {
-                data: byLocation.map(l => l.totalTonnage),
-                backgroundColor: [
-                    "#2563eb",
-                    "#16a34a",
-                    "#dc2626",
-                    "#ca8a04",
-                    "#7c3aed",
-                ],
-            },
-        ],
-    };
+    if (loading) return <Loading message="Loading productions..." />;
 
     return (
         <div className="space-y-8">
@@ -276,113 +192,82 @@ export default function ProductionCharts({
 
                 {/* Tonnage by Location */}
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">
-                        <Factory className="inline-block h-5 w-5 mr-2 text-blue-600" />
-                        Production by Location (Tonage)
-                    </h3>
-                    <div className="h-[300px]">
-                        <Bar data={locationTonnageData} options={baseBarOptions} />
-                    </div>
+                    <StandardBarChart
+                        title="Production by Location (Tonnage)"
+                        labels={byLocation.map(l => l.location)}
+                        datasets={[
+                            {
+                                label: "Tonnage",
+                                data: byLocation.map(l => l.totalTonnage),
+                                color: "#2563eb",
+                            },
+                        ]}
+                    />
                 </div>
 
                 {/* Quantity by Product */}
                 <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">
-                        <Factory className="inline-block h-5 w-5 mr-2 text-blue-600" />
-                        Production by Product (Quantity)
-                    </h3>
-                    <div className="h-[300px]">
-                        <Bar data={productQtyData} options={baseBarOptions} />
-                    </div>
+                    <StandardBarChart
+                        title="Production by Product (Quantity)"
+                        labels={byProduct.map(p => p.name)}
+                        datasets={[
+                            {
+                                label: "Quantity",
+                                data: byProduct.map(p => p.totalQty),
+                                color: "#2563eb",
+                            },
+                        ]}
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">
-                        <BarChart3 className="inline-block h-5 w-5 mr-2 text-blue-600" />
-                        Monthly Production Trend (Tonnage)</h3>
-                    <div className="h-[320px]">
-                        <Bar
-                            data={monthlyTrendData}
-                            options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: { display: false },
-                                    datalabels: {
-                                        anchor: "end",
-                                        align: "top",
-                                        formatter: (v: number) => `${v.toFixed(2)} MT`,
-                                        font: { size: 11 },
-                                    },
-                                },
-                                scales: {
-                                    x: {
-                                        ticks: { autoSkip: false },
-                                        grid: { drawOnChartArea: false }, // <-- remove vertical grid lines
-                                    },
-                                    y: {
-                                        beginAtZero: true,
-                                        suggestedMax: Math.max(...monthlyTrendData.datasets[0].data) * 1.1,
-                                        ticks: { callback: (v: any) => `${v} MT` },
-                                    },
-                                },
-                            }}
-                        />
-                    </div>
+                <div className="bg-white">
+                    <StandardBarChart
+                        title="Monthly Production Trend (Tonnage)"
+                        labels={monthlyTrendData.labels}
+                        datasets={[
+                            {
+                                label: "Tonnage",
+                                data: monthlyTrendData.datasets[0].data,
+                                color: "#2563eb",
+                            },
+                        ]}
+                    />
                 </div>
-                <div className="bg-white p-4 border rounded">
-                    <h3 className="font-semibold mb-3">
-                        <BarChart3 className="inline-block h-5 w-5 mr-2 text-blue-600" />
-                        Production Trend (Tonnage)</h3>
-                    <div className="h-[320px] overflow-x-auto">
-                        <Bar
-                            data={dailyTrendData}
-                            options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: { display: false },
-                                    datalabels: {
-                                        anchor: "end",
-                                        align: "top",
-                                        formatter: (v: number) => `${v.toFixed(2)} MT`,
-                                        font: { size: 11 },
-                                    },
-                                },
-                                scales: {
-                                    x: {
-                                        ticks: { autoSkip: false },
-                                        grid: { drawOnChartArea: false }, // <-- remove vertical grid lines
-                                    },
-                                    y: {
-                                        beginAtZero: true,
-                                        suggestedMax: Math.max(...dailyTrendData.datasets[0].data) * 1.1,
-                                        ticks: { callback: (v: any) => `${v} MT` },
-                                    },
-                                },
-                            }}
-                        />
-                    </div>
+                <div className="bg-white">
+                    <ProductionTrendLineChart
+                        title="Production Trend (Tonnage)"
+                        data={productions.map(p => {
+                            const tonnage = p.items.reduce((sum, item) => {
+                                return sum + (item.product.weightValue * item.product.packSize * item.quantity) / 1000;
+                            }, 0);
+                            return { date: p.createdAt, tonnage };
+                        })}
+                    />
                 </div>
             </div>
             {/* Tonnage by Location */}
             <div className="p-4 rounded grid grid-cols-1 xl:grid-cols-2 gap-5">
-                <PieCard
-                    title="Production by Location (Tonnage)"
-                    icon={<Factory className="h-5 w-5 text-blue-600" />}
-                    data={byLocation}
-                    dataKey="totalTonnage"
-                    nameKey="location"
-                />
-
-                <PieCard
-                    title="Production by Product (Tonnage)"
-                    icon={<Package className="h-5 w-5 text-green-600" />}
-                    data={byProduct}
-                    dataKey="tonnage"
-                    nameKey="name"
-                />
+                <div className="bg-white p-4 border rounded">
+                    <StandardPieChart
+                        title="Production by Location (Tonnage)"
+                        data={byLocation.map(l => ({
+                            name: l.location,
+                            value: l.totalTonnage,
+                            color: ["#2563eb", "#16a34a", "#dc2626", "#ca8a04", "#7c3aed"][byLocation.indexOf(l)],
+                        }))}
+                    />
+                </div>
+                <div className="bg-white p-4 border rounded">
+                    <StandardPieChart
+                        title="Production by Product (Tonnage)"
+                        data={byProduct.map(p => ({
+                            name: p.name,
+                            value: p.tonnage,
+                            color: ["#2563eb", "#16a34a", "#dc2626", "#ca8a04", "#7c3aed"][byProduct.indexOf(p)],
+                        }))}
+                    />
+                </div>
             </div>
         </div>
     );

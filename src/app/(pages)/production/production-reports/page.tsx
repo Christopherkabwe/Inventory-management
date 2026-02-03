@@ -154,7 +154,7 @@ export default function ProductionReportsPage() {
     };
 
     return (
-        <div>
+        <div className="bg-white p-5">
             <div className="mb-5 text-black dark:text-white">
                 <h1 className="text-2xl font-bold">Production Reports</h1>
             </div>
@@ -174,7 +174,7 @@ export default function ProductionReportsPage() {
 
             {/* --- Product Summary --- */}
             <div className="bg-white p-4 rounded border space-y-2 mb-5">
-                <h2 className="font-semibold mb-2 dark:text-black">Production Summary by Product</h2>
+                <h2 className="font-bold mb-2 dark:text-black">Production Summary by Product</h2>
                 <div className="flex gap-2 mb-5 justify-end">
                     <button
                         className="px-4 py-1 border rounded-md text-white bg-green-600 hover:bg-green-700 whitespace-nowrap"
@@ -206,15 +206,15 @@ export default function ProductionReportsPage() {
                     <table className="w-full border-collapse">
                         <thead className="bg-gray-100 text-left">
                             <tr>
-                                <th className="border p-2 border-black border-t-2">Product Name</th>
-                                <th className="border p-2 border-black border-t-2">SKU</th>
-                                <th className="border p-2 border-black border-t-2">Category</th>
-                                <th className="border p-2 border-black border-t-2">Pack Size</th>
-                                <th className="border p-2 border-black border-t-2">Weight Value</th>
-                                <th className="border p-2 border-black border-t-2">Weight Unit</th>
-                                <th className="border p-2 border-black border-t-2">Total Qty</th>
-                                <th className="border p-2 border-black border-t-2">Total Tonnage</th>
-                                <th className="border p-2 border-black border-t-2">Total Value</th>
+                                <th className="border p-2 border-black">Product Name</th>
+                                <th className="border p-2 border-black">SKU</th>
+                                <th className="border p-2 border-black">Category</th>
+                                <th className="border p-2 border-black">Pack Size</th>
+                                <th className="border p-2 border-black">Weight Value</th>
+                                <th className="border p-2 border-black">Weight Unit</th>
+                                <th className="border p-2 border-black">Total Qty</th>
+                                <th className="border p-2 border-black">Total Tonnage</th>
+                                <th className="border p-2 border-black">Total Value</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -247,17 +247,17 @@ export default function ProductionReportsPage() {
 
                                     {/* Total Row */}
                                     <tr className="bg-gray-200 font-semibold">
-                                        <td className="border border-black border-t-2 p-2 text-center" colSpan={3}>Total</td>
-                                        <td className="border border-black border-t-2 p-2 text-center">-</td>
-                                        <td className="border border-black border-t-2 p-2 text-center">-</td>
-                                        <td className="border border-black border-t-2 p-2 text-center">-</td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black text-center" colSpan={3}>Total</td>
+                                        <td className="border border-black text-center">-</td>
+                                        <td className="border border-black text-center">-</td>
+                                        <td className="border border-black text-center">-</td>
+                                        <td className="border border-black px-5 py-2">
                                             {byProduct.reduce((sum, p) => sum + p.totalQty, 0)}
                                         </td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black px-5 py-2">
                                             {byProduct.reduce((sum, p) => sum + p.tonnage, 0).toFixed(2)}
                                         </td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black px-5 py-2">
                                             {byProduct.reduce((sum, p) => sum + p.totalValue, 0).toFixed(2)}
                                         </td>
                                     </tr>
@@ -270,7 +270,7 @@ export default function ProductionReportsPage() {
 
             {/* --- Location Summary --- */}
             <div className="bg-white p-4 rounded border space-y-2 mb-5">
-                <h2 className="font-semibold mb-2 dark:text-black">Production Summary by Location</h2>
+                <h2 className="font-bold mb-2 dark:text-black">Production Summary by Location</h2>
                 <div className="flex gap-2 mb-2 justify-end">
                     <button
                         className="bg-green-600 text-white px-4 py-1 rounded"
@@ -302,10 +302,10 @@ export default function ProductionReportsPage() {
                     <table className="w-full border-collapse">
                         <thead className="bg-gray-100 text-left">
                             <tr>
-                                <th className="border border-black border-t-2 px-5 py-2">Location</th>
-                                <th className="border border-black border-t-2 px-5 py-2">Productions</th>
-                                <th className="border border-black border-t-2 px-5 py-2">Total Qty</th>
-                                <th className="border border-black border-t-2 px-5 py-2">Total Tonnage</th>
+                                <th className="border border-black px-5 py-2">Location</th>
+                                <th className="border border-black px-5 py-2">Productions</th>
+                                <th className="border border-black px-5 py-2">Total Qty</th>
+                                <th className="border border-black px-5 py-2">Total Tonnage</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -332,14 +332,14 @@ export default function ProductionReportsPage() {
 
                                     {/* Total Row */}
                                     <tr className="bg-gray-200 font-semibold">
-                                        <td className="border border-black border-t-2 p-2 text-center">Total</td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black text-center">Total</td>
+                                        <td className="border border-black px-5 py-2">
                                             {byLocation.reduce((sum, l) => sum + l.productions, 0)}
                                         </td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black px-5 py-2">
                                             {byLocation.reduce((sum, l) => sum + l.totalQty, 0).toFixed(2)}
                                         </td>
-                                        <td className="border border-black border-t-2 px-5 py-2">
+                                        <td className="border border-black px-5 py-2">
                                             {byLocation.reduce((sum, l) => sum + l.totalTonnage, 0).toFixed(2)}
                                         </td>
                                     </tr>

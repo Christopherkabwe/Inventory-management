@@ -8,11 +8,18 @@ import ProductList from "./ProductList";
 import { useFormStatus } from "react-dom";
 import { ChevronLeft, Plus } from "lucide-react";
 
+export type ProductType =
+    | "FINISHED_GOOD"
+    | "RAW_MATERIAL"
+    | "PACKAGING"
+    | "SEMI_FINISHED";
+
 interface Product {
     id: string;
     sku: string;
     name: string;
     price: number;
+    type: ProductType;
     packSize: number;
     weightValue: number;
     weightUnit: string;
@@ -93,7 +100,7 @@ export default function AddProductClient({ isAdmin, products, error }: Props) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
-                                    <input type="number" id="price" name="price" step="0.01" min="0" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Price..." />
+                                    <input type="number" id="price" name="price" step="0.01" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Price..." />
                                 </div>
                                 <div>
                                     <label htmlFor="packSize" className="block text-sm font-medium text-gray-700 mb-2">Pack Size *</label>
@@ -138,6 +145,31 @@ export default function AddProductClient({ isAdmin, products, error }: Props) {
                                 <div>
                                     <label htmlFor="costPerBag" className="block text-sm font-medium text-gray-700 mb-2">Production Cost (optional)</label>
                                     <input type="number" id="costPerBag" name="costPerBag" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Tax rate" />
+                                </div>
+                                <div>
+                                    <label
+                                        htmlFor="type"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        Product Type *
+                                    </label>
+
+                                    <select
+                                        id="type"
+                                        name="type"
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                                    >
+                                        <option value="">Select product type</option>
+                                        <option value="FINISHED_GOOD">Finished Good</option>
+                                        <option value="RAW_MATERIAL">Raw Material</option>
+                                        <option value="PACKAGING">Packaging</option>
+                                        <option value="SEMI_FINISHED">Semi-Finished</option>
+                                    </select>
+
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Determines how the product behaves in BOMs, inventory, and production.
+                                    </p>
                                 </div>
                             </div>
                             <SubmitButton />

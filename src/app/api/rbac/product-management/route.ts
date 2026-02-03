@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { ProductType } from "@/generated/prisma";
 
 export async function GET(req: NextRequest) {
     try {
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
                     },
                 },
                 createdById: true,
+                type: true,
             },
             orderBy: {
                 sku: "asc",
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
         const user = await getCurrentUser();
         if (!user) return;
         const body = await req.json();
-        const { sku, name, costPerBag, packSize, price, category, subCategory, isTaxable, taxRate, weightValue, weightUnit } = body;
+        const { sku, name, costPerBag, packSize, price, category, type, subCategory, isTaxable, taxRate, weightValue, weightUnit } = body;
 
         // Basic validation
         if (!sku || !name || !packSize || !weightValue || !weightUnit) {
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
                 packSize,
                 category: category || undefined,
                 subCategory: subCategory || undefined,
+                type: body.type as ProductType,
                 weightValue,
                 weightUnit,
                 isTaxable: isTaxable || undefined,
