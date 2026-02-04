@@ -292,9 +292,9 @@ export default function InvoicePage() {
 
                         {/* FOOTER */}
                         <div className="grid grid-cols-1 px-5 mt-8 mb-10">
-                            <p>Received By: _____________________</p>
-                            <p>Time: ____________________________</p>
-                            <p>Signature: _______________________</p>
+                            <p className="font-bold">Received By: _____________________</p>
+                            <p className="font-bold">Time: _____________________________</p>
+                            <p className="font-bold">Signature: ________________________</p>
                         </div>
                     </div>
                 </div>

@@ -203,11 +203,10 @@ export default function SalesOrderPage() {
                             <table className="w-full text-sm px-5">
                                 <thead className="bg-zinc-100 border border-black">
                                     <tr className="border-b border-black">
-                                        <th className="px-4 py-2 border-r border-black text-left">Product</th>
                                         <th className="px-4 py-2 border-r border-black text-center">SKU</th>
+                                        <th className="px-4 py-2 border-r border-black text-left">Product</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Pack Size</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Price</th>
-                                        <th className="px-4 py-2 border-r border-black text-center">UoM</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Weight</th>
                                         <th className="px-4 py-2 border-r border-black text-center">Quantity</th>
                                         {hasPending && <th className="px-4 py-2 border-r border-black text-center">Pending Qty</th>}
@@ -221,12 +220,11 @@ export default function SalesOrderPage() {
                                         const pendingQuantity = item.quantity - item.quantityInvoiced;
                                         return (
                                             <tr key={item.id} className="border-b border-zinc-200">
-                                                <td className="px-4 py-2 border-r border-black">{item.product.name}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.product.sku ?? "-"}</td>
+                                                <td className="px-4 py-2 border-r border-black">{item.product.name}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.product.packSize ?? "-"}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">K{(item.product.price ?? 0).toFixed(2)}</td>
-                                                <td className="px-4 py-2 border-r border-black text-center">{item.product.weightUnit ?? "-"}</td>
-                                                <td className="px-4 py-2 border-r border-black text-center">{(item.product.weightValue ?? 0).toFixed(2)}</td>
+                                                <td className="px-4 py-2 border-r border-black text-center">{(item.product.weightValue ?? 0).toFixed(2)} {item.product.weightUnit ?? "-"}</td>
                                                 <td className="px-4 py-2 border-r border-black text-center">{item.quantity}</td>
                                                 {hasPending && <td className="px-4 py-2 border-r border-black text-center">{pendingQuantity}</td>}
                                                 <td className="px-4 py-2 border-r border-black text-center">{((item.product.weightValue ?? 0) * item.quantity / 1000).toFixed(2)}</td>
@@ -234,12 +232,12 @@ export default function SalesOrderPage() {
                                             </tr>
                                         );
                                     })}
-                                    <EmptyRows columns={hasPending ? 10 : 9} count={Math.max(0, 10 - order.items.length)} />
+                                    <EmptyRows columns={hasPending ? 9 : 8} count={Math.max(0, 10 - order.items.length)} />
                                 </tbody>
 
                                 <tfoot className="border border-black">
                                     <tr className="bg-zinc-100 font-semibold border-b border-black">
-                                        <td colSpan={6} className="px-4 py-2 text-center uppercase tracking-wider border-r border-black">Total</td>
+                                        <td colSpan={5} className="px-4 py-2 text-center uppercase tracking-wider border-r border-black">Total</td>
                                         <td className="px-4 py-2 text-center border-r border-black">{totals.quantity}</td>
                                         {hasPending && <td className="px-4 py-2 text-center border-r border-black">{totals.pending}</td>}
                                         <td className="px-4 py-2 text-center border-r border-black">{totals.tonnage.toFixed(2)}</td>

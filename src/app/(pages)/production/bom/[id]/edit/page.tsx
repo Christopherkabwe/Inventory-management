@@ -107,7 +107,7 @@ export default function EditBOMPage() {
 
     const isValid = useMemo(() => {
         if (!productId) return false;
-        if (components.length === 0) return false;
+        if (components?.length === 0) return false;
         return components.every(
             (c) => c.componentId && c.quantity > 0 && c.unit.trim().length > 0
         );
@@ -133,7 +133,7 @@ export default function EditBOMPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["boms"] });
             queryClient.invalidateQueries({ queryKey: ["bom", id] });
-            router.push(`/bom/${id}/view`);
+            router.push(`/production/bom/${id}/view`);
         },
         onError: (err: any) => {
             setError(err.message || "Unexpected error occurred");
@@ -225,8 +225,8 @@ export default function EditBOMPage() {
                                 </select>
                                 <input
                                     type="number"
-                                    min={0.0001}
-                                    step="0.0001"
+                                    min={0.01}
+                                    step="0.01"
                                     className="col-span-2 border rounded p-2"
                                     value={c.quantity}
                                     onChange={(e) => {

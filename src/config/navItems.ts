@@ -86,6 +86,15 @@ export const NAV_ITEMS: NavItem[] = [
             { name: "Customer Service", href: "/customers/customer-management" },
         ],
     },
+
+    {
+        name: "Suppliers",
+        icon: User,
+        subItems: [
+            { name: "Create supplier", href: "/suppliers/create" },
+            { name: "Supplier Management", href: "/suppliers" },
+        ],
+    },
     {
         name: "Sales",
         icon: ShoppingCart,

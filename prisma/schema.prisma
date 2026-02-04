@@ -71,6 +71,7 @@ model User {
   customerStatements CustomerStatement[]
   productionDefects  ProductionDefect[]
   boms               BOM[]
+  purchaseOrders     PurchaseOrder[]
 
   @@index([managerId])
 }
@@ -106,9 +107,10 @@ enum ProductType {
   SEMI_FINISHED
   FINISHED
 }
+
 model ProductList {
-  id          String   @id @default(cuid())
-  sku         String   @unique
+  id          String      @id @default(cuid())
+  sku         String      @unique
   name        String
   price       Float
   costPerBag  Float?
@@ -120,9 +122,9 @@ model ProductList {
   createdById String
   isTaxable   String?
   taxRate     Float?
-  createdBy   User     @relation("ProductsCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User        @relation("ProductsCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   type        ProductType @default(FINISHED)
 
   inventories     Inventory[]
@@ -142,6 +144,8 @@ model ProductList {
   productionDefects    ProductionDefect[]
   boms                 BOM[]
   bomitems             BOMItem[]
+  supplierPrices       SupplierPrice[]
+  purchaseOrderItems   PurchaseOrderItem[]
 }
 
 // ==================== LOCATIONS ====================
@@ -166,6 +170,7 @@ model Location {
   saleReturns        SaleReturn[]
   inventoryHistories InventoryHistory[]
   proformaInvoices   ProformaInvoice[]
+  purchaseOrders     PurchaseOrder[]
 }
 
 // ==================== INVENTORY ====================
@@ -205,6 +210,7 @@ enum InventorySource {
   ADJUSTMENT // manual adjustment
   RETURN // sale return adds stock
   INITIAL
+  PURCHASE_RECEIPT 
 }
 
 model InventoryHistory {
@@ -915,4 +921,130 @@ enum BOMStatus {
   ACTIVE
   INACTIVE
   ARCHIVED
+}
+
+// ==================== SUPPLIERS ====================
+model Supplier {
+  id         String   @id @default(cuid())
+  name       String
+  email      String?  @unique
+  phone      String?
+  address    String?
+  tpinNumber String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  purchaseOrders PurchaseOrder[]
+  supplierPrices SupplierPrice[]
+}
+
+// Supplier price per product
+model SupplierPrice {
+  id         String      @id @default(cuid())
+  supplierId String
+  supplier   Supplier    @relation(fields: [supplierId], references: [id])
+  productId  String
+  product    ProductList @relation(fields: [productId], references: [id])
+  price      Float
+  uom        String?
+
+  @@unique([supplierId, productId])
+}
+
+// ==================== PURCHASE ORDERS ====================
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  poNumber    String              @unique
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  locationId  String
+  location    Location            @relation(fields: [locationId], references: [id])
+  status      PurchaseOrderStatus @default(DRAFT)
+  notes       String?
+  createdById String
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+
+  items PurchaseOrderItem[]
+  grns  GRN[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         ProductList   @relation(fields: [productId], references: [id])
+  quantity        Int
+  uom             String
+  unitPrice       Float
+  plannedDate     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+  grnitems        GRNItem[]
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+model GRN {
+  id          String   @id @default(cuid())
+  grnNumber   String   @unique
+  poId        String
+  status      GRNStatus @default(DRAFT)
+  locked      Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  po          PurchaseOrder @relation(fields: [poId], references: [id])
+  items       GRNItem[]
+}
+
+model GRNItem {
+  id               String  @id @default(cuid())
+  grnId            String
+  poItemId         String
+  quantityReceived Float
+  returnedQuantity Float  @default(0)
+
+  grn     GRN     @relation(fields: [grnId], references: [id])
+  poItem  POItem  @relation(fields: [poItemId], references: [id])
+}
+
+enum GRNStatus {
+  DRAFT
+  RECEIVED
+  CLOSED
+}
+
+
+model SupplierReturn {
+  id          String   @id @default(cuid())
+  returnNo    String   @unique
+  grnId       String
+  grn         GRN      @relation(fields: [grnId], references: [id])
+  reason      String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  items SupplierReturnItem[]
+}
+
+model SupplierReturnItem {
+  id              String @id @default(cuid())
+  supplierReturnId String
+  supplierReturn  SupplierReturn @relation(fields: [supplierReturnId], references: [id])
+
+  productId String
+  quantity  Int
 }

@@ -12,25 +12,10 @@ export default async function withRetries<T>(
             return await fn();
         } catch (err: unknown) {
             attempt++;
+            if (attempt > retries) throw err;
 
-            // Only retry known Prisma request errors
-            if (err instanceof Prisma.PrismaClientKnownRequestError) {
-                const code = err.code;
-
-                if (code === "P2034" || code === "P2002") {
-                    if (attempt > retries) throw err;
-
-                    console.warn(
-                        `Prisma retryable error (${code}). Attempt ${attempt}/${retries}. Retrying in ${delayMs}ms...`
-                    );
-
-                    await new Promise((res) => setTimeout(res, delayMs));
-                    continue;
-                }
-            }
-
-            // ❌ Not retryable → bubble up immediately
-            throw err;
+            console.warn(`Retrying due to error. Attempt ${attempt}/${retries}`, err);
+            await new Promise((res) => setTimeout(res, delayMs));
         }
     }
 }

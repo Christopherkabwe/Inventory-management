@@ -126,104 +126,129 @@ export async function POST(req: NextRequest) {
     } as const;
 
     try {
-        const sale = await withRetries(async () => {
-            const soItems = await prisma.salesOrderItem.findMany({
-                where: { salesOrderId },
-            });
+        const { sale: createdSale, status: finalSaleStatus } = await withRetries(
+            async () => {
+                return await prisma.$transaction(async (tx) => {
+                    const soItems = await tx.salesOrderItem.findMany({ where: { salesOrderId } });
+                    const soItemMap = new Map(soItems.map(i => [i.productId, i]));
 
-            const soItemMap = new Map(soItems.map(i => [i.productId, i]));
+                    for (const item of invoiceItems) {
+                        const soItem = soItemMap.get(item.productId);
+                        if (!soItem) throw new Error(`Product ${item.productId} not in sales order`);
+                        const remaining = soItem.quantity - soItem.quantityInvoiced;
+                        if (item.quantity > remaining) throw new Error(`Quantity exceeds remaining order for product ${item.productId}`);
+                    }
 
-            for (const item of invoiceItems) {
-                const soItem = soItemMap.get(item.productId);
-                if (!soItem) throw new Error("Product not in sales order");
+                    const invoiceNumber = await nextSequence("INV");
 
-                const remaining = soItem.quantity - soItem.quantityInvoiced;
-                if (item.quantity > remaining) {
-                    throw new Error("Quantity exceeds remaining order quantity");
-                }
-            }
+                    const createdSale = await tx.sale.create({
+                        data: {
+                            invoiceNumber,
+                            salesOrderId,
+                            customerId,
+                            locationId,
+                            createdById: user.id,
+                            status: "PENDING",
+                            items: {
+                                create: invoiceItems.map(i => ({
+                                    productId: i.productId,
+                                    quantity: i.quantity,
+                                    price: i.price,
+                                    total: i.quantity * i.price,
+                                    quantityDelivered: i.quantity,
+                                })),
+                            },
+                        },
+                    });
 
-            const invoiceNumber = await nextSequence("INV");
+                    // Update sales order items
+                    for (const item of invoiceItems) {
+                        const soItem = soItemMap.get(item.productId)!;
+                        await tx.salesOrderItem.update({
+                            where: { id: soItem.id },
+                            data: { quantityInvoiced: { increment: item.quantity } },
+                        });
+                    }
 
-            const createdSale = await prisma.sale.create({
-                data: {
-                    invoiceNumber,
-                    salesOrderId,
-                    customerId,
-                    locationId,
-                    createdById: user.id,
-                    status: "PENDING",
-                    items: {
-                        create: invoiceItems.map((i: any) => ({
+                    // Update sales order status
+                    const updatedItems = await tx.salesOrderItem.findMany({ where: { salesOrderId } });
+                    const fullyInvoiced = updatedItems.every(i => i.quantityInvoiced >= i.quantity);
+                    await tx.salesOrder.update({
+                        where: { id: salesOrderId },
+                        data: { status: fullyInvoiced ? "CONFIRMED" : "PARTIALLY_INVOICED" },
+                    });
+
+                    // Compute final sale status
+                    let finalSaleStatus: "PENDING" | "PARTIALLY_PAID" | "PAID" = "PENDING";
+                    if (paymentStatus === "PAID") {
+                        finalSaleStatus = "PAID";
+                    } else if (paymentStatus === "PARTIAL") {
+                        finalSaleStatus = "PARTIALLY_PAID";
+                    } else {
+                        finalSaleStatus = "PENDING";
+                    }
+
+                    // Update sale with correct status
+                    await tx.sale.update({
+                        where: { id: createdSale.id },
+                        data: { status: finalSaleStatus },
+                    });
+
+                    // Create delivery note
+                    const deliveryNoteNo = await nextSequence("DN");
+                    const deliveryNote = await tx.deliveryNote.create({
+                        data: {
+                            deliveryNoteNo,
+                            saleId: createdSale.id,
+                            salesOrderId,
+                            locationId,
+                            createdById: user.id,
+                            dispatchedAt: new Date(),
+                            transporterId: transporterId ?? null,
+                        },
+                    });
+
+                    await tx.deliveryNoteItem.createMany({
+                        data: invoiceItems.map(i => ({
+                            deliveryNoteId: deliveryNote.id,
                             productId: i.productId,
-                            quantity: i.quantity,
-                            price: i.price,
-                            total: i.quantity * i.price,
                             quantityDelivered: i.quantity,
                         })),
-                    },
-                },
-            });
-
-            await Promise.all(
-                invoiceItems.map(item => {
-                    const soItem = soItemMap.get(item.productId)!;
-                    return prisma.salesOrderItem.update({
-                        where: { id: soItem.id },
-                        data: { quantityInvoiced: { increment: item.quantity } },
                     });
-                })
-            );
 
-            const updatedItems = await prisma.salesOrderItem.findMany({
-                where: { salesOrderId },
-            });
+                    // ✅ Deduct inventory + log history
+                    for (const i of invoiceItems) {
+                        await tx.inventory.update({
+                            where: { productId_locationId: { productId: i.productId, locationId } },
+                            data: { quantity: { decrement: i.quantity } },
+                        });
 
-            const fullyInvoiced = updatedItems.every(
-                i => i.quantityInvoiced >= i.quantity
-            );
+                        await tx.inventoryHistory.create({
+                            data: {
+                                productId: i.productId,
+                                locationId,
+                                date: new Date(),
+                                delta: -i.quantity,
+                                sourceType: "SALE",
+                                reference: `SALE-${invoiceNumber}`,
+                                createdById: user.id,
+                            },
+                        });
+                    }
 
-            await prisma.salesOrder.update({
-                where: { id: salesOrderId },
-                data: {
-                    status: fullyInvoiced
-                        ? "CONFIRMED"
-                        : "PARTIALLY_INVOICED",
-                },
-            });
-
-            const deliveryNoteNo = await nextSequence("DN");
-
-            const deliveryNote = await prisma.deliveryNote.create({
-                data: {
-                    deliveryNoteNo,
-                    saleId: createdSale.id,
-                    salesOrderId,
-                    locationId,
-                    createdById: user.id,
-                    dispatchedAt: new Date(),
-                    transporterId: transporterId ?? null,
-                },
-            });
-
-            await prisma.deliveryNoteItem.createMany({
-                data: invoiceItems.map((i: any) => ({
-                    deliveryNoteId: deliveryNote.id,
-                    productId: i.productId,
-                    quantityDelivered: i.quantity,
-                })),
-            });
-
-            return createdSale;
-        });
+                    return { sale: createdSale, status: finalSaleStatus };
+                });
+            },
+            3, 500
+        );
 
         await incrementSequence("INV");
         await incrementSequence("DN");
 
         return NextResponse.json({
-            id: sale.id,
-            invoiceNumber: sale.invoiceNumber,
-            status: sale.status,
+            id: createdSale.id,
+            invoiceNumber: createdSale.invoiceNumber,
+            status: finalSaleStatus,
         });
     } catch (err: any) {
         console.error(err);

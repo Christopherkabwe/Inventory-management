@@ -15,6 +15,7 @@ import Pagination from "@/components/pagination/pagination";
 import ProductionReportsPage from "./production-reports/page";
 import QualityChartsPage from "@/components/quality-control/QualityReports";
 import ProductionBatchTracking from "@/components/production/batchTracking";
+import BOMListPage from "./bom/page";
 
 /* ================= TYPES ================= */
 
@@ -81,7 +82,7 @@ export default function ProductionPage() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchDefectsQuery, setSearchDefectsQuery] = useState("");
-    const [view, setView] = useState<"list" | "defects" | "Production charts" | "Quality charts">("list");
+    const [view, setView] = useState<"list" | "defects" | "Production charts" | 'bom' | "Quality charts">("list");
 
     const ITEMS_PER_PAGE = 20;
     const [currentPage, setCurrentPage] = useState(1);
@@ -375,6 +376,12 @@ export default function ProductionPage() {
                 >
                     Quality Control Report
                 </button>
+                <button
+                    onClick={() => setView("bom")}
+                    className={view === "bom" ? "font-bold underline" : ""}
+                >
+                    Bill of Materials
+                </button>
             </div>
 
             {view === "list" && (
@@ -539,6 +546,11 @@ export default function ProductionPage() {
             {view === "Quality charts" && (
                 <div className="">
                     <QualityChartsPage />
+                </div>
+            )}
+            {view === "bom" && (
+                <div className="">
+                    <BOMListPage />
                 </div>
             )}
         </div>
