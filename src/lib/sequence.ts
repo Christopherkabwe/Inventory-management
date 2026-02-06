@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 // Function to get the next sequence number for various types
 
 export async function nextSequence(
-    type: "INV" | "DN" | "IBT" | "SO" | "QUOTE" | "PROD" | "BATCH" | "ADJ" | "CN" | "SR" | "RETURN",
+    type: "INV" | "DN" | "IBT" | "SO" | "QUOTE" | "PROD" | "BATCH" | "ADJ" | "CN" | "SR" | "RETURN" | "PO" | "GRN",
     increment: boolean = false
 ) {
     const year = new Date().getFullYear();
@@ -23,7 +23,7 @@ export async function nextSequence(
 
 // Function to increment the sequence number
 export async function incrementSequence(
-    type: "INV" | "DN" | "IBT" | "SO" | "QUOTE" | "PROD" | "BATCH" | "ADJ" | "CN" | "SR" | "RETURN"
+    type: "INV" | "DN" | "IBT" | "SO" | "QUOTE" | "PROD" | "BATCH" | "ADJ" | "CN" | "SR" | "RETURN" | "PO" | "GRN"
 ) {
     const year = new Date().getFullYear();
     await prisma.sequence.update({

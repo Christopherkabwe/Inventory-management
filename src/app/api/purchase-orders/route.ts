@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPurchaseOrder } from "@/modules/purchasing/purchaseOrder.service";
 import { getCurrentUser } from "@/lib/auth"; // <-- your auth helper
 import { prisma } from "@/lib/prisma";
+import { incrementSequence } from "@/lib/sequence";
 
 // GET all POs
 export async function GET() {
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
             createdById: user.id, // ✅ automatically assign current user
         });
 
+        await incrementSequence("PO");
         return NextResponse.json(po, { status: 201 });
     } catch (error: any) {
         console.error(error);

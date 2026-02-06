@@ -11,6 +11,7 @@ import { NumberInput } from "@/components/Inputs/NumberInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TextInput } from "@/components/Inputs/TextInput";
+import { TextArea } from "@/components/Inputs/TextArea";
 
 /* ==============================
    TYPES
@@ -216,11 +217,12 @@ export default function CreatePOPage() {
                                 step={0.01}
                                 onChange={val => updateItem(idx, { unitPrice: val })}
                             />
-                            <TextInput
-                                className="border rounded p-2"
+                            <TextArea
+                                className="border rounded px-2 py-1"
                                 value={item.product.weightUnit}
                                 onChange={e => updateItem(idx, { uom: item.product.weightUnit })}
                                 label="Uom"
+                                rows={2}
                             />
                             <Button type="button" variant="destructive" onClick={() => removeItem(idx)}>
                                 Remove

@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "InventorySource" ADD VALUE 'REVERSED_PRODUCTION_DEFECT';

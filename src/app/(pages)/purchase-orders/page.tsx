@@ -146,7 +146,7 @@ export default function PODashboard() {
                             <th className="p-2 text-left">Items</th>
                             <th className="p-2 text-left">Total</th>
                             <th className="p-2 text-left">Status</th>
-                            <th className="p-2 text-center">Actions</th>
+                            <th className="p-2 text-left">Actions</th>
                         </tr>
                     </thead>
 
@@ -169,11 +169,26 @@ export default function PODashboard() {
                                             size="sm"
                                             variant="secondary"
                                             onClick={(e) => e.stopPropagation()}
+                                            className="bg-gray-300"
                                         >
-                                            View
+                                            View PO
                                         </Button>
                                     </Link>
-                                    {po.status !== "CANCELLED" && (
+                                    {po.status === "RECEIVED" && (
+                                        <>
+                                            <Link href={`/purchase-orders/${po.id}`}>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="bg-green-300"
+                                                >
+                                                    View GRN
+                                                </Button>
+                                            </Link>
+                                        </>
+                                    )}
+                                    {po.status === "DRAFT" && (
                                         <>
                                             <Button
                                                 size="sm"
@@ -182,37 +197,42 @@ export default function PODashboard() {
                                                 onClick={() =>
                                                     updateStatus(po.id, "SUBMITTED")
                                                 }
+                                                className="bg-blue-300"
                                             >
                                                 Submit
                                             </Button>
-
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                disabled={po.status !== "SUBMITTED"}
-                                                onClick={() =>
-                                                    updateStatus(po.id, "APPROVED")
-                                                }
-                                            >
-                                                Approve
-                                            </Button>
                                         </>
                                     )}
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={po.status !== "APPROVED"}
-                                        onClick={() =>
-                                            updateStatus(po.id, "SENT")
-                                        }
-                                    >
-                                        Send
-                                    </Button>
-                                    {(po.status === "DRAFT" || po.status === "SUBMITTED") && (
+                                    {po.status === "SUBMITTED" && (
+
                                         <Button
                                             size="sm"
-                                            variant="destructive"
+                                            variant="outline"
+                                            onClick={() =>
+                                                updateStatus(po.id, "APPROVED")
+                                            }
+                                            className="bg-purple-500"
+                                        >
+                                            Approve
+                                        </Button>
+                                    )}
+
+                                    {po.status === "APPROVED" && (
+                                        <Button
+                                            size="sm"
+                                            onClick={() =>
+                                                updateStatus(po.id, "SENT")
+                                            }
+                                            className="bg-orange-500 text-white"
+                                        >
+                                            Send
+                                        </Button>
+                                    )}
+                                    {(po.status !== "RECEIVED") && (
+                                        <Button
+                                            size="sm"
                                             onClick={() => updateStatus(po.id, "CANCELLED")}
+                                            className="bg-red-500 text-white"
                                         >
                                             Cancel
                                         </Button>
@@ -222,7 +242,8 @@ export default function PODashboard() {
                         ))}
                     </tbody>
                 </table>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

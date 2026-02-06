@@ -32,6 +32,7 @@ interface Props {
     products: Product[];
     error?: string;
 }
+
 export default function AddProductClient({ isAdmin, products, error }: Props) {
     const initialState = { message: null, success: false };
     const [state, dispatch] = useActionState(CreateProduct, initialState);
@@ -66,7 +67,6 @@ export default function AddProductClient({ isAdmin, products, error }: Props) {
             </div>
         );
     }
-
 
     return (
         <div className="min-h-screen items-center">
@@ -144,7 +144,13 @@ export default function AddProductClient({ isAdmin, products, error }: Props) {
                                 </div>
                                 <div>
                                     <label htmlFor="costPerBag" className="block text-sm font-medium text-gray-700 mb-2">Production Cost (optional)</label>
-                                    <input type="number" id="costPerBag" name="costPerBag" min="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent" placeholder="Enter Tax rate" />
+                                    <input type="number"
+                                        id="costPerBag"
+                                        name="costPerBag"
+                                        min="0"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                                        placeholder="Enter Production Cost"
+                                    />
                                 </div>
                                 <div>
                                     <label
@@ -161,7 +167,7 @@ export default function AddProductClient({ isAdmin, products, error }: Props) {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
                                     >
                                         <option value="">Select product type</option>
-                                        <option value="FINISHED_GOOD">Finished Good</option>
+                                        <option value="FINISHED">Finished Good</option>
                                         <option value="RAW_MATERIAL">Raw Material</option>
                                         <option value="PACKAGING">Packaging</option>
                                         <option value="SEMI_FINISHED">Semi-Finished</option>

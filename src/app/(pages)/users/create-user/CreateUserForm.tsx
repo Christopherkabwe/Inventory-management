@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { UserRole } from "@/lib/rbac";
 import { useRouter } from "next/navigation";
-import { useToaster } from "@/components/Toaster";
+import { useToaster } from "@/app/context/Toaster";
 
 interface Location { id: string; name: string; }
 interface CurrentUser { id: string; role: UserRole; locationId: string | null; }

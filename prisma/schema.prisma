@@ -171,6 +171,7 @@ model Location {
   inventoryHistories InventoryHistory[]
   proformaInvoices   ProformaInvoice[]
   purchaseOrders     PurchaseOrder[]
+  grns               GRN[]
 }
 
 // ==================== INVENTORY ====================
@@ -210,7 +211,7 @@ enum InventorySource {
   ADJUSTMENT // manual adjustment
   RETURN // sale return adds stock
   INITIAL
-  PURCHASE_RECEIPT 
+  PURCHASE_RECEIPT
 }
 
 model InventoryHistory {
@@ -245,6 +246,8 @@ model InventoryHistory {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  grnitem   GRNItem? @relation(fields: [gRNItemId], references: [id])
+  gRNItemId String?
 }
 
 // ==================== CUSTOMERS ====================
@@ -996,37 +999,43 @@ model PurchaseOrderItem {
   @@index([purchaseOrderId])
   @@index([productId])
 }
+
 model GRN {
-  id          String   @id @default(cuid())
-  grnNumber   String   @unique
-  poId        String
-  status      GRNStatus @default(DRAFT)
-  locked      Boolean   @default(false)
+  id         String    @id @default(cuid())
+  grnNumber  String    @unique
+  poId       String
+  locationId String
+  status     GRNStatus @default(DRAFT)
+  locked     Boolean   @default(false)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  po          PurchaseOrder @relation(fields: [poId], references: [id])
-  items       GRNItem[]
+  po              PurchaseOrder    @relation(fields: [poId], references: [id])
+  items           GRNItem[]
+  location        Location         @relation(fields: [locationId], references: [id])
+  supplierReturns SupplierReturn[]
 }
 
 model GRNItem {
-  id               String  @id @default(cuid())
+  id               String @id @default(cuid())
   grnId            String
   poItemId         String
   quantityReceived Float
   returnedQuantity Float  @default(0)
 
-  grn     GRN     @relation(fields: [grnId], references: [id])
-  poItem  POItem  @relation(fields: [poItemId], references: [id])
+  grn                 GRN                  @relation(fields: [grnId], references: [id])
+  poItem              PurchaseOrderItem    @relation(fields: [poItemId], references: [id])
+  supplierReturnItems SupplierReturnItem[]
+  inventoryHistories  InventoryHistory[]
 }
 
 enum GRNStatus {
   DRAFT
+  PARTIALLY_RECEIVED
   RECEIVED
   CLOSED
 }
-
 
 model SupplierReturn {
   id          String   @id @default(cuid())
@@ -1041,10 +1050,12 @@ model SupplierReturn {
 }
 
 model SupplierReturnItem {
-  id              String @id @default(cuid())
+  id               String         @id @default(cuid())
   supplierReturnId String
-  supplierReturn  SupplierReturn @relation(fields: [supplierReturnId], references: [id])
+  supplierReturn   SupplierReturn @relation(fields: [supplierReturnId], references: [id])
 
-  productId String
-  quantity  Int
+  grnItemId String
+  grnItem   GRNItem @relation(fields: [grnItemId], references: [id])
+
+  quantity Float
 }

@@ -2,7 +2,16 @@
 CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'MANAGER', 'USER');
 
 -- CreateEnum
-CREATE TYPE "InventorySource" AS ENUM ('SYSTEM', 'SALE', 'TRANSFER_IN', 'TRANSFER_IN_TRANSIT', 'TRANSFER_OUT', 'TRANSFER_DAMAGED', 'TRANSFER_EXPIRED', 'PRODUCTION', 'ADJUSTMENT', 'RETURN', 'INITIAL');
+CREATE TYPE "ProductType" AS ENUM ('RAW_MATERIAL', 'PACKAGING', 'SEMI_FINISHED', 'FINISHED');
+
+-- CreateEnum
+CREATE TYPE "InventorySource" AS ENUM ('SYSTEM', 'SALE', 'TRANSFER_IN', 'TRANSFER_IN_TRANSIT', 'TRANSFER_OUT', 'TRANSFER_DAMAGED', 'TRANSFER_EXPIRED', 'PRODUCTION', 'PRODUCTION_DEFECT', 'REVERSED_PRODUCTION_DEFECT', 'ADJUSTMENT', 'RETURN', 'INITIAL', 'PURCHASE_RECEIPT');
+
+-- CreateEnum
+CREATE TYPE "AllocationAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'ROLLBACK');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PARTIAL', 'PAID');
 
 -- CreateEnum
 CREATE TYPE "QuotationStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
@@ -12,6 +21,12 @@ CREATE TYPE "ProformaStatus" AS ENUM ('DRAFT', 'SENT', 'APPROVED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "TransferStatus" AS ENUM ('PENDING', 'DISPATCHED', 'RECEIVED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "DefectType" AS ENUM ('PACKAGING', 'CONTAMINATION', 'WEIGHT_VARIANCE', 'DAMAGED', 'EXPIRED', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "DefectDisposition" AS ENUM ('SCRAPPED', 'REWORKED', 'RETURNED', 'HELD');
 
 -- CreateEnum
 CREATE TYPE "AdjustmentType" AS ENUM ('DAMAGED', 'EXPIRED', 'MANUAL');
@@ -24,6 +39,15 @@ CREATE TYPE "SaleStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PARTIALLY_INVOICED', 
 
 -- CreateEnum
 CREATE TYPE "ProductionStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'LOCKED');
+
+-- CreateEnum
+CREATE TYPE "BOMStatus" AS ENUM ('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "PurchaseOrderStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'SENT', 'RECEIVED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "GRNStatus" AS ENUM ('DRAFT', 'PARTIALY_RECEIVED', 'RECEIVED', 'CLOSED');
 
 -- CreateTable
 CREATE TABLE "Sequence" (
@@ -85,6 +109,7 @@ CREATE TABLE "ProductList" (
     "taxRate" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "type" "ProductType" NOT NULL DEFAULT 'FINISHED',
 
     CONSTRAINT "ProductList_pkey" PRIMARY KEY ("id")
 );
@@ -127,6 +152,7 @@ CREATE TABLE "InventoryHistory" (
     "inTransitDelta" INTEGER,
     "sourceType" "InventorySource" NOT NULL,
     "reference" TEXT NOT NULL,
+    "productionDefectId" TEXT,
     "createdById" TEXT,
     "metadata" JSONB,
     "saleItemId" TEXT,
@@ -136,6 +162,7 @@ CREATE TABLE "InventoryHistory" (
     "saleReturnId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "gRNItemId" TEXT,
 
     CONSTRAINT "InventoryHistory_pkey" PRIMARY KEY ("id")
 );
@@ -215,6 +242,7 @@ CREATE TABLE "Sale" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "status" "SaleStatus" NOT NULL DEFAULT 'PENDING',
+    "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Sale_pkey" PRIMARY KEY ("id")
 );
@@ -245,6 +273,76 @@ CREATE TABLE "SalePayment" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "SalePayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomerPayment" (
+    "id" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "method" TEXT NOT NULL,
+    "reference" TEXT,
+    "allocatedAmount" DOUBLE PRECISION,
+    "balance" DOUBLE PRECISION,
+    "paymentDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CustomerPayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PaymentAllocation" (
+    "id" TEXT NOT NULL,
+    "customerPaymentId" TEXT NOT NULL,
+    "saleId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "createdById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PaymentAllocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CreditNoteAllocation" (
+    "id" TEXT NOT NULL,
+    "creditNoteId" TEXT NOT NULL,
+    "saleId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CreditNoteAllocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AllocationHistory" (
+    "id" TEXT NOT NULL,
+    "allocationId" TEXT NOT NULL,
+    "saleId" TEXT NOT NULL,
+    "customerPaymentId" TEXT NOT NULL,
+    "amount" DECIMAL(65,30) NOT NULL,
+    "action" "AllocationAction" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdById" TEXT,
+    "notes" TEXT,
+
+    CONSTRAINT "AllocationHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AllocationAudit" (
+    "id" TEXT NOT NULL,
+    "customerPaymentId" TEXT NOT NULL,
+    "saleId" TEXT,
+    "oldAmount" DECIMAL(65,30) NOT NULL,
+    "newAmount" DECIMAL(65,30) NOT NULL,
+    "action" "AllocationAction" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdById" TEXT,
+    "reason" TEXT,
+
+    CONSTRAINT "AllocationAudit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -332,6 +430,19 @@ CREATE TABLE "SaleReturn" (
 );
 
 -- CreateTable
+CREATE TABLE "SaleReturnItem" (
+    "id" TEXT NOT NULL,
+    "saleReturnId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "reason" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SaleReturnItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ProformaInvoice" (
     "id" TEXT NOT NULL,
     "proformaNumber" TEXT NOT NULL,
@@ -415,6 +526,7 @@ CREATE TABLE "Production" (
     "locationId" TEXT NOT NULL,
     "batchNumber" TEXT NOT NULL,
     "notes" TEXT,
+    "status" "ProductionStatus" DEFAULT 'DRAFT',
     "createdById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -431,6 +543,22 @@ CREATE TABLE "ProductionItem" (
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ProductionItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProductionDefect" (
+    "id" TEXT NOT NULL,
+    "productionId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "defectType" "DefectType" NOT NULL,
+    "reason" TEXT,
+    "disposition" "DefectDisposition" NOT NULL DEFAULT 'SCRAPPED',
+    "recordedById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ProductionDefect_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -456,6 +584,177 @@ CREATE TABLE "AdjustmentItem" (
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AdjustmentItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AccountingPeriod" (
+    "id" TEXT NOT NULL,
+    "year" INTEGER NOT NULL,
+    "month" INTEGER NOT NULL,
+    "isClosed" BOOLEAN NOT NULL DEFAULT false,
+    "closedAt" TIMESTAMP(3),
+    "closedBy" TEXT,
+
+    CONSTRAINT "AccountingPeriod_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomerStatement" (
+    "id" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "periodYear" INTEGER NOT NULL,
+    "periodMonth" INTEGER NOT NULL,
+    "openingBalance" DECIMAL(65,30) NOT NULL,
+    "closingBalance" DECIMAL(65,30) NOT NULL,
+    "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "issuedById" TEXT NOT NULL,
+    "locked" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "CustomerStatement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomerStatementLine" (
+    "id" TEXT NOT NULL,
+    "statementId" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "reference" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "debit" DECIMAL(65,30) NOT NULL,
+    "credit" DECIMAL(65,30) NOT NULL,
+    "balance" DECIMAL(65,30) NOT NULL,
+
+    CONSTRAINT "CustomerStatementLine_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BOM" (
+    "id" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "description" TEXT,
+    "status" "BOMStatus" NOT NULL DEFAULT 'ACTIVE',
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BOM_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BOMItem" (
+    "id" TEXT NOT NULL,
+    "bomId" TEXT NOT NULL,
+    "componentId" TEXT NOT NULL,
+    "quantity" DOUBLE PRECISION NOT NULL,
+    "unit" TEXT NOT NULL,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BOMItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Supplier" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT,
+    "phone" TEXT,
+    "address" TEXT,
+    "tpinNumber" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Supplier_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SupplierPrice" (
+    "id" TEXT NOT NULL,
+    "supplierId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
+    "uom" TEXT,
+
+    CONSTRAINT "SupplierPrice_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PurchaseOrder" (
+    "id" TEXT NOT NULL,
+    "poNumber" TEXT NOT NULL,
+    "supplierId" TEXT NOT NULL,
+    "locationId" TEXT NOT NULL,
+    "status" "PurchaseOrderStatus" NOT NULL DEFAULT 'DRAFT',
+    "notes" TEXT,
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PurchaseOrder_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PurchaseOrderItem" (
+    "id" TEXT NOT NULL,
+    "purchaseOrderId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "uom" TEXT NOT NULL,
+    "unitPrice" DOUBLE PRECISION NOT NULL,
+    "plannedDate" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PurchaseOrderItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GRN" (
+    "id" TEXT NOT NULL,
+    "grnNumber" TEXT NOT NULL,
+    "poId" TEXT NOT NULL,
+    "locationId" TEXT NOT NULL,
+    "status" "GRNStatus" NOT NULL DEFAULT 'DRAFT',
+    "locked" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GRN_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GRNItem" (
+    "id" TEXT NOT NULL,
+    "grnId" TEXT NOT NULL,
+    "poItemId" TEXT NOT NULL,
+    "quantityReceived" DOUBLE PRECISION NOT NULL,
+    "returnedQuantity" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "GRNItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SupplierReturn" (
+    "id" TEXT NOT NULL,
+    "returnNo" TEXT NOT NULL,
+    "grnId" TEXT NOT NULL,
+    "reason" TEXT,
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SupplierReturn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SupplierReturnItem" (
+    "id" TEXT NOT NULL,
+    "supplierReturnId" TEXT NOT NULL,
+    "grnItemId" TEXT NOT NULL,
+    "quantity" DOUBLE PRECISION NOT NULL,
+
+    CONSTRAINT "SupplierReturnItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -516,6 +815,39 @@ CREATE INDEX "SaleItem_saleId_idx" ON "SaleItem"("saleId");
 CREATE INDEX "SaleItem_productId_idx" ON "SaleItem"("productId");
 
 -- CreateIndex
+CREATE INDEX "CustomerPayment_customerId_idx" ON "CustomerPayment"("customerId");
+
+-- CreateIndex
+CREATE INDEX "CustomerPayment_paymentDate_idx" ON "CustomerPayment"("paymentDate");
+
+-- CreateIndex
+CREATE INDEX "PaymentAllocation_saleId_idx" ON "PaymentAllocation"("saleId");
+
+-- CreateIndex
+CREATE INDEX "PaymentAllocation_customerPaymentId_idx" ON "PaymentAllocation"("customerPaymentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PaymentAllocation_customerPaymentId_saleId_key" ON "PaymentAllocation"("customerPaymentId", "saleId");
+
+-- CreateIndex
+CREATE INDEX "CreditNoteAllocation_saleId_idx" ON "CreditNoteAllocation"("saleId");
+
+-- CreateIndex
+CREATE INDEX "CreditNoteAllocation_creditNoteId_idx" ON "CreditNoteAllocation"("creditNoteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CreditNoteAllocation_creditNoteId_saleId_key" ON "CreditNoteAllocation"("creditNoteId", "saleId");
+
+-- CreateIndex
+CREATE INDEX "AllocationAudit_customerPaymentId_idx" ON "AllocationAudit"("customerPaymentId");
+
+-- CreateIndex
+CREATE INDEX "AllocationAudit_saleId_idx" ON "AllocationAudit"("saleId");
+
+-- CreateIndex
+CREATE INDEX "AllocationAudit_createdById_idx" ON "AllocationAudit"("createdById");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "DeliveryNote_deliveryNoteNo_key" ON "DeliveryNote"("deliveryNoteNo");
 
 -- CreateIndex
@@ -567,7 +899,52 @@ CREATE INDEX "Production_locationId_idx" ON "Production"("locationId");
 CREATE INDEX "Production_batchNumber_idx" ON "Production"("batchNumber");
 
 -- CreateIndex
+CREATE INDEX "ProductionDefect_productionId_idx" ON "ProductionDefect"("productionId");
+
+-- CreateIndex
+CREATE INDEX "ProductionDefect_productId_idx" ON "ProductionDefect"("productId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Adjustment_adjustmentNo_key" ON "Adjustment"("adjustmentNo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AccountingPeriod_year_month_key" ON "AccountingPeriod"("year", "month");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CustomerStatement_customerId_periodYear_periodMonth_key" ON "CustomerStatement"("customerId", "periodYear", "periodMonth");
+
+-- CreateIndex
+CREATE INDEX "BOM_productId_idx" ON "BOM"("productId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "BOM_productId_version_key" ON "BOM"("productId", "version");
+
+-- CreateIndex
+CREATE INDEX "BOMItem_bomId_idx" ON "BOMItem"("bomId");
+
+-- CreateIndex
+CREATE INDEX "BOMItem_componentId_idx" ON "BOMItem"("componentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Supplier_email_key" ON "Supplier"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SupplierPrice_supplierId_productId_key" ON "SupplierPrice"("supplierId", "productId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PurchaseOrder_poNumber_key" ON "PurchaseOrder"("poNumber");
+
+-- CreateIndex
+CREATE INDEX "PurchaseOrderItem_purchaseOrderId_idx" ON "PurchaseOrderItem"("purchaseOrderId");
+
+-- CreateIndex
+CREATE INDEX "PurchaseOrderItem_productId_idx" ON "PurchaseOrderItem"("productId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GRN_grnNumber_key" ON "GRN"("grnNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SupplierReturn_returnNo_key" ON "SupplierReturn"("returnNo");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -600,6 +977,9 @@ ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_productId_fkey" 
 ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_productionDefectId_fkey" FOREIGN KEY ("productionDefectId") REFERENCES "ProductionDefect"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -616,6 +996,9 @@ ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_adjustmentItemId
 
 -- AddForeignKey
 ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_saleReturnId_fkey" FOREIGN KEY ("saleReturnId") REFERENCES "SaleReturn"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "InventoryHistory" ADD CONSTRAINT "InventoryHistory_gRNItemId_fkey" FOREIGN KEY ("gRNItemId") REFERENCES "GRNItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Customer" ADD CONSTRAINT "Customer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -664,6 +1047,36 @@ ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_productId_fkey" FOREIGN KEY ("pr
 
 -- AddForeignKey
 ALTER TABLE "SalePayment" ADD CONSTRAINT "SalePayment_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerPayment" ADD CONSTRAINT "CustomerPayment_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerPayment" ADD CONSTRAINT "CustomerPayment_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentAllocation" ADD CONSTRAINT "PaymentAllocation_customerPaymentId_fkey" FOREIGN KEY ("customerPaymentId") REFERENCES "CustomerPayment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentAllocation" ADD CONSTRAINT "PaymentAllocation_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentAllocation" ADD CONSTRAINT "PaymentAllocation_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CreditNoteAllocation" ADD CONSTRAINT "CreditNoteAllocation_creditNoteId_fkey" FOREIGN KEY ("creditNoteId") REFERENCES "CreditNote"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CreditNoteAllocation" ADD CONSTRAINT "CreditNoteAllocation_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AllocationHistory" ADD CONSTRAINT "AllocationHistory_allocationId_fkey" FOREIGN KEY ("allocationId") REFERENCES "PaymentAllocation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AllocationAudit" ADD CONSTRAINT "AllocationAudit_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AllocationAudit" ADD CONSTRAINT "AllocationAudit_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DeliveryNote" ADD CONSTRAINT "DeliveryNote_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -723,6 +1136,12 @@ ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_createdById_fkey" FOREIGN KE
 ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SaleReturnItem" ADD CONSTRAINT "SaleReturnItem_saleReturnId_fkey" FOREIGN KEY ("saleReturnId") REFERENCES "SaleReturn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SaleReturnItem" ADD CONSTRAINT "SaleReturnItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ProformaInvoice" ADD CONSTRAINT "ProformaInvoice_salesOrderId_fkey" FOREIGN KEY ("salesOrderId") REFERENCES "SalesOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -780,6 +1199,15 @@ ALTER TABLE "ProductionItem" ADD CONSTRAINT "ProductionItem_productionId_fkey" F
 ALTER TABLE "ProductionItem" ADD CONSTRAINT "ProductionItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ProductionDefect" ADD CONSTRAINT "ProductionDefect_productionId_fkey" FOREIGN KEY ("productionId") REFERENCES "Production"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProductionDefect" ADD CONSTRAINT "ProductionDefect_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProductionDefect" ADD CONSTRAINT "ProductionDefect_recordedById_fkey" FOREIGN KEY ("recordedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Adjustment" ADD CONSTRAINT "Adjustment_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -790,3 +1218,63 @@ ALTER TABLE "AdjustmentItem" ADD CONSTRAINT "AdjustmentItem_adjustmentId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "AdjustmentItem" ADD CONSTRAINT "AdjustmentItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerStatement" ADD CONSTRAINT "CustomerStatement_issuedById_fkey" FOREIGN KEY ("issuedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerStatementLine" ADD CONSTRAINT "CustomerStatementLine_statementId_fkey" FOREIGN KEY ("statementId") REFERENCES "CustomerStatement"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BOM" ADD CONSTRAINT "BOM_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BOM" ADD CONSTRAINT "BOM_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BOMItem" ADD CONSTRAINT "BOMItem_bomId_fkey" FOREIGN KEY ("bomId") REFERENCES "BOM"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BOMItem" ADD CONSTRAINT "BOMItem_componentId_fkey" FOREIGN KEY ("componentId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupplierPrice" ADD CONSTRAINT "SupplierPrice_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupplierPrice" ADD CONSTRAINT "SupplierPrice_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PurchaseOrder" ADD CONSTRAINT "PurchaseOrder_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PurchaseOrder" ADD CONSTRAINT "PurchaseOrder_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PurchaseOrder" ADD CONSTRAINT "PurchaseOrder_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PurchaseOrderItem" ADD CONSTRAINT "PurchaseOrderItem_purchaseOrderId_fkey" FOREIGN KEY ("purchaseOrderId") REFERENCES "PurchaseOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PurchaseOrderItem" ADD CONSTRAINT "PurchaseOrderItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "ProductList"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GRN" ADD CONSTRAINT "GRN_poId_fkey" FOREIGN KEY ("poId") REFERENCES "PurchaseOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GRN" ADD CONSTRAINT "GRN_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GRNItem" ADD CONSTRAINT "GRNItem_grnId_fkey" FOREIGN KEY ("grnId") REFERENCES "GRN"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GRNItem" ADD CONSTRAINT "GRNItem_poItemId_fkey" FOREIGN KEY ("poItemId") REFERENCES "PurchaseOrderItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupplierReturn" ADD CONSTRAINT "SupplierReturn_grnId_fkey" FOREIGN KEY ("grnId") REFERENCES "GRN"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupplierReturnItem" ADD CONSTRAINT "SupplierReturnItem_supplierReturnId_fkey" FOREIGN KEY ("supplierReturnId") REFERENCES "SupplierReturn"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupplierReturnItem" ADD CONSTRAINT "SupplierReturnItem_grnItemId_fkey" FOREIGN KEY ("grnItemId") REFERENCES "GRNItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

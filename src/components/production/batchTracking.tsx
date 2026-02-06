@@ -73,7 +73,6 @@ export default function ProductionBatchTracking() {
                 totalProfit: (b.totalValue - b.totalCost)
             }));
             setBatchRows(batchRowsUpdated || []);
-            console.log(b.data)
         } catch (error) {
             console.error("Error fetching reports:", error);
         } finally {
@@ -243,7 +242,7 @@ export default function ProductionBatchTracking() {
                             </tr>
                         ) : (
                             <>
-                                {filteredbatchRows.map((b, i) => (
+                                {filteredbatchRows?.map((b, i) => (
                                     <tr key={i} className="divide-y divide-x divide-gray-200 whitespace-nowrap">
                                         <td className="px-2 py-1">{i + 1}</td>
                                         <td className="px-2 py-1">{b.batchNumber}</td>
@@ -257,12 +256,12 @@ export default function ProductionBatchTracking() {
                                         <td className="px-2 py-1">{b.weightUnit}</td>
                                         <td className="px-2 py-1">{b.quantity}</td>
                                         <td className="px-2 py-1">{(b.tonnage).toFixed(2)}</td>
-                                        <td className="px-2 py-1">{`K${b.costPerBag.toFixed(2)}`}</td>
-                                        <td className="px-2 py-1">{`K${b.price.toFixed(2)}`}</td>
+                                        <td className="px-2 py-1">{`K${b.costPerBag?.toFixed(2)}`}</td>
+                                        <td className="px-2 py-1">{`K${b.price?.toFixed(2)}`}</td>
                                         <td className="px-2 py-1">{b.profitMargin | 0}%</td>
-                                        <td className="px-2 py-1">{`K${b.totalCost.toFixed(2)}`}</td>
-                                        <td className="px-2 py-1">{`K${b.totalValue.toFixed(2)}`}</td>
-                                        <td className="px-2 py-1">{`K${(b.totalValue - b.totalCost).toFixed(2)}`}</td>
+                                        <td className="px-2 py-1">{`K${b.totalCost?.toFixed(2)}`}</td>
+                                        <td className="px-2 py-1">{`K${b.totalValue?.toFixed(2)}`}</td>
+                                        <td className="px-2 py-1">{`K${(b.totalValue - b.totalCost)?.toFixed(2)}`}</td>
                                     </tr>
                                 ))}
 

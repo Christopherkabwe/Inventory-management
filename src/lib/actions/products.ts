@@ -11,7 +11,7 @@ const ProductSchema = z.object({
     name: z.string().min(3, "Name is required"),
     sku: z.string().min(1, "SKU is required"),
     type: z.enum([
-        "FINISHED_GOOD",
+        "FINISHED",
         "RAW_MATERIAL",
         "PACKAGING",
         "SEMI_FINISHED",
@@ -169,7 +169,7 @@ export async function CreateProduct(
 
     try {
         // Business rules
-        if (parsed.data.type === "FINISHED_GOOD" && !parsed.data.packSize) {
+        if (parsed.data.type === "FINISHED" && !parsed.data.packSize) {
             return { success: false, message: "Finished goods must define a pack size" };
         }
 

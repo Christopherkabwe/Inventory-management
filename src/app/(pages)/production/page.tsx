@@ -236,8 +236,8 @@ export default function ProductionPage() {
     }));
 
     const batchDefectData = productions.map((p) => {
-        const totalDefects = p.defects.reduce((s, d) => s + d.quantity, 0);
-        const totalProduced = p.items.reduce((s, i) => s + i.quantity, 0);
+        const totalDefects = p.defects?.reduce((s, d) => s + d.quantity, 0);
+        const totalProduced = p.items?.reduce((s, i) => s + i.quantity, 0);
         return {
             batchNumber: p.batchNumber,
             productionNo: p.productionNo,

@@ -96,6 +96,16 @@ export const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        name: "Purchase Orders",
+        icon: User,
+        subItems: [
+            { name: "Create PO", href: "/purchase-orders/create-po" },
+            { name: "Purchase Orders", href: "/purchase-orders" },
+            { name: "Create GRN", href: "/purchase-orders/grn/create-grn" },
+            { name: "GRN", href: "/purchase-orders/grn" },
+        ],
+    },
+    {
         name: "Sales",
         icon: ShoppingCart,
         subItems: [

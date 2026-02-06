@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "BOMStatus" ADD VALUE 'DRAFT';
