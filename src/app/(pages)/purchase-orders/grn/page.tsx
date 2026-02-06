@@ -19,6 +19,7 @@ interface GRNItemUI {
     returnedQuantity: number;
     remaining: number;
     receiveInput: number;
+    returnInput: number;
 }
 
 interface GRNUI {
@@ -43,7 +44,10 @@ export default function GRNDashboard() {
     const [currentGRNId, setCurrentGRNId] = useState<string | null>(null);
     const router = useRouter();
     const [isReceiving, setIsReceiving] = useState(false);
-
+    const [returnModalOpen, setReturnModalOpen] = useState(false);
+    const [isReturning, setIsReturning] = useState(false);
+    const [lockModalOpen, setLockModalOpen] = useState(false);
+    const [isLocking, setIsLocking] = useState(false);
 
     useEffect(() => {
         fetchGRNs();
@@ -75,7 +79,8 @@ export default function GRNDashboard() {
                         quantityReceived: received,
                         returnedQuantity: returned,
                         remaining: poQty - received + returned,
-                        receiveInput: 0
+                        receiveInput: 0,
+                        returnInput: 0
                     };
                 });
 
@@ -206,13 +211,95 @@ export default function GRNDashboard() {
     const totalReceiving =
         currentGRN?.items.reduce((sum, i) => sum + (i.receiveInput || 0), 0) || 0;
 
+    const getMaxReturnable = (item: GRNItemUI) =>
+        item.quantityReceived - item.returnedQuantity;
+
+    const openReturnModal = (grnId: string) => {
+        setGRNs(prev =>
+            prev.map(grn =>
+                grn.id === grnId
+                    ? {
+                        ...grn,
+                        items: grn.items.map(i => ({
+                            ...i,
+                            returnInput: 0
+                        }))
+                    }
+                    : grn
+            )
+        );
+
+        setCurrentGRNId(grnId);
+        setReturnModalOpen(true);
+    };
+
+    const handleReturnChange = (itemId: string, value: number) => {
+        setGRNs(prev =>
+            prev.map(grn => {
+                if (grn.id !== currentGRNId) return grn;
+
+                return {
+                    ...grn,
+                    items: grn.items.map(item =>
+                        item.id === itemId
+                            ? { ...item, returnInput: value }
+                            : item
+                    )
+                };
+            })
+        );
+    };
+
+    const submitReturn = async () => {
+        if (!currentGRNId) return toast.error("No GRN selected");
+        const grn = grns.find(g => g.id === currentGRNId);
+        if (!grn) return;
+
+        const itemsToReturn = grn.items
+            .filter(
+                i =>
+                    i.returnInput > 0 &&
+                    i.returnInput <= getMaxReturnable(i)
+            )
+            .map(i => ({
+                grnItemId: i.id,
+                quantity: i.returnInput
+            }));
+
+        if (!itemsToReturn.length)
+            return toast.error("Enter quantities to return");
+
+        setIsReturning(true);
+        try {
+            const res = await fetch(`/api/grn/${currentGRNId}/returns`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    reason: "Supplier Return",
+                    items: itemsToReturn
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            toast.success("Returned to supplier");
+            setReturnModalOpen(false);
+            fetchGRNs();
+        } catch (err: any) {
+            toast.error(err.message ?? "Return failed");
+        } finally {
+            setIsReturning(false);
+        }
+    };
+
     const renderStatusBadge = (
         status: GRNUI["status"],
         locked?: boolean
     ) => {
         const colors = {
             DRAFT: "bg-gray-500 text-white",
-            PARTIALLY_RECEIVED: "bg-yellow-500 text-white",
+            PARTIALLY_RECEIVED: "bg-orange-500 text-white",
             RECEIVED: "bg-green-600 text-white",
             CLOSED: "bg-purple-600 text-white"
         };
@@ -264,7 +351,7 @@ export default function GRNDashboard() {
                                 return (
                                     <Fragment key={grn.id}>
                                         {/* Main GRN row */}
-                                        <tr className="border-b">
+                                        <tr className="border-b gap-2">
                                             <td className="px-2 py-1 font-mono">
                                                 <button onClick={() => toggle(grn.id)}>
                                                     {isOpen ? "▼" : "▶"} {grn.grnNumber}
@@ -274,7 +361,7 @@ export default function GRNDashboard() {
                                             <td>{grn.supplierName}</td>
                                             <td className="text-center">{grn.totalItems}</td>
                                             <td className="text-center">{grn.totalQuantity}</td>
-                                            <td>{renderStatusBadge(grn.status, grn.locked)}</td>
+                                            <td>{renderStatusBadge(grn.status)}</td>
                                             <td>{grn.createdAt}</td>
                                             <td className="flex gap-2 px-2 py-1">
                                                 {(grn.status !== "RECEIVED") &&
@@ -293,6 +380,42 @@ export default function GRNDashboard() {
                                                 >
                                                     View GRN
                                                 </Button>
+
+                                                {grn.items.some(
+                                                    i => getMaxReturnable(i) > 0
+                                                ) && !grn.locked && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => openReturnModal(grn.id)}
+                                                            className="px-2 py-1 bg-red-500 text-white hover:bg-red-600"
+                                                        >
+                                                            Return
+                                                        </Button>
+                                                    )}
+
+                                                {!grn.locked &&
+                                                    grn.items.some(
+                                                        i => i.quantityReceived > 0 || i.returnedQuantity > 0
+                                                    ) && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setCurrentGRNId(grn.id);
+                                                                setLockModalOpen(true);
+                                                            }}
+                                                            className="px-2 py-1 bg-purple-600 text-white hover:bg-purple-700"
+                                                        >
+                                                            Lock GRN
+                                                        </Button>
+                                                    )}
+                                                {grn.locked && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="px-2 py-1 bg-purple-600 text-white hover:bg-purple-700"
+                                                    >
+                                                        LOCKED
+                                                    </Button>
+                                                )}
                                             </td>
                                         </tr>
 
@@ -361,7 +484,7 @@ export default function GRNDashboard() {
                                     <th className="p-2 text-left">Product</th>
                                     <th>Ordered</th>
                                     <th>Received</th>
-                                    <th>Remaining</th>
+                                    <th>Pending</th>
                                     <th>Receive Now</th>
                                 </tr>
                             </thead>
@@ -372,7 +495,7 @@ export default function GRNDashboard() {
                                         <td className="p-2">{item.productName}</td>
                                         <td className="text-center">{item.poQuantity}</td>
                                         <td className="text-center">{item.quantityReceived}</td>
-                                        <td className="text-center font-semibold">{item.remaining}</td>
+                                        <td className="text-center font-semibold">{item.remaining - item.receiveInput}</td>
                                         <td className="text-center">
                                             <input
                                                 type="number"
@@ -405,6 +528,147 @@ export default function GRNDashboard() {
                     </div>
                 </div>
             )}
+
+            {returnModalOpen && currentGRN && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-md w-[650px] max-h-[80vh] overflow-auto">
+
+                        <h2 className="text-lg font-bold mb-3">
+                            Return Items to Supplier
+                        </h2>
+
+                        <table className="w-full text-sm border">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="p-2 text-left">Product</th>
+                                    <th>Received</th>
+                                    <th>Returned</th>
+                                    <th>Max Return</th>
+                                    <th>Return Now</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {currentGRN.items.map(item => {
+                                    const max = getMaxReturnable(item);
+                                    if (max <= 0) return null;
+
+                                    return (
+                                        <tr key={item.id} className="border-t">
+                                            <td className="p-2">{item.productName}</td>
+                                            <td className="text-center">
+                                                {item.quantityReceived}
+                                            </td>
+                                            <td className="text-center">
+                                                {item.returnedQuantity}
+                                            </td>
+                                            <td className="text-center font-semibold">
+                                                {max}
+                                            </td>
+                                            <td className="text-center">
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={max}
+                                                    value={item.returnInput}
+                                                    disabled={isReturning}
+                                                    onChange={e =>
+                                                        handleReturnChange(
+                                                            item.id,
+                                                            Number(e.target.value)
+                                                        )
+                                                    }
+                                                    className="border rounded p-1 w-20 text-center"
+                                                />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+
+                        <div className="mt-4 flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setReturnModalOpen(false)}
+                                disabled={isReturning}
+                                className="bg-gray-200"
+                            >
+                                Cancel
+                            </Button>
+
+                            <Button
+                                onClick={submitReturn}
+                                disabled={isReturning}
+                                className="bg-red-600 text-white"
+                            >
+                                {isReturning ? "Returning..." : "Confirm Return"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {lockModalOpen && currentGRN && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-md w-[420px]">
+
+                        <h2 className="text-lg font-bold mb-2 text-red-600">
+                            ⚠️ Lock GRN
+                        </h2>
+
+                        <p className="text-sm text-gray-700 mb-4">
+                            Locking this GRN will permanently close it.
+                            <br />
+                            <span className="font-semibold text-red-600">
+                                This action cannot be undone.
+                            </span>
+                        </p>
+
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setLockModalOpen(false)}
+                                disabled={isLocking}
+                            >
+                                Cancel
+                            </Button>
+
+                            <Button
+                                onClick={async () => {
+                                    if (!currentGRNId) return;
+
+                                    setIsLocking(true);
+                                    try {
+                                        const res = await fetch(
+                                            `/api/grn/${currentGRNId}/lock`,
+                                            { method: "POST" }
+                                        );
+
+                                        const data = await res.json();
+                                        if (!res.ok)
+                                            throw new Error(data.error);
+
+                                        toast.success("GRN locked successfully");
+                                        setLockModalOpen(false);
+                                        fetchGRNs();
+                                    } catch (err: any) {
+                                        toast.error(
+                                            err.message ?? "Failed to lock GRN"
+                                        );
+                                    } finally {
+                                        setIsLocking(false);
+                                    }
+                                }}
+                                className="bg-red-600 text-white hover:bg-red-700"
+                            >
+                                {isLocking ? "Locking..." : "Confirm Lock"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

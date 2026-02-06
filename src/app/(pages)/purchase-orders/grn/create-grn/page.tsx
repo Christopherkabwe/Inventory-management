@@ -9,12 +9,14 @@ import { toast } from "react-hot-toast";
 import Loading from "@/components/Loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Location, LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
+import { NumberInput } from "@/components/Inputs/NumberInput";
 
 interface POItem {
     id: string;
     product: { id: string; name: string; sku: string };
     quantity: number;
     receivedQuantity: number;
+    pending: number;
 }
 
 interface PO {
@@ -47,6 +49,7 @@ export default function CreateGRNPage() {
                 const res = await fetch("/api/purchase-orders");
                 if (!res.ok) throw new Error("Failed to fetch POs");
                 const data: PO[] = await res.json();
+                console.log(data)
                 setPOs(data);
             } catch (err) {
                 console.error(err);
@@ -88,11 +91,17 @@ export default function CreateGRNPage() {
                 const res = await fetch(`/api/purchase-orders/${selectedPOId}`);
                 if (!res.ok) throw new Error("Failed to fetch PO details");
                 const data: PO = await res.json();
-                setPO(data);
 
-                // Initialize received quantities
+                // Filter items to only those with remaining quantity > 0
+                const filteredItems = data.items.filter(
+                    item => (item.quantity - item.receivedQuantity) > 0
+                );
+
+                setPO({ ...data, items: filteredItems });
+
+                // Initialize received quantities only for items with remaining
                 const initialQty: Record<string, number> = {};
-                data.items.forEach(item => {
+                filteredItems.forEach(item => {
                     initialQty[item.id] = 0;
                 });
                 setReceivedQuantities(initialQty);
@@ -107,20 +116,34 @@ export default function CreateGRNPage() {
         fetchPO();
     }, [selectedPOId]);
 
-    const handleQuantityChange = (poItemId: string, value: number) => {
+    const handleQuantityChange = (poItemId: string, value: number | string) => {
         if (po) {
             const poItem = po.items.find(item => item.id === poItemId);
             if (poItem) {
                 const remaining = poItem.quantity - poItem.receivedQuantity;
-
-                if (value > remaining) {
+                if (value === '') {
+                    setReceivedQuantities(prev => ({ ...prev, [poItemId]: 0 }));
+                    return;
+                }
+                const numValue = Number(value);
+                if (numValue > remaining) {
                     toast.error(`Cannot receive more than ${remaining} for ${poItem.product.name}`);
                     return;
                 }
+                setReceivedQuantities(prev => ({ ...prev, [poItemId]: numValue }));
             }
         }
-        setReceivedQuantities(prev => ({ ...prev, [poItemId]: value }));
     };
+
+    const receiveAll = () => {
+        if (!po) return;
+        const updated: Record<string, number> = {};
+        po.items.forEach(item => {
+            updated[item.id] = item.quantity;
+        });
+        setReceivedQuantities(updated);
+    };
+
 
     const handleSubmit = async (status: "DRAFT" | "RECEIVED") => {
         if (!po) return;
@@ -172,33 +195,19 @@ export default function CreateGRNPage() {
             setSubmitting(false);
         }
     };
-    const handleBatchReceive = () => {
-        if (!po) return;
-        const batchQty = prompt("Enter quantity to receive for all items:");
-        if (batchQty === null) return;
-        const qty = Number(batchQty);
-        if (isNaN(qty) || qty <= 0) {
-            toast.error("Invalid quantity");
-            return;
-        }
-        const newReceivedQuantities = { ...receivedQuantities };
-        po.items.forEach(item => {
-            const remaining = item.quantity - item.receivedQuantity;
-            newReceivedQuantities[item.id] = Math.min(qty, remaining);
-        });
-        setReceivedQuantities(newReceivedQuantities);
-    };
 
     if (loading) return <div className="bg-white p-5 rounded-lg mt-5"><Loading /></div>;
+
 
     const suppliers = Array.from(new Set(pos.map(po => po.supplier.name)));
     const filteredPOs = selectedSupplier
         ? pos.filter(
             po =>
                 po.supplier.name === selectedSupplier &&
-                po.status === "SENT"
+                ["SENT", "PARTIALLY_RECEIVED"].includes(po.status)
         )
         : [];
+
 
     return (
         <div className="bg-white p-5 rounded-md space-y-6">
@@ -267,55 +276,69 @@ export default function CreateGRNPage() {
             {/* PO Items */}
             {po && (
                 <>
-                    <p className="mt-4">Supplier: {po.supplier.name}</p>
+                    <div className="flex justify-end mb-2 px-5">
+                        <Button onClick={receiveAll} className="bg-blue-500 text-white hover:bg-blue-600">
+                            Receive All
+                        </Button>
+                    </div>
                     <table className="w-full text-sm border-collapse mt-2">
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="p-2 text-left">SKU</th>
                                 <th className="p-2 text-left">Product</th>
-                                <th className="p-2 text-left">Quantity Ordered</th>
-                                <th className="p-2 text-left">Already Received</th>
-                                <th className="p-2 text-left">Quantity Received</th>
+                                <th className="p-2 text-center">Ordered</th>
+                                <th className="p-2 text-center">Already Received</th>
+                                <th className="p-2 text-center">Pending</th>
+                                <th className="p-2 text-left">Received Now</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {po.items.map(item => (
-                                <tr key={item.id} className="border-b">
-                                    <td className="p-2">{item.product.sku}</td>
-                                    <td className="p-2">{item.product.name}</td>
-                                    <td className="p-2">{item.quantity}</td>
-                                    <td className="p-2">
-                                        <span className="text-gray-500">{item.receivedQuantity}received</span>
-                                    </td>
-                                    <td className="p-2">
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            value={receivedQuantities[item.id]}
-                                            onChange={e => handleQuantityChange(item.id, Number(e.target.value))}
-                                            className="w-20"
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
+                            {po.items.map(item => {
+                                const pending =
+                                    item.quantity -
+                                    item.receivedQuantity -
+                                    (receivedQuantities[item.id] ?? 0);
+
+                                return (
+                                    <tr key={item.id} className="border-b">
+                                        <td className="p-2">{item.product.sku}</td>
+                                        <td className="p-2">{item.product.name}</td>
+                                        <td className="p-2 text-center">{item.quantity}</td>
+                                        <td className="p-2 text-center">{item.receivedQuantity}</td>
+                                        <td className="p-2 text-center">{pending}</td>
+                                        <td className="p-2">
+                                            <NumberInput
+                                                min={0}
+                                                value={receivedQuantities[item.id] ?? 0}
+                                                onChange={value => handleQuantityChange(item.id, value)}
+                                                className="w-50"
+                                            />
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
 
-
-                    <>
+                    <div className="flex ml-10 gap-5">
                         {/* ... */}
-                        <Button onClick={() => handleSubmit("DRAFT")} disabled={submitting} className="bg-gray-500 text-white hover:bg-gray-600 mt-4 mr-2">
-                            {submitting ? "Saving..." : "Save as Draft"}
+                        <Button
+                            onClick={router.back}
+                            disabled={submitting}
+                            className="bg-red-500 text-white hover:bg-red-600">
+                            Cancel
                         </Button>
-                        <Button onClick={() => handleSubmit("RECEIVED")} disabled={submitting} className="bg-green-500 text-white hover:bg-green-600 mt-4 mr-2">
+                        <Button
+                            onClick={() => handleSubmit("RECEIVED")}
+                            disabled={submitting}
+                            className="bg-green-500 text-white hover:bg-green-600">
                             {submitting ? "Submitting..." : "Receive Items"}
                         </Button>
-                        <Button onClick={handleBatchReceive} disabled={submitting} className="bg-blue-500 text-white hover:bg-blue-600 mt-4">
-                            Batch Receive
-                        </Button>
-                    </>
+
+                    </div>
                 </>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

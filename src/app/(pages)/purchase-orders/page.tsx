@@ -22,7 +22,7 @@ interface APIItem {
 interface APIPO {
     id: string;
     poNumber: string;
-    status: "DRAFT" | "SUBMITTED" | "APPROVED" | "SENT" | "RECEIVED" | "CANCELLED";
+    status: "DRAFT" | "SUBMITTED" | "APPROVED" | "SENT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELLED";
     createdAt: string;
 
     supplier?: {
@@ -111,7 +111,8 @@ export default function PODashboard() {
             SUBMITTED: "bg-blue-500 text-white",
             APPROVED: "bg-green-500 text-white",
             SENT: "bg-orange-500 text-white",
-            RECEIVED: "bg-purple-500 text-white",
+            PARTIALLY_RECEIVED: "bg-yellow-500 text-white",
+            RECEIVED: "bg-green-500 text-white",
             CANCELLED: "bg-red-500 text-white",
         };
 
