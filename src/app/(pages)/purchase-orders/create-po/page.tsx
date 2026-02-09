@@ -9,9 +9,9 @@ import { ProductCombobox } from "@/components/SingleSelectComboBox/ProductComboB
 import { LocationCombobox } from "@/components/SingleSelectComboBox/LocationComboBox";
 import { NumberInput } from "@/components/Inputs/NumberInput";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { TextInput } from "@/components/Inputs/TextInput";
 import { TextArea } from "@/components/Inputs/TextArea";
+import DisplayField from "@/components/Inputs/DisplayField";
 
 /* ==============================
    TYPES
@@ -183,10 +183,10 @@ export default function CreatePOPage() {
                     />
                     <div className="flex flex-col">
                         <label className="text-sm font-medium mb-1">Notes (Optional)</label>
-                        <textarea
-                            className="border p-2 rounded h-16"
+                        <TextArea
+                            className="border p-2 rounded h-10"
                             value={notes}
-                            onChange={e => setNotes(e.target.value)}
+                            onChange={notes => setNotes(notes)}
                         />
                     </div>
                 </div>
@@ -194,7 +194,7 @@ export default function CreatePOPage() {
                 {/* PO ITEMS */}
                 <div className="space-y-2">
                     {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-1 xl:grid-cols-5 gap-4 items-end">
+                        <div key={idx} className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-end">
                             <ProductCombobox
                                 products={products}
                                 value={item.productId}
@@ -203,12 +203,31 @@ export default function CreatePOPage() {
                                     updateItem(idx, { productId: pid, product: prod, unitPrice: prod.price });
                                 }}
                                 label="Select Product"
+                                disabled={isCreating}
                             />
+
+                            <DisplayField
+                                label="SKU"
+                                value={item.product.sku}
+                                placeholder="sku"
+                            />
+
+                            <DisplayField
+                                label="Weight"
+                                value={
+                                    item.product
+                                        ? `${item.product.weightValue?.toFixed(2) ?? "0.00"} ${item.product.weightUnit ?? "Kg"}`
+                                        : "weight"
+                                }
+                                placeholder="weight"
+                            />
+
                             <NumberInput
                                 label="Quantity"
                                 value={item.quantity}
                                 min={1}
                                 onChange={val => updateItem(idx, { quantity: val })}
+                                disabled={isCreating}
                             />
                             <NumberInput
                                 label="Unit Price"
@@ -216,20 +235,14 @@ export default function CreatePOPage() {
                                 min={0}
                                 step={0.01}
                                 onChange={val => updateItem(idx, { unitPrice: val })}
+                                disabled={isCreating}
                             />
-                            <TextArea
-                                className="border rounded px-2 py-1"
-                                value={item.product.weightUnit}
-                                onChange={e => updateItem(idx, { uom: item.product.weightUnit })}
-                                label="Uom"
-                                rows={2}
-                            />
-                            <Button type="button" variant="destructive" onClick={() => removeItem(idx)}>
+                            <Button type="button" variant="destructive" onClick={() => removeItem(idx)} disabled={isCreating}>
                                 Remove
                             </Button>
                         </div>
                     ))}
-                    <Button type="button" onClick={addItem}>Add Product</Button>
+                    <Button type="button" onClick={addItem} disabled={isCreating}>Add Product</Button>
                 </div>
 
                 <div className="border-t pt-4 space-y-1">
@@ -241,7 +254,7 @@ export default function CreatePOPage() {
                         {isCreating ? "Creating..." : "Create Purchase Order"}
                     </Button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }

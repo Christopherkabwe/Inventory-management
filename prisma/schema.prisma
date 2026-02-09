@@ -16,12 +16,42 @@ datasource db {
 
 // ==================== GLOBAL SEQUENCE ====================
 model Sequence {
-  id        String
-  year      Int
-  value     Int
-  updatedAt DateTime @updatedAt
+  id          String
+  year        Int
+  value       Int
+  locked      Boolean   @default(false)
+  lastResetAt DateTime?
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation(fields: [updatedById], references: [id])
+
+  audits SequenceAudit[]
 
   @@id([id, year])
+}
+
+model SequenceAudit {
+  id            String         @id @default(cuid())
+  sequenceId    String
+  year          Int
+  oldValue      Int
+  newValue      Int
+  action        SequenceAction
+  performedById String
+  performedBy   User           @relation(fields: [performedById], references: [id])
+  performedAt   DateTime       @default(now())
+  reason        String?
+  sequence      Sequence?      @relation(fields: [sequenceId, sequenceYear], references: [id, year])
+  sequenceYear  Int?
+
+  @@index([sequenceId, year])
+}
+
+enum SequenceAction {
+  RESET
+  LOCK
+  UNLOCK
 }
 
 // ==================== USERS ====================
@@ -72,6 +102,8 @@ model User {
   productionDefects  ProductionDefect[]
   boms               BOM[]
   purchaseOrders     PurchaseOrder[]
+  sequences          Sequence[]
+  sequenceAudits     SequenceAudit[]
 
   @@index([managerId])
 }
@@ -985,19 +1017,20 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id              String        @id @default(cuid())
-  purchaseOrderId String
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  productId       String
-  product         ProductList   @relation(fields: [productId], references: [id])
-  quantity        Int
-  receivedQuantity Int @default(0)
-  uom             String
-  unitPrice       Float
-  plannedDate     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
-  grnitems        GRNItem[]
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          ProductList   @relation(fields: [productId], references: [id])
+  quantity         Int
+  receivedQuantity Int           @default(0)
+  returnedQuantity Int           @default(0)
+  uom              String
+  unitPrice        Float
+  plannedDate      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @default(now()) @updatedAt
+  grnitems         GRNItem[]
 
   @@index([purchaseOrderId])
   @@index([productId])
@@ -1024,6 +1057,7 @@ model GRNItem {
   id               String @id @default(cuid())
   grnId            String
   poItemId         String
+  quantityExpected Float?
   quantityReceived Float
   returnedQuantity Float  @default(0)
 
@@ -1061,4 +1095,123 @@ model SupplierReturnItem {
   grnItem   GRNItem @relation(fields: [grnItemId], references: [id])
 
   quantity Float
+}
+
+// ==================== SALES TARGETS ====================
+
+model SalesTargetBatch {
+  id String @id @default(cuid())
+
+  name String? // e.g., "January 2026 Targets"
+
+  year  Int
+  month Int? // null = yearly target
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  status SalesTargetStatus @default(DRAFT)
+
+  locked     Boolean   @default(false)
+  lockedAt   DateTime?
+  lockedById String?
+  lockedBy   User? @relation("SalesTargetBatchLockedBy", fields: [lockedById], references: [id])
+
+  createdById String
+  createdBy   User @relation("SalesTargetBatchCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines  SalesTargetLine[]
+  audits SalesTargetBatchAudit[]
+
+  @@index([year, month])
+  @@index([locationId])
+}
+
+model SalesTargetLine {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   SalesTargetBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  targetAmount   Decimal
+  achievedAmount Decimal @default(0)
+
+  // Dimensions
+  userId     String?
+  user       User? @relation(fields: [userId], references: [id])
+
+  productId  String?
+  product    ProductList? @relation(fields: [productId], references: [id])
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  audits SalesTargetLineAudit[]
+
+  @@index([batchId])
+  @@index([userId])
+  @@index([productId])
+  @@index([locationId])
+}
+
+model SalesTargetBatchAudit {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   SalesTargetBatch @relation(fields: [batchId], references: [id])
+
+  action SalesTargetAction
+  performedById String
+  performedBy   User @relation(fields: [performedById], references: [id])
+
+  reason String?
+  createdAt DateTime @default(now())
+
+  @@index([batchId])
+}
+
+model SalesTargetLineAudit {
+  id String @id @default(cuid())
+
+  lineId String
+  line   SalesTargetLine @relation(fields: [lineId], references: [id])
+
+  fieldChanged String? // e.g., targetAmount, achievedAmount
+  oldValue Decimal?
+  newValue Decimal?
+
+  action SalesTargetAction
+
+  performedById String
+  performedBy   User @relation(fields: [performedById], references: [id])
+
+  reason String?
+  createdAt DateTime @default(now())
+
+  @@index([lineId])
+}
+
+// ==================== ENUMS ====================
+
+enum SalesTargetStatus {
+  DRAFT
+  APPROVED
+  LOCKED
+}
+
+enum SalesTargetAction {
+  CREATE
+  UPDATE
+  IMPORT
+  APPROVE
+  LOCK
+  DELETE
 }

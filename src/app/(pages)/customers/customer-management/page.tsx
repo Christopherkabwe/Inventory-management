@@ -8,10 +8,11 @@ import { ExportHeader } from "@/lib/ExportUtils";
 import Pagination from "@/components/pagination/pagination";
 import Loading from "@/components/Loading";
 import Link from "next/link";
-import DashboardLayout from "@/components/DashboardLayout";
 import { useUser } from "@/app/context/UserContext";
 import AdminOnly from "@/components/rbac/AdminOnly";
 import { useToaster } from "@/app/context/Toaster";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Customer = {
     id: string;
@@ -38,6 +39,7 @@ type User = { id: string; fullName: string };
 export default function CustomerManagementPage() {
     const user = useUser();
     const isAdmin = user?.role === "ADMIN";
+    const router = useRouter();
 
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
@@ -201,7 +203,7 @@ export default function CustomerManagementPage() {
     const columnCount = isAdmin ? 15 : 14;
 
     return (
-        <div className="p-1">
+        <div className="bg-white p-5 rounded-md ">
             <h1 className="text-2xl font-semibold mb-4">Customer Management</h1>
 
             {/* Controls */}
@@ -232,15 +234,20 @@ export default function CustomerManagementPage() {
                 </div>
 
                 {/* Create Customer Button */}
-                <div className="min-w-[150px] font-bold text-center text-white p-2 h-9 text-xs bg-blue-600 border border-zinc-300 rounded-lg hover:bg-blue-700 cursor-pointer mt-2 xl:mt-0">
-                    <Link href="/customers/create-customer">Create New Customer</Link>
-                </div>
+                <button
+                    onClick={() => router.push("/customers/create-customer")}
+                    className="ml-auto h-9 w-85 inline-flex items-center gap-2 rounded-md bg-green-500 px-5 py-2
+                        text-sm font-medium text-white hover:bg-green-600 cursor-pointer"
+                >
+                    <Plus size={16} />
+                    New Customer
+                </button>
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto max-h-[600px]">
-                <table className=" min-w-full bg-white border cursor-pointer">
-                    <thead className="bg-blue-100 sticky top-0">
+            <div className="overflow-x-auto max-h-[600px] rounded">
+                <table className="text-sm min-w-full bg-white border cursor-pointer">
+                    <thead className="bg-gray-50 sticky top-0">
                         <tr>
                             <th className="p-2 border text-center">#</th>
                             <th className="p-2 border">Name</th>
@@ -253,9 +260,6 @@ export default function CustomerManagementPage() {
                             <th className="p-2 border">Location</th>
                             <th className="p-2 border">Created By</th>
                             <th className="p-2 border">Assigned User</th>
-                            <th className="p-2 border">Sales</th>
-                            <th className="p-2 border">Orders</th>
-                            <th className="p-2 border">Quotations</th>
                             <AdminOnly>
                                 <th className="p-2 border">Actions</th>
                             </AdminOnly>
@@ -291,9 +295,6 @@ export default function CustomerManagementPage() {
                                     <td className="p-2 border">{c.locationName}</td>
                                     <td className="p-2 border">{c.createdByName}</td>
                                     <td className="p-2 border">{c.assignedUserName || "-"}</td>
-                                    <td className="p-2 border text-center">{c.salesCount}</td>
-                                    <td className="p-2 border text-center">{c.ordersCount}</td>
-                                    <td className="p-2 border text-center">{c.quotationsCount}</td>
                                     <AdminOnly>
                                         <td className="p-2 border flex gap-2">
                                             <button

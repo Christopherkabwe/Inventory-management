@@ -83,7 +83,6 @@ export const NAV_ITEMS: NavItem[] = [
         subItems: [
             { name: "Create Customer", href: "/customers/create-customer" },
             { name: "Customer Management", href: "/customers/customer-management" },
-            { name: "Customer Service", href: "/customers/customer-management" },
         ],
     },
 
@@ -96,13 +95,27 @@ export const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        name: "Transporters",
+        icon: User,
+        subItems: [
+            { name: "Add Transporter", href: "/transporters/create-transporter" },
+            { name: "Transporter Management", href: "/transporters/transporter-management" },
+        ],
+    },
+    {
         name: "Purchase Orders",
         icon: User,
         subItems: [
             { name: "Create PO", href: "/purchase-orders/create-po" },
             { name: "Purchase Orders", href: "/purchase-orders" },
-            { name: "Create GRN", href: "/purchase-orders/grn/create-grn" },
-            { name: "GRN", href: "/purchase-orders/grn" },
+        ],
+    },
+    {
+        name: "Goods Received Note",
+        icon: User,
+        subItems: [
+            { name: "Create GRN", href: "/grn/create-grn" },
+            { name: "Manage GRNs", href: "/grn" },
         ],
     },
     {
@@ -183,7 +196,7 @@ export const NAV_ITEMS: NavItem[] = [
         name: "Sequence",
         icon: User,
         subItems: [
-            { name: "Sequence", href: "/users/create-user" },
+            { name: "Sequence", href: "/admin/sequence" },
         ],
     },
     { name: "Settings", href: "/settings", icon: Settings },

@@ -1,20 +1,26 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import Link from "next/link";
+import { Home } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function UnauthorizedPage() {
+    const router = useRouter();
     return (
-        <div>
-            <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-                <h1 className="text-4xl font-bold text-red-600 mb-4">Unauthorized Access</h1>
-                <p className="text-lg text-gray-700 mb-8">
+        <div className="bg-white p-5 rounded-lg h-50 max-w-[800px] mx-auto">
+            <div className="grid grid-cols-1">
+                <div className="w-full flex justify-center"><h1 className="text-4xl font-bold text-red-600 mb-4">Unauthorized Access</h1></div>
+                <div className="w-full flex justify-center"><p className="text-lg text-gray-700 mb-8">
                     You do not have permission to access this page.
-                </p>
-                <Link
-                    href="/"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                >
-                    Go back to home
-                </Link>
+                </p></div>
+                <div className="w-full flex justify-center">
+                    <button
+                        onClick={() => router.push("/")}
+                        className="h-9 inline-flex items-center gap-2 rounded-md bg-blue-500 px-5 py-2
+                        text-sm font-medium text-white hover:bg-blue-600 cursor-pointer items-center"
+                    >
+                        <Home size={16} className="items-center" />
+                        Go Back Home
+                    </button>
+                </div>
             </div>
         </div>
     );

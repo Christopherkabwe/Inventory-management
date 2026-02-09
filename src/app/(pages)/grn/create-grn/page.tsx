@@ -16,6 +16,7 @@ interface POItem {
     product: { id: string; name: string; sku: string };
     quantity: number;
     receivedQuantity: number;
+    returnedQuantity: number;
     pending: number;
 }
 
@@ -49,7 +50,6 @@ export default function CreateGRNPage() {
                 const res = await fetch("/api/purchase-orders");
                 if (!res.ok) throw new Error("Failed to fetch POs");
                 const data: PO[] = await res.json();
-                console.log(data)
                 setPOs(data);
             } catch (err) {
                 console.error(err);
@@ -94,7 +94,7 @@ export default function CreateGRNPage() {
 
                 // Filter items to only those with remaining quantity > 0
                 const filteredItems = data.items.filter(
-                    item => (item.quantity - item.receivedQuantity) > 0
+                    item => (item.quantity - item.receivedQuantity + item.returnedQuantity) > 0
                 );
 
                 setPO({ ...data, items: filteredItems });
@@ -139,7 +139,7 @@ export default function CreateGRNPage() {
         if (!po) return;
         const updated: Record<string, number> = {};
         po.items.forEach(item => {
-            updated[item.id] = item.quantity;
+            updated[item.id] = item.quantity - item.receivedQuantity + item.returnedQuantity;
         });
         setReceivedQuantities(updated);
     };
@@ -152,8 +152,11 @@ export default function CreateGRNPage() {
             return;
         }
 
+        // Only validate when finalizing RECEIVED
         if (status === "RECEIVED") {
-            const totalReceived = Object.values(receivedQuantities).reduce((sum, qty) => sum + qty, 0);
+            const totalReceived = Object.values(receivedQuantities)
+                .reduce((sum, qty) => sum + qty, 0);
+
             if (totalReceived === 0) {
                 toast.error("Please enter at least one received quantity");
                 return;
@@ -161,12 +164,12 @@ export default function CreateGRNPage() {
 
             for (const item of po.items) {
                 const received = receivedQuantities[item.id] || 0;
-                const remaining = item.quantity - item.receivedQuantity;
+                const remaining = item.quantity - item.receivedQuantity + item.returnedQuantity;
+
                 if (received > remaining) {
                     toast.error(`Cannot receive more than ${remaining} for ${item.product.name}`);
                     return;
                 }
-
             }
         }
 
@@ -177,17 +180,30 @@ export default function CreateGRNPage() {
                 locationId: selectedLocation,
                 status,
                 items: Object.entries(receivedQuantities)
-                    .filter(([_, qty]) => qty > 0)
-                    .map(([poItemId, quantityReceived]) => ({ poItemId, quantityReceived })),
+                    // Allow zero quantities for drafts
+                    .filter(([_, qty]) => status === "RECEIVED" ? qty > 0 : true)
+                    .map(([poItemId, quantityReceived]) => ({
+                        poItemId,
+                        quantityReceived
+                    })),
             };
+
             const res = await fetch("/api/grn", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
+
             if (!res.ok) throw new Error("Failed to create GRN");
-            toast.success(`GRN ${status === "DRAFT" ? "saved as draft" : "created successfully"}`);
-            router.push("/purchase-orders/grn");
+
+            toast.success(
+                status === "DRAFT"
+                    ? "GRN saved as draft"
+                    : "GRN created successfully"
+            );
+
+            router.push("/grn");
+
         } catch (err) {
             console.error(err);
             toast.error("Error creating GRN");
@@ -246,7 +262,7 @@ export default function CreateGRNPage() {
                                 {filteredPOs.length === 0 ? (
                                     <div className="p-2 text-sm text-gray-500">
                                         <p>Selected Supplier has no Outstanding PO</p>
-                                        <span>Redirect to existing <a href="/purchase-orders/grn" className="underline text-blue-600">GRN</a> or view <a href="/purchase-orders" className="underline text-blue-600">Purchase Orders</a></span>
+                                        <span>Redirect to existing <a href="/grn" className="underline text-blue-600">GRN</a> or view <a href="/purchase-orders" className="underline text-blue-600">Purchase Orders</a></span>
                                     </div>
                                 ) : (
                                     filteredPOs.map(po => (
@@ -288,6 +304,7 @@ export default function CreateGRNPage() {
                                 <th className="p-2 text-left">Product</th>
                                 <th className="p-2 text-center">Ordered</th>
                                 <th className="p-2 text-center">Already Received</th>
+                                <th className="p-2 text-center">Returned</th>
                                 <th className="p-2 text-center">Pending</th>
                                 <th className="p-2 text-left">Received Now</th>
                             </tr>
@@ -297,7 +314,7 @@ export default function CreateGRNPage() {
                                 const pending =
                                     item.quantity -
                                     item.receivedQuantity -
-                                    (receivedQuantities[item.id] ?? 0);
+                                    (receivedQuantities[item.id] ?? 0) + item.returnedQuantity;
 
                                 return (
                                     <tr key={item.id} className="border-b">
@@ -305,6 +322,7 @@ export default function CreateGRNPage() {
                                         <td className="p-2">{item.product.name}</td>
                                         <td className="p-2 text-center">{item.quantity}</td>
                                         <td className="p-2 text-center">{item.receivedQuantity}</td>
+                                        <td className="p-2 text-center">{item.returnedQuantity}</td>
                                         <td className="p-2 text-center">{pending}</td>
                                         <td className="p-2">
                                             <NumberInput

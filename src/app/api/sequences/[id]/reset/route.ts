@@ -1,39 +1,7 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole } from "@/lib/rbac";
-
-export async function GET() {
-    try {
-        const user = await getCurrentUser();
-
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // RBAC: Admin only
-        if (user.role !== "ADMIN") {
-            return NextResponse.json(
-                { error: "Forbidden: Admin only" },
-                { status: 403 }
-            );
-        }
-
-        const sequences = await prisma.sequence.findMany({
-            orderBy: [{ id: "asc" }, { year: "desc" }],
-        });
-
-        return NextResponse.json(sequences);
-
-    } catch (error) {
-        console.error("Failed to fetch sequences:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch sequences" },
-            { status: 500 }
-        );
-    }
-}
-
+import { UserRole } from "@prisma/client";
 
 // Reset a sequence at year boundary
 export async function POST(

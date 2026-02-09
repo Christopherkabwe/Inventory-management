@@ -8,6 +8,7 @@ import Link from "next/link";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { windowScroll } from "@tanstack/react-virtual";
 
 /* ---------- Raw API Types ---------- */
 interface APIItem {
@@ -99,6 +100,7 @@ export default function PODashboard() {
 
             setPos(p => p.map(x => (x.id === id ? { ...x, status } : x)));
             toast.success(`PO status updated to ${status}`);
+            window.location.reload();
         } catch (err) {
             console.error(err);
             toast.error("Error updating status");
@@ -177,7 +179,7 @@ export default function PODashboard() {
                                     </Link>
                                     {po.status === "RECEIVED" && (
                                         <>
-                                            <Link href={`/purchase-orders/${po.id}`}>
+                                            <Link href={`/grn`}>
                                                 <Button
                                                     size="sm"
                                                     variant="secondary"

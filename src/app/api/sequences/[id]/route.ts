@@ -34,12 +34,12 @@ export async function GET() {
     }
 }
 
-
 // Reset a sequence at year boundary
 export async function POST(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const { id } = await params;
     try {
         const user = await getCurrentUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,7 +51,7 @@ export async function POST(
         if (!year) return NextResponse.json({ error: "Year is required" }, { status: 400 });
 
         const existing = await prisma.sequence.findUnique({
-            where: { id_year: { id: params.id, year } },
+            where: { id_year: { id, year } },
         });
 
         if (existing) return NextResponse.json({ error: "Sequence already exists for this year" }, { status: 400 });
@@ -59,7 +59,7 @@ export async function POST(
         // Get last sequence (previous year)
         const prevYear = year - 1;
         const prevSequence = await prisma.sequence.findUnique({
-            where: { id_year: { id: params.id, year: prevYear } },
+            where: { id_year: { id, year: prevYear } },
         });
 
         if (!prevSequence) return NextResponse.json({ error: "Previous year sequence not found" }, { status: 404 });
@@ -68,7 +68,7 @@ export async function POST(
         // Create new sequence for new year
         const newSequence = await prisma.sequence.create({
             data: {
-                id: params.id,
+                id,
                 year,
                 value: 0,
                 locked: false,

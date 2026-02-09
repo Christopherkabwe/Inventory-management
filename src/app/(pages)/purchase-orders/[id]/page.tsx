@@ -55,10 +55,12 @@ type PurchaseOrder = {
 /* ================= STATUS STYLES ================= */
 
 const statusStyles: Record<string, string> = {
-    APPROVED: "bg-green-400 text-black font-semibold",
+    DRAFT: "bg-gray-400 text-black font-semibold",
+    SENT: "bg-green-400 text-black font-semibold",
+    APPROVED: "bg-blue-400 text-black font-semibold",
     PENDING: "bg-yellow-400 text-black font-semibold",
     CANCELLED: "bg-zinc-400 text-black font-semibold",
-    RECEIVED: "bg-blue-400 text-black font-semibold",
+    RECEIVED: "bg-green-400 text-black font-semibold",
 };
 
 /* ================= COMPONENT ================= */

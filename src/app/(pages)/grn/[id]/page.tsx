@@ -105,7 +105,7 @@ export default function GRNViewPage() {
             {/* Back */}
             <div className="mb-4">
                 <Link
-                    href="/purchase-orders/grn"
+                    href="/grn"
                     className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900"
                 >
                     <ArrowLeft className="h-4 w-4" /> Back

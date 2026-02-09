@@ -15,6 +15,7 @@ interface GRNItemUI {
     weightUnit: string;
     weightValue: number;
     poQuantity: number;
+    quantityExpected: number;
     quantityReceived: number;
     returnedQuantity: number;
     remaining: number;
@@ -32,6 +33,7 @@ interface GRNUI {
     createdAt: string;
     items: GRNItemUI[];
     totalItems: number;
+    totalExpected: number;
     totalQuantity: number;
     location: { id: string; name: string };
 }
@@ -66,6 +68,7 @@ export default function GRNDashboard() {
                 const items = grn.items.map((item: any) => {
                     const returned = item.returnedQuantity ?? 0;
                     const received = item.quantityReceived ?? 0;
+                    const expected = item.quantityExpected ?? 0;
                     const poQty = item.poItem?.quantity ?? 0;
 
                     return {
@@ -76,21 +79,21 @@ export default function GRNDashboard() {
                         weightUnit: item.poItem?.product?.weightUnit ?? "-",
                         weightValue: item.poItem?.product?.weightValue ?? 0,
                         poQuantity: poQty,
+                        quantityExpected: expected,
                         quantityReceived: received,
                         returnedQuantity: returned,
-                        remaining: poQty - received + returned,
+                        remaining: expected - received,
                         receiveInput: 0,
                         returnInput: 0
                     };
                 });
-
                 const totalRemaining = items.reduce((sum, i) => sum + i.remaining, 0);
                 let status: GRNUI["status"] = grn.status;
 
                 if (
                     status === "DRAFT" &&
                     totalRemaining <
-                    items.reduce((sum, i) => sum + i.poQuantity, 0) &&
+                    items.reduce((sum, i) => sum + i.quantityExpected, 0) &&
                     totalRemaining > 0
                 ) {
                     status = "PARTIALLY_RECEIVED";
@@ -106,11 +109,11 @@ export default function GRNDashboard() {
                     createdAt: new Date(grn.createdAt).toLocaleString(),
                     items,
                     totalItems: items.length,
+                    totalExpected: items.reduce((s, i) => s + i.quantityExpected, 0),
                     totalQuantity: items.reduce((s, i) => s + i.quantityReceived, 0),
                     location: grn.location
                 };
             });
-
             setGRNs(mapped);
         } catch {
             toast.error("Failed to fetch GRNs");
@@ -212,7 +215,7 @@ export default function GRNDashboard() {
         currentGRN?.items.reduce((sum, i) => sum + (i.receiveInput || 0), 0) || 0;
 
     const getMaxReturnable = (item: GRNItemUI) =>
-        item.quantityReceived - item.returnedQuantity;
+        item.quantityExpected - item.returnedQuantity;
 
     const openReturnModal = (grnId: string) => {
         setGRNs(prev =>
@@ -318,7 +321,7 @@ export default function GRNDashboard() {
                 <h1 className="text-2xl font-bold">Goods Received Notes</h1>
                 <Button
                     onClick={() =>
-                        router.push("/purchase-orders/grn/create-grn")
+                        router.push("/grn/create-grn")
                     }
                     className="bg-green-600 text-white"
                 >
@@ -360,7 +363,7 @@ export default function GRNDashboard() {
                                             <td>{grn.poNumber}</td>
                                             <td>{grn.supplierName}</td>
                                             <td className="text-center">{grn.totalItems}</td>
-                                            <td className="text-center">{grn.totalQuantity}</td>
+                                            <td className="text-center">{grn.totalExpected}</td>
                                             <td>{renderStatusBadge(grn.status)}</td>
                                             <td>{grn.createdAt}</td>
                                             <td className="flex gap-2 px-2 py-1">
@@ -375,7 +378,7 @@ export default function GRNDashboard() {
                                                 }
                                                 <Button
                                                     size="sm"
-                                                    onClick={() => router.push(`/purchase-orders/grn/${grn.id}`)}
+                                                    onClick={() => router.push(`/grn/${grn.id}`)}
                                                     className="px-2 py-1 bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
                                                 >
                                                     View GRN
@@ -428,10 +431,11 @@ export default function GRNDashboard() {
                                                             <tr>
                                                                 <th className="p-1 text-left">Product</th>
                                                                 <th className="p-1 text-center">SKU</th>
-                                                                <th className="p-1 text-center">Ordered</th>
-                                                                <th className="p-1 text-center">Received</th>
+                                                                <th className="p-1 text-center">Expected</th>
+                                                                <th className="p-1 text-center">Total Received</th>
+                                                                <th className="p-1 text-center">Effective Received</th>
                                                                 <th className="p-1 text-center">Returned</th>
-                                                                <th className="p-1 text-center">Remaining</th>
+                                                                <th className="p-1 text-center">Pending</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -439,8 +443,9 @@ export default function GRNDashboard() {
                                                                 <tr key={item.id} className="border-t">
                                                                     <td className="p-1">{item.productName}</td>
                                                                     <td className="text-center">{item.sku}</td>
-                                                                    <td className="text-center">{item.poQuantity}</td>
+                                                                    <td className="text-center">{item.quantityExpected}</td>
                                                                     <td className="text-center">{item.quantityReceived}</td>
+                                                                    <td className="text-center">{item.quantityReceived - item.returnedQuantity}</td>
                                                                     <td className="text-center">{item.returnedQuantity}</td>
                                                                     <td className="text-center font-semibold">{item.remaining}</td>
                                                                 </tr>

@@ -8,6 +8,8 @@ import DateFiltersExports from "../Exports/DateFiltersExports";
 import { Sale } from "@/types/Sale";
 import Loading from "@/components/Loading";
 import { useUser } from "@/app/context/UserContext";
+import { MultiLocationCombobox } from "../MultiSelectComboBox/MultiLocationComboBox";
+import { LocationDropdown } from "../filters/Dropdowns/LocationDropdown";
 
 type View = "location" | "customer" | "product" | "salesperson" | "manager";
 

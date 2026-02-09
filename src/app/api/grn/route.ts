@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
                 items: {
                     create: items.map((item: any) => ({
                         poItemId: item.poItemId,
+                        quantityExpected: item.quantityReceived,
                         quantityReceived: 0,
                     })),
                 },

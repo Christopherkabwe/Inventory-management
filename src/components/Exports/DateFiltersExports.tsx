@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo, forwardRef } from "react";
 import { Sale } from "@/components/sales/Sale";
+import { Calendar } from "../search/Calendar";
+import { MultiLocationCombobox } from "../MultiSelectComboBox/MultiLocationComboBox";
 
 // ----------------- Types -----------------
 interface Location {
@@ -134,7 +136,7 @@ const DateFiltersExports = ({
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-2">
             {/* Date Pickers */}
             <div className="flex flex-row border border-gray-300 rounded gap-2 w-full xl:w-auto">
-                <label className="flex items-center gap-2 border rounded px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
+                <label className="flex items-center gap-2 px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
                     <span className="whitespace-nowrap text-sm">Start :</span>
                     <input
                         type="date"
@@ -143,7 +145,7 @@ const DateFiltersExports = ({
                         className="text-sm w-full min-w-0 hover:bg-gray-100 cursor-pointer"
                     />
                 </label>
-                <label className="flex items-center gap-2 border rounded py-1 px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
+                <label className="flex items-center gap-2 py-1 px-2 h-8 flex-1 xl:flex-none min-w-0 cursor-pointer">
                     <span className="whitespace-nowrap text-sm">End :</span>
                     <input
                         type="date"
@@ -166,7 +168,6 @@ const DateFiltersExports = ({
                     show={showLocations}
                     setShow={setShowLocations}
                 />
-
                 {/* Categories */}
                 <DropdownFilter
                     ref={categoryRef}

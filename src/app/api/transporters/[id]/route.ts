@@ -1,53 +1,136 @@
-// app/api/transporters/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// -------------------- PUT /api/transporters/:id --------------------
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+// -------------------- GET /api/transporters/:id --------------------
+// Used when opening edit form
+export async function GET(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+
+    const { id } = await params;
     try {
         const user = await getCurrentUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-        // Only ADMIN or MANAGER can update transporters
-        if (!["ADMIN", "MANAGER"].includes(user.role)) {
-            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const { name, vehicleNumber, driverName } = await req.json();
-        if (!name) return NextResponse.json({ error: "Transporter name is required" }, { status: 400 });
-
-        const updatedTransporter = await prisma.transporter.update({
-            where: { id: params.id },
-            data: { name, vehicleNumber: vehicleNumber || null, driverName: driverName || null },
+        const transporter = await prisma.transporter.findUnique({
+            where: { id },
         });
 
-        return NextResponse.json({ success: true, transporter: updatedTransporter });
+        if (!transporter) {
+            return NextResponse.json({ error: "Transporter not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(transporter);
     } catch (error) {
-        console.error("Update transporter failed:", error);
-        return NextResponse.json({ error: "Failed to update transporter", details: (error as Error).message }, { status: 500 });
+        console.error("Fetch transporter failed:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch transporter" },
+            { status: 500 }
+        );
     }
 }
 
-// -------------------- DELETE /api/transporters/:id --------------------
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+
+// -------------------- PUT /api/transporters/:id --------------------
+export async function PUT(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+
+    const { id } = await params;
     try {
         const user = await getCurrentUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-        // Only ADMIN or MANAGER can delete transporters
-        if (!["ADMIN", "MANAGER"].includes(user.role)) {
-            return NextResponse.json({ error: "Unauthorized: Admin or Manager required" }, { status: 403 });
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const transporter = await prisma.transporter.findUnique({ where: { id: params.id } });
-        if (!transporter) return NextResponse.json({ error: "Transporter not found" }, { status: 404 });
+        // RBAC: Only ADMIN can update
+        if (user.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized: Admin required" },
+                { status: 403 }
+            );
+        }
 
-        await prisma.transporter.delete({ where: { id: params.id } });
+        const body = await req.json();
+        const { name, vehicleNumber, driverName, driverPhoneNumber } = body;
 
-        return NextResponse.json({ success: true, message: "Transporter deleted" });
+        if (!name) {
+            return NextResponse.json(
+                { error: "Transporter name is required" },
+                { status: 400 }
+            );
+        }
+        const updatedTransporter = await prisma.transporter.update({
+            where: { id },
+            data: {
+                name,
+                vehicleNumber: vehicleNumber || null,
+                driverName: driverName || null,
+                driverPhoneNumber: driverPhoneNumber || null,
+            },
+        });
+
+        return NextResponse.json({
+            success: true,
+            transporter: updatedTransporter,
+        });
+
+    } catch (error) {
+        console.error("Update transporter failed:", error);
+        return NextResponse.json(
+            { error: "Failed to update transporter" },
+            { status: 500 }
+        );
+    }
+}
+
+
+// -------------------- DELETE /api/transporters/:id --------------------
+export async function DELETE(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    const { id } = await params;
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // RBAC: Only ADMIN can delete
+        if (user.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Unauthorized: Admin required" },
+                { status: 403 }
+            );
+        }
+
+        const transporter = await prisma.transporter.findUnique({
+            where: { id },
+        });
+
+        if (!transporter) {
+            return NextResponse.json({ error: "Transporter not found" }, { status: 404 });
+        }
+
+        await prisma.transporter.delete({
+            where: { id },
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: "Transporter deleted successfully",
+        });
+
     } catch (error) {
         console.error("Delete transporter failed:", error);
-        return NextResponse.json({ error: "Failed to delete transporter", details: (error as Error).message }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to delete transporter" },
+            { status: 500 }
+        );
     }
 }
